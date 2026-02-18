@@ -1,0 +1,1248 @@
+1️⃣ Missing Parenthesis
+
+Question: Fix the syntax issue in the print statement.
+
+Broken Code
+
+print("Welcome to Debug Lab"
+
+
+Error
+SyntaxError: '(' was never closed
+
+Correct Code
+
+print("Welcome to Debug Lab")
+
+
+Riddle
+
+I open my mouth to speak,
+but never close it.
+
+2️⃣ Wrong Indentation
+
+Question: Fix the block structure.
+
+Broken Code
+
+if 10 > 5:
+print("Correct")
+
+
+Error
+IndentationError
+
+Correct Code
+
+if 10 > 5:
+    print("Correct")
+
+
+Riddle
+
+After the colon, take a step forward.
+
+3️⃣ Undefined Variable
+
+Question: Why does this crash?
+
+Broken Code
+
+print(score)
+
+
+Error
+NameError: name 'score' is not defined
+
+Correct Code
+
+score = 100
+print(score)
+
+
+Riddle
+
+You called my name,
+but I was never introduced.
+
+4️⃣ String + Integer
+
+Question: Fix the type mismatch.
+
+Broken Code
+
+age = 20
+print("Age: " + age)
+
+
+Error
+TypeError
+
+Correct Code
+
+print("Age: " + str(age))
+
+
+Riddle
+
+I speak letters,
+you bring numbers.
+Make us understand each other.
+
+5️⃣ Wrong Assignment in Condition
+
+Question: Fix the comparison error.
+
+Broken Code
+
+if 5 = 5:
+    print("Equal")
+
+
+Error
+SyntaxError
+
+Correct Code
+
+if 5 == 5:
+    print("Equal")
+
+
+Riddle
+
+One equals gives.
+Two equals compares.
+
+6️⃣ Division by Zero
+
+Question: Prevent the crash.
+
+Broken Code
+
+result = 10 / 0
+print(result)
+
+
+Error
+ZeroDivisionError
+
+Correct Code
+
+result = 10 / 2
+print(result)
+
+
+Riddle
+
+Nothing cannot divide something.
+
+7️⃣ List Index Out of Range
+
+Question: Fix the indexing issue.
+
+Broken Code
+
+numbers = [1, 2, 3]
+print(numbers[3])
+
+
+Error
+IndexError: list index out of range
+
+Correct Code
+
+print(numbers[2])
+
+
+Riddle
+
+I only have three seats.
+You asked for the fourth.
+
+8️⃣ Missing Colon
+
+Question: Fix the syntax.
+
+Broken Code
+
+for i in range(3)
+    print(i)
+
+
+Error
+SyntaxError
+
+Correct Code
+
+for i in range(3):
+    print(i)
+
+
+Riddle
+
+A loop without punctuation
+cannot begin its journey.
+
+9️⃣ Input Type Issue
+
+Question: Fix the type problem.
+
+Broken Code
+
+num = input("Enter number: ")
+print(num + 5)
+
+
+Error
+TypeError
+
+Correct Code
+
+num = int(input("Enter number: "))
+print(num + 5)
+
+
+Riddle
+
+I accept words,
+but you expect numbers.
+
+🔟 Infinite Loop
+
+Question: Stop the loop properly.
+
+Broken Code
+
+while True:
+    print("Running")
+
+
+Error
+Logical Error (Infinite Loop)
+
+Correct Code
+
+count = 0
+while count < 3:
+    print("Running")
+    count += 1
+
+
+Riddle
+
+I run forever
+unless you set my boundary.
+
+1️⃣1️⃣ Function Missing Return
+
+Question: Why is output None?
+
+Broken Code
+
+def add(a, b):
+    c = a + b
+
+print(add(2, 3))
+
+
+Error
+No error, but prints None
+
+Correct Code
+
+def add(a, b):
+    return a + b
+
+
+Riddle
+
+I calculate silently,
+but never give back the result.
+
+1️⃣2️⃣ Wrong Logical Operator
+
+Question: Fix the condition.
+
+Broken Code
+
+x = 7
+if x > 5 and x < 3:
+    print("Inside")
+
+
+Error
+Logical error
+
+Correct Code
+
+if x > 5 or x < 3:
+
+
+Riddle
+
+I block everyone
+when I should allow some.
+
+1️⃣3️⃣ Dictionary Key Error
+
+Question: Fix the crash.
+
+Broken Code
+
+data = {"name": "Alex"}
+print(data["age"])
+
+
+Error
+KeyError
+
+Correct Code
+
+print(data.get("age"))
+
+
+Riddle
+
+You searched for a key
+that was never crafted.
+
+1️⃣4️⃣ Variable Shadowing
+
+Question: Fix the logic issue.
+
+Broken Code
+
+x = 10
+
+def test():
+    x = 5
+
+test()
+print(x)
+
+
+Error
+No error, but prints 10
+
+Correct Code
+
+def test():
+    global x
+    x = 5
+
+
+Riddle
+
+I changed inside the room,
+but outside I remained the same.
+
+1️⃣5️⃣ Wrong Range Boundary
+
+Question: Fix off-by-one error.
+
+Broken Code
+
+for i in range(1, 5):
+    print(i)
+
+
+(Expected 1 to 5)
+
+Error
+Logical error
+
+Correct Code
+
+for i in range(1, 6):
+
+
+Riddle
+
+I stop one step before the finish line.
+
+1️⃣6️⃣ Wrong List Modification During Loop
+
+Question: Why does this skip elements?
+
+Broken Code
+
+numbers = [1, 2, 3, 4]
+for n in numbers:
+    if n % 2 == 0:
+        numbers.remove(n)
+
+print(numbers)
+
+
+Error
+Logical Error (Unexpected result)
+
+Correct Code
+
+numbers = [1, 2, 3, 4]
+numbers = [n for n in numbers if n % 2 != 0]
+print(numbers)
+
+
+Riddle
+
+When you remove while walking,
+you may skip the next step.
+
+1️⃣7️⃣ Incorrect String Method
+
+Question: Fix the method error.
+
+Broken Code
+
+text = "hello"
+print(text.uppercase())
+
+
+Error
+AttributeError
+
+Correct Code
+
+print(text.upper())
+
+
+Riddle
+
+My name is close,
+but not quite correct.
+
+1️⃣8️⃣ Tuple Modification Error
+
+Question: Why does this fail?
+
+Broken Code
+
+point = (1, 2)
+point[0] = 5
+
+
+Error
+TypeError
+
+Correct Code
+
+point = (5, 2)
+
+
+Riddle
+
+I am fixed once created.
+You cannot change my bones.
+
+1️⃣9️⃣ Wrong Function Call Arguments
+
+Question: Fix the call mismatch.
+
+Broken Code
+
+def greet(name):
+    print("Hello", name)
+
+greet()
+
+
+Error
+TypeError (missing argument)
+
+Correct Code
+
+greet("Alex")
+
+
+Riddle
+
+You called me,
+but forgot to tell me who.
+
+2️⃣0️⃣ Using += on String Instead of List
+
+Question: Why is result strange?
+
+Broken Code
+
+items = []
+items += "apple"
+print(items)
+
+
+Error
+Logical issue (['a','p','p','l','e'])
+
+Correct Code
+
+items.append("apple")
+
+
+Riddle
+
+I break words into letters
+when I should keep them whole.
+
+2️⃣1️⃣ Incorrect Boolean Comparison
+
+Question: Fix the condition.
+
+Broken Code
+
+flag = True
+if flag == "True":
+    print("Yes")
+
+
+Error
+Logical error
+
+Correct Code
+
+if flag:
+    print("Yes")
+
+
+Riddle
+
+I am truth itself,
+not a word describing it.
+
+2️⃣2️⃣ Wrong Range Step
+
+Question: Why does this not print anything?
+
+Broken Code
+
+for i in range(5, 1):
+    print(i)
+
+
+Error
+Logical error (no output)
+
+Correct Code
+
+for i in range(5, 1, -1):
+
+
+Riddle
+
+If I walk backwards,
+you must tell me how.
+
+2️⃣3️⃣ Variable Used Before Assignment
+
+Question: Fix the crash.
+
+Broken Code
+
+def test():
+    print(x)
+    x = 5
+
+test()
+
+
+Error
+UnboundLocalError
+
+Correct Code
+
+def test():
+    global x
+    print(x)
+    x = 5
+
+
+Riddle
+
+You tried to use me
+before I existed inside this room.
+
+2️⃣4️⃣ Incorrect List Index Type
+
+Question: Why does this fail?
+
+Broken Code
+
+nums = [10, 20, 30]
+print(nums["1"])
+
+
+Error
+TypeError
+
+Correct Code
+
+print(nums[1])
+
+
+Riddle
+
+Lists speak numbers,
+not strings.
+
+2️⃣5️⃣ Using is Instead of ==
+
+Question: Fix comparison issue.
+
+Broken Code
+
+a = 1000
+b = 1000
+
+if a is b:
+    print("Same")
+
+
+Error
+Logical issue
+
+Correct Code
+
+if a == b:
+
+
+Riddle
+
+I compare identity,
+not equality.
+
+2️⃣6️⃣ Incorrect Exception Handling
+
+Question: Fix the crash handling.
+
+Broken Code
+
+try:
+    print(10 / 0)
+except:
+    print("Error")
+
+
+(No specific error caught)
+
+Correct Code
+
+except ZeroDivisionError:
+
+
+Riddle
+
+Catch the right storm,
+not every cloud in the sky.
+
+2️⃣7️⃣ Wrong List Slicing
+
+Question: Why missing last element?
+
+Broken Code
+
+nums = [1,2,3,4]
+print(nums[0:3])
+
+
+(Expected all)
+
+Correct Code
+
+print(nums[0:4])
+
+
+Riddle
+
+I stop before the last gate.
+
+2️⃣8️⃣ Forgetting to Close File
+
+Question: Improve this.
+
+Broken Code
+
+file = open("test.txt", "w")
+file.write("Hello")
+
+
+Error
+Resource not closed
+
+Correct Code
+
+with open("test.txt", "w") as file:
+    file.write("Hello")
+
+
+Riddle
+
+Open the door properly,
+and close it when done.
+
+2️⃣9️⃣ Wrong Operator Precedence
+
+Question: Fix calculation.
+
+Broken Code
+
+result = 2 + 3 * 4
+
+
+(Expected 20)
+
+Correct Code
+
+result = (2 + 3) * 4
+
+
+Riddle
+
+Multiplication acts first
+unless you guide it.
+
+3️⃣0️⃣ Default Mutable Argument
+
+Question: Why does list grow unexpectedly?
+
+Broken Code
+
+def add_item(item, lst=[]):
+    lst.append(item)
+    return lst
+
+
+Error
+Logical bug
+
+Correct Code
+
+def add_item(item, lst=None):
+    if lst is None:
+        lst = []
+    lst.append(item)
+    return lst
+
+
+Riddle
+
+I remember past lives
+when I should start fresh.
+
+3️⃣1️⃣ Modifying Dictionary While Looping
+
+Question: Why does this crash?
+
+Broken Code
+
+data = {"a": 1, "b": 2}
+for key in data:
+    del data[key]
+
+
+Error
+RuntimeError: dictionary changed size during iteration
+
+Correct Code
+
+for key in list(data.keys()):
+    del data[key]
+
+
+Riddle
+
+If you change the map
+while reading it,
+you will get lost.
+
+3️⃣2️⃣ Wrong Unpacking
+
+Question: Fix the unpacking error.
+
+Broken Code
+
+a, b = [1, 2, 3]
+
+
+Error
+ValueError: too many values to unpack
+
+Correct Code
+
+a, b, c = [1, 2, 3]
+
+
+Riddle
+
+Three gifts were given,
+but only two hands were ready.
+
+3️⃣3️⃣ Incorrect Use of all()
+
+Question: Why is this always True?
+
+Broken Code
+
+nums = [0, 1, 2]
+if all(nums):
+    print("All true")
+
+
+Error
+Logical misunderstanding
+
+Correct Code
+
+if all(n > 0 for n in nums):
+
+
+Riddle
+
+Zero hides among truth,
+yet truth is not complete.
+
+3️⃣4️⃣ Comparing List Directly to Integer
+
+Question: Fix the comparison.
+
+Broken Code
+
+nums = [1,2,3]
+if nums > 2:
+    print("Yes")
+
+
+Error
+TypeError
+
+Correct Code
+
+if any(n > 2 for n in nums):
+
+
+Riddle
+
+Ask each member,
+not the whole crowd at once.
+
+3️⃣5️⃣ Wrong String Formatting
+
+Question: Fix formatting error.
+
+Broken Code
+
+name = "Alex"
+print("Hello %d" % name)
+
+
+Error
+TypeError
+
+Correct Code
+
+print("Hello %s" % name)
+
+
+Riddle
+
+I expect a number,
+but you gave me a name.
+
+3️⃣6️⃣ Recursive Function Without Base Case
+
+Question: Why does it crash?
+
+Broken Code
+
+def count_down(n):
+    print(n)
+    count_down(n-1)
+
+count_down(5)
+
+
+Error
+RecursionError
+
+Correct Code
+
+def count_down(n):
+    if n <= 0:
+        return
+    print(n)
+    count_down(n-1)
+
+
+Riddle
+
+Without a stopping point,
+I fall forever.
+
+3️⃣7️⃣ Shadowing Built-in Name
+
+Question: Why is this wrong?
+
+Broken Code
+
+list = [1,2,3]
+print(list("abc"))
+
+
+Error
+TypeError
+
+Correct Code
+
+my_list = [1,2,3]
+print(list("abc"))
+
+
+Riddle
+
+Do not steal the name
+of a powerful tool.
+
+3️⃣8️⃣ Incorrect Float Comparison
+
+Question: Why might this fail?
+
+Broken Code
+
+if 0.1 + 0.2 == 0.3:
+    print("Equal")
+
+
+Error
+Logical precision issue
+
+Correct Code
+
+import math
+if math.isclose(0.1 + 0.2, 0.3):
+
+
+Riddle
+
+Floating numbers are not exact;
+they whisper, not shout.
+
+3️⃣9️⃣ Using append Instead of extend
+
+Question: Why nested list?
+
+Broken Code
+
+a = [1,2]
+b = [3,4]
+a.append(b)
+print(a)
+
+
+Error
+Logical issue → [1,2,[3,4]]
+
+Correct Code
+
+a.extend(b)
+
+
+Riddle
+
+I add the box,
+instead of its contents.
+
+4️⃣0️⃣ Incorrect Default Parameter Order
+
+Question: Fix syntax.
+
+Broken Code
+
+def test(a=5, b):
+    return a + b
+
+
+Error
+SyntaxError
+
+Correct Code
+
+def test(b, a=5):
+
+
+Riddle
+
+Required guests must arrive
+before optional ones.
+
+4️⃣1️⃣ Generator Consumed Once
+
+Question: Why empty second time?
+
+Broken Code
+
+gen = (x for x in range(3))
+print(list(gen))
+print(list(gen))
+
+
+Error
+Logical issue (second print empty)
+
+Correct Code
+
+gen = [x for x in range(3)]
+
+
+Riddle
+
+I can be used once,
+then I vanish.
+
+4️⃣2️⃣ Incorrect Use of map
+
+Question: Why TypeError?
+
+Broken Code
+
+nums = [1,2,3]
+print(map(lambda x: x+1, nums)[0])
+
+
+Error
+TypeError (map not subscriptable)
+
+Correct Code
+
+print(list(map(lambda x: x+1, nums))[0])
+
+
+Riddle
+
+I am iterable,
+not directly indexable.
+
+4️⃣3️⃣ Sorting Without Assignment
+
+Question: Why not sorted?
+
+Broken Code
+
+nums = [3,1,2]
+sorted(nums)
+print(nums)
+
+
+Error
+Logical issue
+
+Correct Code
+
+nums = sorted(nums)
+
+
+Riddle
+
+I sort in silence
+unless you store the result.
+
+4️⃣4️⃣ Missing self in Class Method
+
+Question: Fix the class method.
+
+Broken Code
+
+class Person:
+    def greet():
+        print("Hello")
+
+p = Person()
+p.greet()
+
+
+Error
+TypeError
+
+Correct Code
+
+class Person:
+    def greet(self):
+
+
+Riddle
+
+Inside a class,
+remember who is speaking.
+
+4️⃣5️⃣ Wrong Import Usage
+
+Question: Fix import error.
+
+Broken Code
+
+import math
+print(sqrt(16))
+
+
+Error
+NameError
+
+Correct Code
+
+print(math.sqrt(16))
+
+
+Riddle
+
+You brought the toolbox,
+but forgot to open it properly.
+
+4️⃣6️⃣ Incorrect Counter Logic
+
+Question: Why does this print wrong count?
+
+Broken Code
+
+numbers = [1, 2, 3, 4, 5]
+count = 0
+
+for n in numbers:
+    if n % 2 == 0:
+        count = 1
+
+print(count)
+
+
+Error
+Logical Error (Always prints 1 if at least one even number)
+
+Correct Code
+
+for n in numbers:
+    if n % 2 == 0:
+        count += 1
+
+
+Riddle
+
+I reset myself
+instead of growing stronger.
+
+4️⃣7️⃣ Nested Loop Mistake
+
+Question: Why output incorrect pairs?
+
+Broken Code
+
+for i in range(3):
+    for j in range(i):
+        print(i, j)
+
+
+(Expected full 3x3 grid)
+
+Error
+Logical limitation
+
+Correct Code
+
+for i in range(3):
+    for j in range(3):
+        print(i, j)
+
+
+Riddle
+
+You limited the inner world
+by the outer one.
+
+4️⃣8️⃣ Incorrect Condition Order
+
+Question: Why wrong classification?
+
+Broken Code
+
+score = 85
+
+if score > 50:
+    print("Pass")
+elif score > 80:
+    print("Distinction")
+
+
+Error
+Logical ordering issue
+
+Correct Code
+
+if score > 80:
+    print("Distinction")
+elif score > 50:
+    print("Pass")
+
+
+Riddle
+
+Check the highest throne first,
+not the lower seat.
+
+4️⃣9️⃣ Incorrect String Accumulation
+
+Question: Why missing characters?
+
+Broken Code
+
+text = "hello"
+result = ""
+
+for char in text:
+    result = char
+
+print(result)
+
+
+Error
+Logical bug (only last char printed)
+
+Correct Code
+
+for char in text:
+    result += char
+
+
+Riddle
+
+You replace me each time,
+instead of building me.
+
+5️⃣0️⃣ Combined Logical Bug (Mini Boss)
+
+Question: Why wrong sum result?
+
+Broken Code
+
+numbers = [1, 2, 3, 4, 5]
+total = 0
+
+for i in range(len(numbers)):
+    if i % 2 == 0:
+        total += numbers[i]
+
+print(total)
+
+
+(Expected sum of even numbers: 6)
+
+Error
+Logical misunderstanding (checks index, not value)
+
+Correct Code
+
+for num in numbers:
+    if num % 2 == 0:
+        total += num
+
+
+Riddle
+
+You examined the position,
+not the value itself.

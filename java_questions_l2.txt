@@ -1,0 +1,506 @@
+    private static func generateJavaLevel2Questions() -> [Question] {
+        var questions: [Question] = []
+
+        questions.append(Question(
+            title: "Level 2 – Question 1",
+            description: "Expression not returned.",
+            initialCode: "public static int square(int n) {\n    n * n;\n}",
+            correctCode: "public static int square(int n) {\n    return n * n;\n}",
+            difficulty: 2,
+            riddle: "Calculation without return disappears.",
+            conceptExplanation: "Add return.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 2",
+            description: "Method ignores parameter.",
+            initialCode: "public static int doubleValue(int x) {\n    return 2 * 5;\n}",
+            correctCode: "public static int doubleValue(int x) {\n    return 2 * x;\n}",
+            difficulty: 2,
+            riddle: "Why accept input if you ignore it?",
+            conceptExplanation: "Use parameter.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 3",
+            description: "First row prints nothing.",
+            initialCode: "for(int i = 0; i < 3; i++) {\n    for(int j = 0; j < i; j++) {\n        System.out.print(\"*\");\n    }\n    System.out.println();\n}",
+            correctCode: "for(int i = 1; i <= 3; i++) {\n    for(int j = 0; j < i; j++) {\n        System.out.print(\"*\");\n    }\n    System.out.println();\n}",
+            difficulty: 2,
+            riddle: "Start at one if you want the first star.",
+            conceptExplanation: "Adjust outer loop.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 4",
+            description: "Modifying values instead of summing.",
+            initialCode: "int[] nums = {1,2,3,4};\nfor(int i = 0; i < nums.length; i++) {\n    nums[i] += nums[i];\n}\nSystem.out.println(nums[0]);",
+            correctCode: "int sum = 0;\nfor(int i = 0; i < nums.length; i++) {\n    sum += nums[i];\n}\nSystem.out.println(sum);",
+            difficulty: 2,
+            riddle: "To collect total, use a container.",
+            conceptExplanation: "Use accumulator variable.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 5",
+            description: "Value never read.",
+            initialCode: "Scanner sc = new Scanner(System.in);\nint age;\nSystem.out.println(\"Enter age:\");\nSystem.out.println(age);",
+            correctCode: "Scanner sc = new Scanner(System.in);\nSystem.out.println(\"Enter age:\");\nint age = sc.nextInt();\nSystem.out.println(age);",
+            difficulty: 2,
+            riddle: "Ask, then receive.",
+            conceptExplanation: "Use nextInt().",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 6",
+            description: "Infinite recursion.",
+            initialCode: "public static void loop() {\n    loop();\n}",
+            correctCode: "public static void loop(int n) {\n    if(n == 0) return;\n    loop(n - 1);\n}",
+            difficulty: 2,
+            riddle: "Even recursion needs a stopping rule.",
+            conceptExplanation: "Add base case.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 7",
+            description: "Row index out of bounds.",
+            initialCode: "int[][] grid = {\n    {1,2},\n    {3,4}\n};\nSystem.out.println(grid[2][0]);",
+            correctCode: "System.out.println(grid[1][0]);",
+            difficulty: 2,
+            riddle: "Two rows mean index 0 and 1.",
+            conceptExplanation: "Fix index.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 8",
+            description: "Logic reversed.",
+            initialCode: "public static boolean isEven(int n) {\n    if(n % 2 == 0)\n        return false;\n    else\n        return true;\n}",
+            correctCode: "public static boolean isEven(int n) {\n    return n % 2 == 0;\n}",
+            difficulty: 2,
+            riddle: "Even numbers divide without remainder.",
+            conceptExplanation: "Fix condition.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 9",
+            description: "Prints row number instead of pattern.",
+            initialCode: "for(int i = 0; i < 3; i++) {\n    for(int j = 0; j < 3; j++) {\n        System.out.print(i);\n    }\n    System.out.println();\n}",
+            correctCode: "for(int i = 0; i < 3; i++) {\n    for(int j = 0; j < 3; j++) {\n        System.out.print(\"*\");\n    }\n    System.out.println();\n}",
+            difficulty: 2,
+            riddle: "Shape needs symbol, not counter.",
+            conceptExplanation: "Print \"*\".",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 10",
+            description: "Wrong comparison operator.",
+            initialCode: "int[] arr = {4,7,9};\nint target = 7;\nfor(int i = 0; i < arr.length; i++) {\n    if(arr[i] != target) {\n        System.out.println(\"Found\");\n    }\n}",
+            correctCode: "for(int i = 0; i < arr.length; i++) {\n    if(arr[i] == target) {\n        System.out.println(\"Found\");\n        break;\n    }\n}",
+            difficulty: 2,
+            riddle: "Found only when equal.",
+            conceptExplanation: "Use ==.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 11",
+            description: "Fails if all numbers are negative.",
+            initialCode: "int[] arr = {5, 9, 3, 12, 4};\nint max = 0;\nfor(int i = 0; i < arr.length; i++) {\n    if(arr[i] > max) {\n        max = arr[i];\n    }\n}\nSystem.out.println(max);",
+            correctCode: "int max = arr[0];\nfor(int i = 1; i < arr.length; i++) {\n    if(arr[i] > max) {\n        max = arr[i];\n    }\n}\nSystem.out.println(max);",
+            difficulty: 2,
+            riddle: "The first element is the safest starting point.",
+            conceptExplanation: "Initialize with arr[0].",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 12",
+            description: "Counts odd numbers instead of even.",
+            initialCode: "int count = 0;\nfor(int n : arr) {\n    if(n % 2 == 1) {\n        count++;\n    }\n}\nSystem.out.println(count);",
+            correctCode: "if(n % 2 == 0) {\n    count++;\n}",
+            difficulty: 2,
+            riddle: "Even numbers leave no remainder.",
+            conceptExplanation: "Use % 2 == 0.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 13",
+            description: "Overwrites values, no proper swap.",
+            initialCode: "for(int i = 0; i < arr.length; i++) {\n    arr[i] = arr[arr.length - 1 - i];\n}",
+            correctCode: "for(int i = 0; i < arr.length / 2; i++) {\n    int temp = arr[i];\n    arr[i] = arr[arr.length - 1 - i];\n    arr[arr.length - 1 - i] = temp;\n}",
+            difficulty: 2,
+            riddle: "To swap, use a temporary hand.",
+            conceptExplanation: "Use temp variable.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 14",
+            description: "Accepts negative when only positive allowed.",
+            initialCode: "Scanner sc = new Scanner(System.in);\nint number = sc.nextInt();\nSystem.out.println(number);",
+            correctCode: "int number;\ndo {\n    number = sc.nextInt();\n} while(number < 0);",
+            difficulty: 2,
+            riddle: "Validate until correct.",
+            conceptExplanation: "Use do-while.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 15",
+            description: "Missing return statement.",
+            initialCode: "public static int abs(int n) {\n    if(n < 0)\n        n = -n;\n}",
+            correctCode: "public static int abs(int n) {\n    if(n < 0)\n        n = -n;\n    return n;\n}",
+            difficulty: 2,
+            riddle: "Modified value must be returned.",
+            conceptExplanation: "Add return.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 16",
+            description: "Inner loop should use column length.",
+            initialCode: "int sum = 0;\nfor(int i = 0; i < grid.length; i++) {\n    for(int j = 0; j < grid.length; j++) {\n        sum += grid[i][j];\n    }\n}",
+            correctCode: "for(int i = 0; i < grid.length; i++) {\n    for(int j = 0; j < grid[i].length; j++) {\n        sum += grid[i][j];\n    }\n}",
+            difficulty: 2,
+            riddle: "Rows may not equal columns.",
+            conceptExplanation: "Use grid[i].length.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 17",
+            description: "Logic reversed.",
+            initialCode: "public static boolean isPrime(int n) {\n    for(int i = 2; i < n; i++) {\n        if(n % i == 0)\n            return true;\n    }\n    return false;\n}",
+            correctCode: "public static boolean isPrime(int n) {\n    if(n <= 1) return false;\n    for(int i = 2; i < n; i++) {\n        if(n % i == 0)\n            return false;\n    }\n    return true;\n}",
+            difficulty: 2,
+            riddle: "A prime has no divisors except 1 and itself.",
+            conceptExplanation: "Reverse return logic.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 18",
+            description: "Break exits only inner loop.",
+            initialCode: "for(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[i] == arr[j]) {\n            break;\n        }\n    }\n}",
+            correctCode: "outer:\nfor(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[i] == arr[j]) {\n            break outer;\n        }\n    }\n}",
+            difficulty: 2,
+            riddle: "Sometimes you must break both levels.",
+            conceptExplanation: "Use labeled break.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 19",
+            description: "Factorial must start at 1.",
+            initialCode: "int fact = 0;\nfor(int i = 1; i <= n; i++) {\n    fact *= i;\n}",
+            correctCode: "int fact = 1;\nfor(int i = 1; i <= n; i++) {\n    fact *= i;\n}",
+            difficulty: 2,
+            riddle: "Multiplication starts with one.",
+            conceptExplanation: "Initialize to 1.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 20",
+            description: "Integer division before assignment.",
+            initialCode: "int sum = 15;\nint count = 4;\ndouble avg = sum / count;",
+            correctCode: "double avg = (double) sum / count;",
+            difficulty: 2,
+            riddle: "Cast before dividing.",
+            conceptExplanation: "Use (double).",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 21",
+            description: "Returns false after first mismatch.",
+            initialCode: "public static boolean contains(int[] arr, int target) {\n    for(int i = 0; i < arr.length; i++) {\n        if(arr[i] == target)\n            return true;\n        else\n            return false;\n    }\n    return false;\n}",
+            correctCode: "for(int i = 0; i < arr.length; i++) {\n    if(arr[i] == target)\n        return true;\n}\nreturn false;",
+            difficulty: 2,
+            riddle: "Search entire list before giving up.",
+            conceptExplanation: "Remove early false.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 22",
+            description: "Prints vertically instead of triangle.",
+            initialCode: "for(int i = 1; i <= 3; i++) {\n    for(int j = 1; j <= i; j++) {\n        System.out.println(\"*\");\n    }\n}",
+            correctCode: "for(int i = 1; i <= 3; i++) {\n    for(int j = 1; j <= i; j++) {\n        System.out.print(\"*\");\n    }\n    System.out.println();\n}",
+            difficulty: 2,
+            riddle: "Use print for same line.",
+            conceptExplanation: "Replace println with print inside loop.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 23",
+            description: "Every element equals itself.",
+            initialCode: "boolean duplicate = false;\nfor(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[i] == arr[j]) {\n            duplicate = true;\n        }\n    }\n}",
+            correctCode: "for(int i = 0; i < arr.length; i++) {\n    for(int j = i + 1; j < arr.length; j++) {\n        if(arr[i] == arr[j]) {\n            duplicate = true;\n        }\n    }\n}",
+            difficulty: 2,
+            riddle: "Don't compare element with itself.",
+            conceptExplanation: "Start inner loop at i + 1.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 24",
+            description: "Overwrites needed value.",
+            initialCode: "int a = 0, b = 1;\nfor(int i = 0; i < n; i++) {\n    a = b;\n    b = a + b;\n}",
+            correctCode: "int temp = a + b;\na = b;\nb = temp;",
+            difficulty: 2,
+            riddle: "Save before replacing.",
+            conceptExplanation: "Use temp variable.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 25",
+            description: "No stopping condition.",
+            initialCode: "public static int countdown(int n) {\n    System.out.println(n);\n    return countdown(n - 1);\n}",
+            correctCode: "public static int countdown(int n) {\n    if(n == 0) return 0;\n    System.out.println(n);\n    return countdown(n - 1);\n}",
+            difficulty: 2,
+            riddle: "Every recursion must end.",
+            conceptExplanation: "Add base case.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 26",
+            description: "j + 1 can go out of bounds.",
+            initialCode: "for(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[j] > arr[j + 1]) {\n            int temp = arr[j];\n            arr[j] = arr[j + 1];\n            arr[j + 1] = temp;\n        }\n    }\n}",
+            correctCode: "for(int i = 0; i < arr.length - 1; i++) {\n    for(int j = 0; j < arr.length - 1 - i; j++) {\n        if(arr[j] > arr[j + 1]) {\n            int temp = arr[j];\n            arr[j] = arr[j + 1];\n            arr[j + 1] = temp;\n        }\n    }\n}",
+            difficulty: 2,
+            riddle: "Stop before the edge.",
+            conceptExplanation: "Limit inner loop.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 27",
+            description: "min must start at i.",
+            initialCode: "for(int i = 0; i < arr.length; i++) {\n    int min = 0;\n    for(int j = i + 1; j < arr.length; j++) {\n        if(arr[j] < arr[min]) {\n            min = j;\n        }\n    }\n}",
+            correctCode: "int min = i;",
+            difficulty: 2,
+            riddle: "Start searching from your current index.",
+            conceptExplanation: "Initialize min to i.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 28",
+            description: "Should increment based on value.",
+            initialCode: "int[] freq = new int[10];\nfor(int i = 0; i < arr.length; i++) {\n    freq[i]++;\n}",
+            correctCode: "freq[arr[i]]++;",
+            difficulty: 2,
+            riddle: "Count the value, not the position.",
+            conceptExplanation: "Use arr[i] as index.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 29",
+            description: "Condition reversed.",
+            initialCode: "int sum = 0;\nfor(int i = 0; i < matrix.length; i++) {\n    for(int j = 0; j < matrix[i].length; j++) {\n        if(i != j) {\n            sum += matrix[i][j];\n        }\n    }\n}",
+            correctCode: "if(i == j) {\n    sum += matrix[i][j];\n}",
+            difficulty: 2,
+            riddle: "Diagonal meets when row equals column.",
+            conceptExplanation: "Use i == j.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 30",
+            description: "Not reversing.",
+            initialCode: "String reversed = \"\";\nfor(int i = 0; i < str.length(); i++) {\n    reversed += str.charAt(i);\n}",
+            correctCode: "for(int i = str.length() - 1; i >= 0; i--) {\n    reversed += str.charAt(i);\n}",
+            difficulty: 2,
+            riddle: "Start from the end.",
+            conceptExplanation: "Loop backwards.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 31",
+            description: "Comparing same index.",
+            initialCode: "boolean isPalindrome = true;\nfor(int i = 0; i < str.length(); i++) {\n    if(str.charAt(i) != str.charAt(i)) {\n        isPalindrome = false;\n    }\n}",
+            correctCode: "for(int i = 0; i < str.length() / 2; i++) {\n    if(str.charAt(i) != str.charAt(str.length() - 1 - i)) {\n        isPalindrome = false;\n        break;\n    }\n}",
+            difficulty: 2,
+            riddle: "Compare opposite ends.",
+            conceptExplanation: "Mirror index.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 32",
+            description: "Not dividing by 2.",
+            initialCode: "int mid = (low + high);",
+            correctCode: "int mid = (low + high) / 2;",
+            difficulty: 2,
+            riddle: "Middle requires division.",
+            conceptExplanation: "Divide by 2.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 33",
+            description: "Boundaries not updated correctly.",
+            initialCode: "while(low < high) {\n    int mid = (low + high) / 2;\n    if(arr[mid] < target)\n        low = mid;\n    else\n        high = mid;\n}",
+            correctCode: "if(arr[mid] < target)\n    low = mid + 1;\nelse\n    high = mid - 1;",
+            difficulty: 2,
+            riddle: "Move past the middle.",
+            conceptExplanation: "Use ±1.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 34",
+            description: "Character cannot equal all vowels.",
+            initialCode: "if(c == 'a' && c == 'e' && c == 'i' && c == 'o' && c == 'u')",
+            correctCode: "if(c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u')",
+            difficulty: 2,
+            riddle: "A letter can be one vowel, not all.",
+            conceptExplanation: "Use OR.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 35",
+            description: "Should compare only ahead.",
+            initialCode: "for(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {",
+            correctCode: "for(int i = 0; i < arr.length; i++) {\n    for(int j = i + 1; j < arr.length; j++) {",
+            difficulty: 2,
+            riddle: "Compare forward, not backward.",
+            conceptExplanation: "Start j at i+1.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 36",
+            description: "n never changes.",
+            initialCode: "while(n > 0) {\n    count++;\n}",
+            correctCode: "while(n > 0) {\n    n /= 10;\n    count++;\n}",
+            difficulty: 2,
+            riddle: "Remove digits one by one.",
+            conceptExplanation: "Divide by 10.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 37",
+            description: "Should use remainder.",
+            initialCode: "sum += n / 10;",
+            correctCode: "sum += n % 10;",
+            difficulty: 2,
+            riddle: "Last digit comes from remainder.",
+            conceptExplanation: "Use %.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 38",
+            description: "Should raise to power of number of digits.",
+            initialCode: "sum += digit * digit;",
+            correctCode: "sum += Math.pow(digit, digits);",
+            difficulty: 2,
+            riddle: "Power depends on digit count.",
+            conceptExplanation: "Use exponent.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 39",
+            description: "Overwrites arr1 values.",
+            initialCode: "merged[i] = arr2[i];",
+            correctCode: "merged[arr1.length + i] = arr2[i];",
+            difficulty: 2,
+            riddle: "Offset the second array.",
+            conceptExplanation: "Add length offset.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 40",
+            description: "No swap.",
+            initialCode: "transpose[i][j] = matrix[i][j];",
+            correctCode: "transpose[j][i] = matrix[i][j];",
+            difficulty: 2,
+            riddle: "Swap row and column.",
+            conceptExplanation: "Reverse indices.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 41",
+            description: "Finds max, not second max.",
+            initialCode: "int second = 0;\nfor(int n : arr) {\n    if(n > second) {\n        second = n;\n    }\n}",
+            correctCode: "int first = Integer.MIN_VALUE;\nint second = Integer.MIN_VALUE;\nfor(int n : arr) {\n    if(n > first) {\n        second = first;\n        first = n;\n    } else if(n > second && n != first) {\n        second = n;\n    }\n}",
+            difficulty: 2,
+            riddle: "Track two champions.",
+            conceptExplanation: "Maintain first and second.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 42",
+            description: "Overwrites without shifting.",
+            initialCode: "arr[0] = arr[arr.length - 1];",
+            correctCode: "int last = arr[arr.length - 1];\nfor(int i = arr.length - 1; i > 0; i--) {\n    arr[i] = arr[i - 1];\n}\narr[0] = last;",
+            difficulty: 2,
+            riddle: "Shift before replacing.",
+            conceptExplanation: "Store last first.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 43",
+            description: "Reversed condition.",
+            initialCode: "if(arr[i] < arr[i + 1])\n    return false;",
+            correctCode: "if(arr[i] > arr[i + 1])\n    return false;",
+            difficulty: 2,
+            riddle: "Sorted means never decreasing.",
+            conceptExplanation: "Reverse comparison.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 44",
+            description: "Comparing same string.",
+            initialCode: "if(str1.length() != str1.length())\n    return false;",
+            correctCode: "if(str1.length() != str2.length())\n    return false;",
+            difficulty: 2,
+            riddle: "Compare both lengths.",
+            conceptExplanation: "Use str2.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 45",
+            description: "Should go until min(a, b).",
+            initialCode: "for(int i = 1; i <= a; i++)",
+            correctCode: "for(int i = 1; i <= Math.min(a, b); i++)",
+            difficulty: 2,
+            riddle: "GCD limited by smaller number.",
+            conceptExplanation: "Use min.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 46",
+            description: "Missing division by gcd.",
+            initialCode: "int lcm = a * b;",
+            correctCode: "int lcm = (a * b) / gcd(a, b);",
+            difficulty: 2,
+            riddle: "Multiply, then divide by GCD.",
+            conceptExplanation: "Use formula.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 47",
+            description: "One extra multiplication.",
+            initialCode: "for(int i = 0; i <= exp; i++) {\n    result *= base;\n}",
+            correctCode: "for(int i = 0; i < exp; i++) {\n    result *= base;\n}",
+            difficulty: 2,
+            riddle: "Multiply exactly exponent times.",
+            conceptExplanation: "Use <.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 48",
+            description: "Count never resets per element.",
+            initialCode: "int count = 0;\nfor(int i = 0; i < arr.length; i++) {\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[i] == arr[j])\n            count++;\n    }\n}",
+            correctCode: "for(int i = 0; i < arr.length; i++) {\n    int count = 0;\n    for(int j = 0; j < arr.length; j++) {\n        if(arr[i] == arr[j])\n            count++;\n    }\n}",
+            difficulty: 2,
+            riddle: "Reset before counting each value.",
+            conceptExplanation: "Move count inside outer loop.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 49",
+            description: "Both boundaries updated at once.",
+            initialCode: "left++;\nright--;",
+            correctCode: "top++;\n...\nright--;\n...\nbottom--;\n...\nleft++;",
+            difficulty: 2,
+            riddle: "Update boundary after finishing side.",
+            conceptExplanation: "Adjust one side at a time.",
+            language: .java
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 50",
+            description: "Missing return keyword.",
+            initialCode: "if(n <= 1)\n    return n;\nfib(n - 1) + fib(n - 2);",
+            correctCode: "return fib(n - 1) + fib(n - 2);",
+            difficulty: 2,
+            riddle: "Recursive sum must be returned.",
+            conceptExplanation: "Add return.",
+            language: .java
+        ))
+
+        return questions
+    }

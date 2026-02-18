@@ -1,0 +1,506 @@
+    private static func generateCLevel2Questions() -> [Question] {
+        var questions: [Question] = []
+
+        questions.append(Question(
+            title: "Level 2 – Question 1",
+            description: "Why does this print garbage and possibly crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p, x = 5;\n    p = x;\n    if(*p = 10 && x = 5)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x = 5;\nint* p = &x;\nif((*p == 10) && (x == 5))\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer, assignment, and comparison all tangled.",
+            conceptExplanation: "p = x assigns integer to pointer → invalid.\n\n*p = 10 is assignment, not comparison.\n\nx = 5 is assignment inside condition.\n\nUse proper & for pointer and == for comparisons.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 2",
+            description: "Why does this crash or print wrong values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int i = 0;\n    while(i <= 3)\n        printf(\"%d \", arr[i++]);\n}",
+            correctCode: "int i = 0;\nwhile(i < 3)\n    printf(\"%d \", arr[i++]);",
+            difficulty: 2,
+            riddle: "Off-by-one hides inside loop.",
+            conceptExplanation: "i <= 3 accesses arr[3] → out of bounds.\n\nLoops must respect array size.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 3",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int x = 5;\n    if(*p != 0 && x = 5)\n        printf(\"%d\", *p);\n}",
+            correctCode: "if(p != NULL && (*p != 0) && (x == 5))\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Check pointer, compare properly, parentheses matter.",
+            conceptExplanation: "*p dereferences NULL → crash.\n\nx = 5 is assignment, not comparison.\n\nParentheses required for precedence.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 4",
+            description: "Why does this print wrong values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 1, y = 2;\n    int z = x = y++ + ++x;\n    printf(\"%d %d %d\", x, y, z);\n}",
+            correctCode: "int x = 1, y = 2;\nx++;\nint z = x + y++;\nprintf(\"%d %d %d\", x, y, z);",
+            difficulty: 2,
+            riddle: "Increment, assignment, and evaluation collide.",
+            conceptExplanation: "Multiple assignments in one statement are tricky.\n\nPost vs pre-increment affects evaluation order.\n\nAvoid combining increment and assignment in same expression.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 5",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr + 3;\n    *p = 10;\n    printf(\"%d\", arr[3]);\n}",
+            correctCode: "int* p = arr + 2;\n*p = 10;\nprintf(\"%d\", arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer walks off array, dereference punishes.",
+            conceptExplanation: "arr+3 is beyond array.\n\nDereferencing past array → undefined behavior.\n\nAccess arr[3] invalid.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 6",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int x = 0;\n    if(*p != 0 || x = 0)\n        printf(\"OK\");\n}",
+            correctCode: "if(p != NULL && (*p != 0) || x == 0)\n    printf(\"OK\");",
+            difficulty: 2,
+            riddle: "Order and operator matter.",
+            conceptExplanation: "*p evaluated first → crash (NULL).\n\nx = 0 is assignment, not comparison.\n\nUse proper precedence and short-circuit logic.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 7",
+            description: "Why does this crash or give garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int a = 5, b = 0;\n    int* p;\n    p = a/b;\n    printf(\"%d\", *p);\n}",
+            correctCode: "if(b != 0) {\n    int res = a/b;\n    int* p = &res;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Divide, then point.",
+            conceptExplanation: "Division by zero → runtime error.\n\nAssigning integer to pointer → invalid.\n\nDereference uninitialized pointer → crash.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 8",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 5;\n    int* p = &x;\n    printf(\"%d %d\", x++, *p++);\n}",
+            correctCode: "printf(\"%d %d\", x++, *p);",
+            difficulty: 2,
+            riddle: "Pointer increment shifts to nowhere.",
+            conceptExplanation: "*p++ increments pointer, not value.\n\nDereferencing pointer after increment → undefined if outside variable.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 9",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    char* str = \"Hello\";\n    str[0] = 'h';\n    printf(\"%s\", str);\n}",
+            correctCode: "char str[] = \"Hello\";\nstr[0] = 'h';\nprintf(\"%s\", str);",
+            difficulty: 2,
+            riddle: "String literal is read-only.",
+            conceptExplanation: "char* points to literal → read-only.\n\nModifying it causes crash.\n\nUse char array to modify.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 10",
+            description: "Why does this print garbage or crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    p[2] = 5;\n    printf(\"%d\", arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\narr[2] = 5;",
+            difficulty: 2,
+            riddle: "Pointer walks beyond, array too small.",
+            conceptExplanation: "arr[2] out of bounds → undefined.\n\nPointer dereference matches array size.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 11",
+            description: "Why does this crash and print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    *p = 10;\n    if(p = NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\n*p = 10;\nif(p != NULL)\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer must exist before using.",
+            conceptExplanation: "Dereferencing NULL → crash.\n\np = NULL assigns, should be comparison p != NULL.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 12",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr + 3;\n    printf(\"%d\", *p);\n}",
+            correctCode: "int* p = arr + 2;\nprintf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer steps off array.",
+            conceptExplanation: "arr+3 is outside bounds → undefined.\n\nDereference causes garbage or crash.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 13",
+            description: "Why does this print unexpected values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 1;\n    int y = x++ + ++x;\n    printf(\"%d %d\", x, y);\n}",
+            correctCode: "int x = 1;\nx++;\nint y = x + x;",
+            difficulty: 2,
+            riddle: "Increment order matters.",
+            conceptExplanation: "x++ + ++x order of evaluation is undefined in C.\n\nMixing pre/post increment in same statement is unsafe.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 14",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    if(*p == 0 && p != NULL)\n        printf(\"OK\");\n}",
+            correctCode: "int x = 0;\nint* p = &x;\nif(p != NULL && *p == 0)\n    printf(\"OK\");",
+            difficulty: 2,
+            riddle: "Dereference first? Pointer dies.",
+            conceptExplanation: "Dereferencing NULL → crash.\n\nMust check pointer first, then dereference.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 15",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int a = 5, b = 0;\n    int* p;\n    p = a/b;\n    printf(\"%d\", *p);\n}",
+            correctCode: "if(b != 0) {\n    int res = a/b;\n    int* p = &res;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Divide safely, then point.",
+            conceptExplanation: "Division by zero → runtime error.\n\nCannot assign integer to pointer.\n\nDereference uninitialized pointer → crash.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 16",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    p[2] = 5;\n    printf(\"%d\", arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\narr[2] = 5;\nprintf(\"%d\", arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer walks off the array.",
+            conceptExplanation: "Out-of-bounds → undefined behavior.\n\nMust allocate enough space.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 17",
+            description: "Why does this print wrong value?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 1, y = 2;\n    if(x & 1 == 1)\n        printf(\"1\");\n    else\n        printf(\"0\");\n}",
+            correctCode: "if((x & 1) == 1)",
+            difficulty: 2,
+            riddle: "Parentheses guide evaluation.",
+            conceptExplanation: "== has higher precedence than &.\n\nMust use parentheses to get intended logic.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 18",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p;\n    *p = 10;\n    p = NULL;\n    printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\n*p = 10;\nprintf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer points nowhere.",
+            conceptExplanation: "*p before initialization → crash.\n\n*p after NULL → crash.\n\nAlways initialize pointer before dereference.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 19",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    char* str = \"Hello\";\n    str[0] = 'h';\n    printf(\"%s\", str);\n}",
+            correctCode: "char str[] = \"Hello\";\nstr[0] = 'h';\nprintf(\"%s\", str);",
+            difficulty: 2,
+            riddle: "Read-only strings cannot be changed.",
+            conceptExplanation: "char* points to literal → read-only.\n\nModifying causes crash.\n\nUse array for mutable string.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 20",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 5;\n    int* p = &x;\n    printf(\"%d %d\", x++, *p++);\n}",
+            correctCode: "printf(\"%d %d\", x++, *p);",
+            difficulty: 2,
+            riddle: "Pointer moves; value stays.",
+            conceptExplanation: "*p++ increments pointer, not value.\n\nDereferencing pointer after increment → undefined if outside variable.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 21",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr;\n    p[3] = 10;\n    printf(\"%d\", arr[3]);\n}",
+            correctCode: "int arr[4] = {1,2,3,0};\narr[3] = 10;\nprintf(\"%d\", arr[3]);",
+            difficulty: 2,
+            riddle: "Pointer walks off the edge.",
+            conceptExplanation: "arr[3] is out of bounds → undefined behavior.\n\nMust allocate enough memory for intended access.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 22",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    if(*p = 0)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\n*p = 0;\nif(*p == 0)\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer must point somewhere first.",
+            conceptExplanation: "Dereferencing NULL → crash.\n\n*p = 0 is assignment; comparison should be ==.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 23",
+            description: "Why does this print wrong result?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 1;\n    if(x++ & 1 == 1)\n        printf(\"Odd\");\n    else\n        printf(\"Even\");\n}",
+            correctCode: "if((x++ & 1) == 1)",
+            difficulty: 2,
+            riddle: "Parentheses save logic.",
+            conceptExplanation: "== has higher precedence than &.\n\nMust group bitwise operation properly.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 24",
+            description: "Why does this crash or behave unexpectedly?",
+            initialCode: "#include <stdio.h>\nint main() {\n    char* str = \"C Language\";\n    str[0] = 'c';\n    printf(\"%s\", str);\n}",
+            correctCode: "char str[] = \"C Language\";\nstr[0] = 'c';\nprintf(\"%s\", str);",
+            difficulty: 2,
+            riddle: "Literal strings are read-only.",
+            conceptExplanation: "char* points to literal → modifying it causes crash.\n\nUse array for mutable string.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 25",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int a = 10, b = 0;\n    int* p;\n    if(a/b && (p == NULL))\n        *p = a/b;\n    printf(\"%d\", *p);\n}",
+            correctCode: "int a = 10, b = 2;\nint x;\nint* p = &x;\nif(b != 0 && p != NULL) {\n    *p = a / b;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Divide safely, pointer alive, order matters.",
+            conceptExplanation: "Division by zero → crash.\n\nDereferencing NULL pointer → crash.\n\nLogical AND short-circuit prevents invalid memory access.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 26",
+            description: "Why does this produce garbage or crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    arr[2] = 5;\n    printf(\"%d %d %d\", *p++, *p++, *p++);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\nprintf(\"%d %d %d\", *p, *(p+1), arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer walks off, array too small, increments collide.",
+            conceptExplanation: "arr[2] initially out-of-bounds → undefined.\n\n*p++ increments pointer each time; last dereference outside array → garbage.\n\nMust allocate enough space and avoid multiple pointer increments in same expression.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 27",
+            description: "Why does this crash or print wrong result?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int x = 5;\n    if(*p = x && p = NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x = 5;\nint* p = &x;\nif(p != NULL && *p == x)\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Dereference before check? Assignment lies.",
+            conceptExplanation: "*p dereferences NULL → crash.\n\n*p = x is assignment, not comparison.\n\np = NULL assigns NULL, not comparison.\n\nMust check pointer before dereference and use proper ==.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 28",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr;\n    printf(\"%d %d %d\", *(p++ + 1), *p++, *(p+2));\n}",
+            correctCode: "int arr[3] = {1,2,3};\nint* p = arr;\nprintf(\"%d %d %d\", *(p+1), *(p+1), *(p+2));",
+            difficulty: 2,
+            riddle: "Pointer arithmetic + increment collide.",
+            conceptExplanation: "p++ + 1 increments pointer then adds → confusing.\n\nLast dereference *(p+2) may go beyond array → undefined.\n\nPointer arithmetic must respect array bounds and order of evaluation.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 29",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr + 1;\n    p[2] = 10;\n    printf(\"%d\", arr[3]);\n}",
+            correctCode: "int arr[4] = {1,2,0,0};\nint* p = arr + 1;\np[2] = 10;\nprintf(\"%d\", arr[3]);",
+            difficulty: 2,
+            riddle: "Pointer walks too far, array too small.",
+            conceptExplanation: "arr[3] initially out-of-bounds → undefined.\n\nPointer arithmetic + dereference beyond allocated array → crash/garbage.\n\nMust allocate enough memory for pointer access.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 30",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    int a = 10, b = 0;\n    if((*p++ = a/b) && arr[2] == 0)\n        printf(\"%d\", arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\nint a = 10, b = 2;\nif(b != 0) {\n    *p = a / b;\n    printf(\"%d\", arr[0]);\n}",
+            difficulty: 2,
+            riddle: "Divide safely, pointer moves, array bounds respected.",
+            conceptExplanation: "Division by zero → crash.\n\n*p++ = ... increments pointer; last dereference unsafe.\n\narr[2] out-of-bounds → undefined.\n\nMust combine safe pointer, valid array, and proper short-circuit logic.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 31",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    int a = 10, b = 0;\n    *p++ = a / b;\n    printf(\"%d %d\", arr[0], arr[1]);\n}",
+            correctCode: "int arr[2] = {1,2};\nint* p = arr;\nint a = 10, b = 2;\n*p = a / b;\nprintf(\"%d %d\", arr[0], arr[1]);",
+            difficulty: 2,
+            riddle: "Divide safely before pointer walks.",
+            conceptExplanation: "Division by zero → crash.\n\n*p++ increments pointer → arr[1] unchanged if used incorrectly.\n\nMust respect array bounds.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 32",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int x = 5;\n    if(*p = x && p == NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x = 5;\nint* p = &x;\nif(p != NULL && *p == x)\n    printf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Pointer must live before dereference.",
+            conceptExplanation: "*p dereferences NULL → crash.\n\n*p = x is assignment, not comparison.\n\np == NULL must not be evaluated first; check pointer first.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 33",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr;\n    printf(\"%d %d %d %d\", *p++, *p++, *p++, *(p+1));\n}",
+            correctCode: "int arr[4] = {1,2,3,0};\nint* p = arr;\nprintf(\"%d %d %d %d\", arr[0], arr[1], arr[2], arr[3]);",
+            difficulty: 2,
+            riddle: "Pointer moves too fast, array too small.",
+            conceptExplanation: "*p++ increments pointer multiple times → last dereference may go out-of-bounds.\n\nArray size insufficient → undefined behavior.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 34",
+            description: "Why does this print unexpected values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 1;\n    int* p = &x;\n    if(*p & 1 == 1)\n        printf(\"Odd\");\n    else\n        printf(\"Even\");\n}",
+            correctCode: "if((*p & 1) == 1)",
+            difficulty: 2,
+            riddle: "Parentheses guide correct evaluation.",
+            conceptExplanation: "== has higher precedence than &.\n\nWithout parentheses, logic is incorrect.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 35",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int a = 5, b = 0;\n    int* p = NULL;\n    *p = a / b;\n    printf(\"%d\", *p++);\n}",
+            correctCode: "int a = 5, b = 2;\nint x;\nint* p = &x;\n*p = a / b;\nprintf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Divide first, then point.",
+            conceptExplanation: "Division by zero → crash.\n\nDereference NULL → crash.\n\n*p++ increments pointer unnecessarily → unsafe if pointer moves beyond allocated memory.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 36",
+            description: "Why does this crash or behave unexpectedly?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr + 2;\n    if(*p = 10 && arr[0] == 1)\n        printf(\"%d\", arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr + 2;\n*p = 10;\nif(arr[0] == 1)\n    printf(\"%d\", arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer must stay inside array.",
+            conceptExplanation: "arr+2 initially out-of-bounds → undefined behavior.\n\nAssignment in conditional *p = 10 → logical bug.\n\nAccessing arr[2] must be within array bounds.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 37",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    printf(\"%d %d %d\", *p++, *p++, *p++);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\nprintf(\"%d %d %d\", arr[0], arr[1], arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer walks beyond array.",
+            conceptExplanation: "Multiple increments in single statement → last dereference undefined.\n\nArray too small initially → must allocate enough space.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 38",
+            description: "Why does this print unexpected values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[3] = {1,2,3};\n    int* p = arr;\n    printf(\"%d\", *(p++ + 1));\n}",
+            correctCode: "int arr[3] = {1,2,3};\nint* p = arr;\nprintf(\"%d\", *(p + 1));",
+            difficulty: 2,
+            riddle: "Increment first or add first?",
+            conceptExplanation: "p++ + 1 increments pointer before addition → may access wrong memory.\n\nMust separate pointer arithmetic from increment.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 39",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int a = 5, b = 0;\n    if(*p = a/b && p != NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\nint a = 5, b = 2;\nif(p != NULL && b != 0) {\n    *p = a / b;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Pointer safe, divide safe, check first.",
+            conceptExplanation: "Dereferencing NULL → crash.\n\nDivision by zero → crash.\n\nOrder of evaluation critical for safety.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 40",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    arr[2] = 10;\n    *p++ = 5;\n    printf(\"%d %d %d\", arr[0], arr[1], arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\n*p = 5;\narr[2] = 10;\nprintf(\"%d %d %d\", arr[0], arr[1], arr[2]);",
+            difficulty: 2,
+            riddle: "Array bounds, pointer moves, assignment collide.",
+            conceptExplanation: "arr[2] initially out-of-bounds → undefined behavior.\n\nPointer increment *p++ → careful, could overwrite next element.\n\nMust allocate enough memory and handle pointer carefully.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 41",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    printf(\"%d %d %d\", *(p+1), *p++, *p++);\n}",
+            correctCode: "int arr[2] = {1,2};\nint* p = arr;\nprintf(\"%d %d %d\", arr[1], arr[0], arr[1]);",
+            difficulty: 2,
+            riddle: "Pointer order matters; increments collide.",
+            conceptExplanation: "*p++ increments pointer → changes subsequent dereference.\n\nMixing pointer arithmetic and post-increment in same statement → undefined.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 42",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int a = 5, b = 0;\n    if((*p = a/b) && p != NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\nint a = 5, b = 2;\nif(p != NULL && b != 0) {\n    *p = a / b;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Divide safely, pointer safe, check first.",
+            conceptExplanation: "Dereferencing NULL → crash.\n\nDivision by zero → crash.\n\nLogical AND short-circuit critical.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 43",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr + 1;\n    *p++ = 5;\n    *p = 10;\n    printf(\"%d %d %d\", arr[0], arr[1], arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr + 1;\n*p = 5;\n*(p+1) = 10;\nprintf(\"%d %d %d\", arr[0], arr[1], arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer moves, array too small, watch the bounds.",
+            conceptExplanation: "arr[2] initially out-of-bounds → undefined.\n\n*p++ increments pointer → careful with next dereference.\n\nMust allocate enough memory.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 44",
+            description: "Why does this print unexpected values?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 3;\n    int* p = &x;\n    if(*p & 1 == 1)\n        printf(\"Odd\");\n    else\n        printf(\"Even\");\n}",
+            correctCode: "if((*p & 1) == 1)",
+            difficulty: 2,
+            riddle: "Operators trick you; parentheses save logic.",
+            conceptExplanation: "== has higher precedence than &.\n\nMust use parentheses to get intended result.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 45",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr + 2;\n    if(*p++ && arr[0] == 1)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr + 2;\nif(arr[0] == 1)\n    printf(\"%d\", arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer outside array? Short-circuit helps nothing.",
+            conceptExplanation: "arr+2 → out-of-bounds → undefined.\n\n*p++ dereference → crash.\n\nMust stay within allocated memory.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 46",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int a = 10, b = 0;\n    int* p;\n    *p = a / b;\n    int arr[2];\n    arr[2] = 5;\n    printf(\"%d\", *p);\n}",
+            correctCode: "int a = 10, b = 2;\nint x;\nint* p = &x;\n*p = a / b;\nint arr[3] = {0,0,0};\narr[2] = 5;\nprintf(\"%d\", *p);",
+            difficulty: 2,
+            riddle: "Divide safely, pointer valid, array enough.",
+            conceptExplanation: "Division by zero → crash.\n\nDereferencing uninitialized pointer → crash.\n\nOut-of-bounds array access → undefined.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 47",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    *p++ = 5;\n    *p++ = 10;\n    printf(\"%d %d %d\", arr[0], arr[1], arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\n*p = 5;\n*(p+1) = 10;\nprintf(\"%d %d %d\", arr[0], arr[1], arr[2]);",
+            difficulty: 2,
+            riddle: "Pointer moves too fast, array too small.",
+            conceptExplanation: "Multiple increments → last dereference out-of-bounds.\n\nMust allocate enough array space.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 48",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int* p = NULL;\n    int a = 5, b = 0;\n    if(*p++ = a/b && p != NULL)\n        printf(\"%d\", *p);\n}",
+            correctCode: "int x;\nint* p = &x;\nint a = 5, b = 2;\nif(p != NULL && b != 0) {\n    *p = a / b;\n    printf(\"%d\", *p);\n}",
+            difficulty: 2,
+            riddle: "Check pointer, divide safely, increment carefully.",
+            conceptExplanation: "Dereference NULL → crash.\n\nDivision by zero → crash.\n\n*p++ increments pointer → unsafe if pointer not valid.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 49",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    if(*p & 1 == 1)\n        arr[2] = 5;\n    printf(\"%d\", arr[2]);\n}",
+            correctCode: "if((*p & 1) == 1)\n    arr[2] = 5; // Ensure array size = 3\nint arr[3] = {1,2,0};\nprintf(\"%d\", arr[2]);",
+            difficulty: 2,
+            riddle: "Operators trick, pointer safe, array enough.",
+            conceptExplanation: "== precedence → logic wrong.\n\narr[2] initially out-of-bounds → undefined.\n\nMust combine parentheses + array allocation.",
+            language: .c
+        ))
+        questions.append(Question(
+            title: "Level 2 – Question 50",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int arr[2] = {1,2};\n    int* p = arr;\n    int a = 10, b = 0;\n    if((*p++ = a/b) && arr[2] == 0)\n        printf(\"%d\", arr[2]);\n}",
+            correctCode: "int arr[3] = {1,2,0};\nint* p = arr;\nint a = 10, b = 2;\n*p = a / b;\nprintf(\"%d\", arr[0]);",
+            difficulty: 2,
+            riddle: "Divide safe, pointer valid, array in bounds.",
+            conceptExplanation: "Division by zero → crash.\n\nPointer increment → careful to stay within array.\n\nOut-of-bounds access → undefined.",
+            language: .c
+        ))
+
+        return questions
+    }

@@ -1,0 +1,133 @@
+import SwiftUI
+
+struct GlassBar<Content: View>: View {
+    let content: Content
+    
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+    
+    var body: some View {
+        HStack {
+            content
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            ZStack {
+                BlurView(style: .systemThinMaterialDark)
+                Color.white.opacity(0.05)
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 15))
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
+    }
+}
+
+struct BlurView: UIViewRepresentable {
+    var style: UIBlurEffect.Style
+    
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        UIVisualEffectView(effect: UIBlurEffect(style: style))
+    }
+    
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
+}
+
+struct NeonGlow: ViewModifier {
+    let color: Color
+    let radius: CGFloat
+    
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(0.8), radius: radius)
+            .shadow(color: color.opacity(0.4), radius: radius * 2)
+    }
+}
+
+extension View {
+    func neonGlow(color: Color, radius: CGFloat = 10) -> some View {
+        self.modifier(NeonGlow(color: color, radius: radius))
+    }
+}
+
+struct CircularProgressRing: View {
+    let progress: Double // 0 to 1
+    let color: Color
+    var strokeWidth: CGFloat = 4
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.2), lineWidth: strokeWidth)
+            
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(color, style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.easeOut, value: progress)
+        }
+    }
+}
+
+struct MissionCard<Content: View>: View {
+    let title: String
+    let content: Content
+    
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text(title)
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .tracking(2)
+            
+            content
+        }
+        .padding(25)
+        .background(Theme.Colors.secondaryBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 25))
+        .overlay(
+            RoundedRectangle(cornerRadius: 25)
+                .stroke(LinearGradient(colors: [Theme.Colors.accent.opacity(0.5), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+        )
+    }
+}
+
+struct BugCoin: View {
+    var size: CGFloat = 24
+    
+    var body: some View {
+        ZStack {
+            // Coin Base with Gradient
+            Circle()
+                .fill(LinearGradient(
+                    colors: [Theme.Colors.gold, Color(hex: "FFD700")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .frame(width: size, height: size)
+                .shadow(color: Theme.Colors.gold.opacity(0.3), radius: size * 0.1)
+            
+            // Inner Detailed Ring
+            Circle()
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                .frame(width: size * 0.85, height: size * 0.85)
+            
+            // Bug Symbol
+            Image(systemName: "ladybug.fill")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size * 0.55, height: size * 0.55)
+                .foregroundColor(Theme.Colors.background.opacity(0.8))
+        }
+    }
+}

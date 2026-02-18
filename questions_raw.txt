@@ -1,0 +1,970 @@
+Q1 — Print Statement Typo
+
+Broken Code
+
+prnt("Hello, Swift!")
+
+
+Error
+Cannot find 'prnt' in scope
+
+Correct Code
+
+print("Hello, Swift!")
+
+
+Riddle
+I speak to the console, miss me and nothing prints.
+
+Hidden Test Cases (Logic-validated)
+
+print("Test") → "Test"
+print("123") → "123"
+print("") → ""
+
+
+Logic Rule
+Use the correct built-in function for console output.
+
+Regex / Token Rules
+
+^print\s*\(.*\)$
+
+
+Answer
+Correct function name is print.
+
+Q2 — Missing Braces in If
+
+Broken Code
+
+let x = 5
+if x > 3 print("Big")
+
+
+Error
+Expected '{' after 'if' condition
+
+Correct Code
+
+let x = 5
+if x > 3 {
+    print("Big")
+}
+
+
+Riddle
+I wrap your block tight, without me the compiler will fight.
+
+Hidden Test Cases (Logic-validated)
+
+x = 10 → "Big"
+x = 2 → ""
+x = 3 → ""
+
+
+Logic Rule
+All if blocks must be enclosed in braces {}.
+
+Regex / Token Rules
+
+if\s*\(?.*\)?\s*\{.*\}
+
+
+Answer
+Add {} around the if body.
+
+Q3 — Variable Uninitialized
+
+Broken Code
+
+var name: String
+print(name)
+
+
+Error
+Variable 'name' used before being initialized
+
+Correct Code
+
+var name: String = "Hari"
+print(name)
+
+
+Riddle
+I give life to a variable, without me it's just an empty label.
+
+Hidden Test Cases (Logic-validated)
+
+name = "Alice" → "Alice"
+name = "" → ""
+
+
+Logic Rule
+Variables must be initialized before use.
+
+Regex / Token Rules
+
+(var|let)\s+\w+(:\s*\w+)?\s*=\s*.* 
+
+
+Answer
+Assign an initial value to the variable.
+
+Q4 — Missing Function Argument Label
+
+Broken Code
+
+func greet(name: String) {
+    print("Hello \(name)")
+}
+greet("Hari")
+
+
+Error
+Missing argument label 'name:' in call
+
+Correct Code
+
+func greet(name: String) {
+    print("Hello \(name)")
+}
+greet(name: "Hari")
+
+
+Riddle
+I match the function's label, without me the function will stab.
+
+Hidden Test Cases (Logic-validated)
+
+greet(name: "John") → "Hello John"
+greet(name: "Alice") → "Hello Alice"
+
+
+Logic Rule
+Function call must match parameter labels.
+
+Regex / Token Rules
+
+\w+\(.*:\s*.*\)
+
+
+Answer
+Add the correct argument label when calling the function.
+
+Q5 — Switch Case Syntax Error
+
+Broken Code
+
+let day = "Monday"
+switch day
+case "Monday":
+    print("Start week")
+default:
+    print("Other day")
+
+
+Error
+Expected ':' after case pattern
+
+Correct Code
+
+let day = "Monday"
+switch day {
+case "Monday":
+    print("Start week")
+default:
+    print("Other day")
+}
+
+
+Riddle
+I tell the compiler where the case ends,
+Miss me, and error sends.
+
+Hidden Test Cases (Logic-validated)
+
+day = "Monday" → "Start week"
+day = "Tuesday" → "Other day"
+day = "" → "Other day"
+
+
+Logic Rule
+Any correctly structured switch that outputs correct results passes.
+
+Regex / Token Rules
+
+switch\s+\w+\s*\{.*case\s+.*:.*default:.*\}
+
+
+Answer
+Add { after switch and : after each case.
+
+Q6 — Missing Return Type in Function
+
+Broken Code
+
+func add(a: Int, b: Int) {
+    return a + b
+}
+
+
+Error
+Functions with return values must declare a return type
+
+Correct Code
+
+func add(a: Int, b: Int) -> Int {
+    return a + b
+}
+
+
+Riddle
+I tell what comes back, without me the function is black.
+
+Hidden Test Cases (Logic-validated)
+
+add(a: 2, b: 3) → 5
+add(a: 0, b: 0) → 0
+add(a: -2, b: 4) → 2
+
+
+Logic Rule
+Declare the return type for functions returning a value.
+
+Regex / Token Rules
+
+func\s+\w+\(.*\)\s*->\s*\w+
+
+
+Answer
+Add the return type -> Int.
+
+Q7 — Assignment Instead of Comparison
+
+Broken Code
+
+let x = 5
+if x = 5 {
+    print("Yes")
+}
+
+
+Error
+Cannot assign to value in condition
+
+Correct Code
+
+let x = 5
+if x == 5 {
+    print("Yes")
+}
+
+
+Riddle
+I check equality, not assign reality.
+
+Hidden Test Cases (Logic-validated)
+
+x = 5 → "Yes"
+x = 3 → ""
+
+
+Logic Rule
+Use == for comparison, not =.
+
+Regex / Token Rules
+
+if\s*\w+\s*==\s*\w+
+
+
+Answer
+Replace = with == in conditional statements.
+
+Q8 — Function Call Missing Parentheses
+
+Broken Code
+
+func sayHello() {
+    print("Hi")
+}
+sayHello
+
+
+Error
+Missing argument list for call
+
+Correct Code
+
+func sayHello() {
+    print("Hi")
+}
+sayHello()
+
+
+Riddle
+I call you properly, without me the function sleeps.
+
+Hidden Test Cases (Logic-validated)
+
+sayHello() → "Hi"
+
+
+Logic Rule
+All function calls require parentheses, even with no parameters.
+
+Regex / Token Rules
+
+\w+\(\)
+
+
+Answer
+Add () when calling a function.
+
+Q9 — Using Reserved Keyword as Variable
+
+Broken Code
+
+let func = 5
+
+
+Error
+Cannot use keyword 'func' as identifier
+
+Correct Code
+
+let myFunc = 5
+
+
+Riddle
+I'm reserved, choose another word to be heard.
+
+Hidden Test Cases (Logic-validated)
+
+myFunc = 10 → 10
+myFunc = 0 → 0
+
+
+Logic Rule
+Cannot use reserved keywords as variable names.
+
+Regex / Token Rules
+
+^(?!.*\b(func|if|let|var|return|switch)\b).+$
+
+
+Answer
+Rename variable to a valid identifier.
+
+Q10 — Tuple Missing Comma
+
+Broken Code
+
+let point = (x: 5 y: 10)
+
+
+Error
+Expected ',' between tuple elements
+
+Correct Code
+
+let point = (x: 5, y: 10)
+
+
+Riddle
+I separate twins, without me they blend in.
+
+Hidden Test Cases (Logic-validated)
+
+point = (x:1, y:2) → x=1,y=2
+point = (x:0, y:0) → x=0,y=0
+
+
+Logic Rule
+Use commas to separate tuple elements.
+
+Regex / Token Rules
+
+\(\w+:\s*[^,]+,\s*\w+:\s*[^)]+\)
+
+
+Answer
+Add , between tuple elements.
+
+Q11 — Array Index Out of Range
+
+Broken Code
+
+let arr = [1, 2, 3]
+print(arr[3])
+
+
+Error
+Index out of range
+
+Correct Code
+
+let arr = [1, 2, 3]
+print(arr[2])
+
+
+Riddle
+I start at zero, count carefully, or you'll get an error.
+
+Hidden Test Cases (Logic-validated)
+
+arr = [10,20,30] → arr[0]=10, arr[2]=30
+arr = [] → do not access
+
+
+Logic Rule
+Array indices must be within 0..<array.count.
+
+Regex / Token Rules
+
+\w+\[\d+\]
+
+
+Answer
+Access array elements within valid index range.
+
+Q12 — Missing Colon in Dictionary
+
+Broken Code
+
+let dict = ["name" "Hari"]
+
+
+Error
+Expected ':' in dictionary element
+
+Correct Code
+
+let dict = ["name": "Hari"]
+
+
+Riddle
+I connect key to value, miss me and syntax fails.
+
+Hidden Test Cases (Logic-validated)
+
+dict = ["a":1] → key:a, value:1
+dict = [:] → empty dictionary
+
+
+Logic Rule
+Use : to separate dictionary keys and values.
+
+Regex / Token Rules
+
+\[\s*\w+\s*:\s*.+\s*\]
+
+
+Answer
+Add colon between key and value.
+
+Q13 — While Loop Missing Braces
+
+Broken Code
+
+var i = 0
+while i < 5
+    print(i)
+    i += 1
+
+
+Error
+Expected '{' after 'while' condition
+
+Correct Code
+
+var i = 0
+while i < 5 {
+    print(i)
+    i += 1
+}
+
+
+Riddle
+I wrap loops safely, without me the compiler shouts.
+
+Hidden Test Cases (Logic-validated)
+
+i = 0 → prints 0,1,2,3,4
+i = 3 → prints 3,4
+
+
+Logic Rule
+All loop bodies must be enclosed in {}.
+
+Regex / Token Rules
+
+while\s*\(?.*\)?\s*\{.*\}
+
+
+Answer
+Add braces around the loop body.
+
+Q14 — Missing Comma in Function Parameters
+
+Broken Code
+
+func sum(a: Int b: Int) -> Int {
+    return a + b
+}
+
+
+Error
+Expected ',' between function parameters
+
+Correct Code
+
+func sum(a: Int, b: Int) -> Int {
+    return a + b
+}
+
+
+Riddle
+I separate parameters, forget me and the compiler will glare.
+
+Hidden Test Cases (Logic-validated)
+
+sum(a:1, b:2) → 3
+sum(a:0, b:0) → 0
+
+
+Logic Rule
+Function parameters must be separated by commas.
+
+Regex / Token Rules
+
+func\s+\w+\(.*?,.*?\)
+
+
+Answer
+Add comma between parameters.
+
+Q15 — Missing Parentheses in If Condition
+
+Broken Code
+
+let x = 10
+if x > 5 {
+    print("Big")
+
+
+Error
+Expected ')' before '{' or Expected '}' at end
+
+Correct Code
+
+let x = 10
+if x > 5 {
+    print("Big")
+}
+
+
+Riddle
+I enclose your condition completely, miss me and syntax breaks.
+
+Hidden Test Cases (Logic-validated)
+
+x = 6 → "Big"
+x = 5 → ""
+x = 0 → ""
+
+
+Logic Rule
+if conditions must have matching {}.
+
+Regex / Token Rules
+
+if\s*\(?.*\)?\s*\{.*\}
+
+
+Answer
+Ensure braces are closed at the end of the block.
+
+Q16 — For Loop Missing Range
+
+Broken Code
+
+for i in {
+    print(i)
+}
+
+
+Error
+Expected sequence in 'for-in' loop
+
+Correct Code
+
+for i in 0..<5 {
+    print(i)
+}
+
+
+Riddle
+I tell the loop where to go, miss me and it fails.
+
+Hidden Test Cases (Logic-validated)
+
+0..<3 → prints 0,1,2
+1...3 → prints 1,2,3
+
+
+Logic Rule
+For-in loops require a valid range or sequence.
+
+Regex / Token Rules
+
+for\s+\w+\s+in\s+.+\s*\{.*\}
+
+
+Answer
+Specify the range or sequence after in.
+
+Q17 — Optional Unwrapping Error
+
+Broken Code
+
+var name: String? = "Hari"
+print(name)
+
+
+Error
+Value of optional type 'String?' must be unwrapped
+
+Correct Code
+
+var name: String? = "Hari"
+print(name!)
+
+
+Riddle
+I reveal the optional's value, without me the compiler warns.
+
+Hidden Test Cases (Logic-validated)
+
+name = "Alice" → "Alice"
+name = nil → runtime warning if unwrapped
+
+
+Logic Rule
+Optionals must be unwrapped to access their values.
+
+Regex / Token Rules
+
+\w+!
+
+
+Answer
+Use ! to unwrap the optional when sure it's non-nil.
+
+Q18 — Wrong String Interpolation
+
+Broken Code
+
+let age = 20
+print("I am age years old")
+
+
+Error
+String literal must include \() for variable interpolation
+
+Correct Code
+
+let age = 20
+print("I am \(age) years old")
+
+
+Riddle
+I show your variable inside the string, forget me and it's plain.
+
+Hidden Test Cases (Logic-validated)
+
+age = 25 → "I am 25 years old"
+age = 0 → "I am 0 years old"
+
+
+Logic Rule
+Variables in strings must use \(variable) syntax.
+
+Regex / Token Rules
+
+\\\(.*\)
+
+
+Answer
+Use \() for string interpolation.
+
+Q19 — Constant Reassignment
+
+Broken Code
+
+let pi = 3.14
+pi = 3.1415
+
+
+Error
+Cannot assign to value: 'pi' is a 'let' constant
+
+Correct Code
+
+var pi = 3.14
+pi = 3.1415
+
+
+Riddle
+I can change my mind, but constants cannot.
+
+Hidden Test Cases (Logic-validated)
+
+pi = 3 → 3
+pi = 0 → 0
+
+
+Logic Rule
+Use var if the value needs to change.
+
+Regex / Token Rules
+
+(let)\s+\w+\s*=\s*.+  // Flag reassignment
+
+
+Answer
+Declare with var if reassignment is needed.
+
+Q20 — Function Without Return Statement
+
+Broken Code
+
+func multiply(a: Int, b: Int) -> Int {
+    a * b
+}
+
+
+Error
+Missing return in function expected to return 'Int'
+
+Correct Code
+
+func multiply(a: Int, b: Int) -> Int {
+    return a * b
+}
+
+
+Riddle
+I send the result back, forget me and it's lost.
+
+Hidden Test Cases (Logic-validated)
+
+multiply(a:2,b:3) → 6
+multiply(a:0,b:5) → 0
+
+
+Logic Rule
+Use return for functions that provide a value.
+
+Regex / Token Rules
+
+return\s+.* 
+
+
+Answer
+Add return keyword.
+
+Q21 — Array Append Wrong Syntax
+
+Broken Code
+
+var arr = [1,2,3]
+arr.append 4
+
+
+Error
+Missing parentheses in function call
+
+Correct Code
+
+var arr = [1,2,3]
+arr.append(4)
+
+
+Riddle
+I wrap my argument in parentheses, or the compiler is anxious.
+
+Hidden Test Cases (Logic-validated)
+
+arr.append(5) → [1,2,3,5]
+arr.append(0) → [1,2,3,0]
+
+
+Logic Rule
+Method calls require parentheses around arguments.
+
+Regex / Token Rules
+
+\w+\.append\(.*\)
+
+
+Answer
+Add parentheses to append() call.
+
+Q22 — Dictionary Value Access Wrong Syntax
+
+Broken Code
+
+let dict = ["a":1]
+print(dict[a])
+
+
+Error
+Cannot find 'a' in scope
+
+Correct Code
+
+let dict = ["a":1]
+print(dict["a"])
+
+
+Riddle
+I'm a string key, miss quotes and I vanish.
+
+Hidden Test Cases (Logic-validated)
+
+dict["a"] → 1
+dict["b"] → nil
+
+
+Logic Rule
+Dictionary keys must match type exactly.
+
+Regex / Token Rules
+
+\[\s*".*"\s*\]
+
+
+Answer
+Use quotes for string keys.
+
+Q23 — Boolean Assignment Instead of Comparison
+
+Broken Code
+
+let flag = true
+if flag = false {
+    print("No")
+}
+
+
+Error
+Cannot assign to value in condition
+
+Correct Code
+
+let flag = true
+if flag == false {
+    print("No")
+}
+
+
+Riddle
+I check truth, not assign it.
+
+Hidden Test Cases (Logic-validated)
+
+flag = true → ""
+flag = false → "No"
+
+
+Logic Rule
+Use == for Boolean comparisons.
+
+Regex / Token Rules
+
+if\s+.*==.*\s*\{.*\}
+
+
+Answer
+Replace = with == in conditions.
+
+Q24 — For Loop Wrong Variable Declaration
+
+Broken Code
+
+for i = 0; i<5; i++ {
+    print(i)
+}
+
+
+Error
+C-style for statement is unavailable in Swift
+
+Correct Code
+
+for i in 0..<5 {
+    print(i)
+}
+
+
+Riddle
+I run my loop Swift-style, old C-style is not worthwhile.
+
+Hidden Test Cases (Logic-validated)
+
+0..<3 → 0,1,2
+2..<5 → 2,3,4
+
+
+Logic Rule
+Use Swift for-in loops instead of C-style loops.
+
+Regex / Token Rules
+
+for\s+\w+\s+in\s+.*\{.*\}
+
+
+Answer
+Convert C-style loop to Swift range loop.
+
+Q25 — Optional Binding Syntax Error
+
+Broken Code
+
+var name: String? = "Hari"
+if name {
+    print(name)
+}
+
+
+Error
+Value of optional type 'String?' must be unwrapped
+
+Correct Code
+
+var name: String? = "Hari"
+if let name = name {
+    print(name)
+}
+
+
+Riddle
+I unwrap safely, without me you risk a crash.
+
+Hidden Test Cases (Logic-validated)
+
+name = "Alice" → "Alice"
+name = nil → does not print
+
+
+Logic Rule
+Use if let for safe optional unwrapping.
+
+Regex / Token Rules
+
+if\s+let\s+\w+\s*=\s*\w+\s*\{.*\}
+
+
+Answer
+Wrap optional in if let to safely access value.

@@ -1,0 +1,502 @@
+static let allPuzzles: [Puzzle] = [
+        Puzzle(
+            title: "Level 1: Missing Parenthesis",
+            description: "Fix the syntax issue in the print statement.",
+            initialCode: "print(\"Welcome to Debug Lab\"",
+            correctCode: "print(\"Welcome to Debug Lab\")",
+            difficulty: 1,
+            hints: ["I open my mouth to speak,\nbut never close it."],
+            storyFragment: "System Error: SyntaxError: '(' was never closed",
+            locked: false
+        ),
+        Puzzle(
+            title: "Level 2: Wrong Indentation",
+            description: "Fix the block structure.",
+            initialCode: "if 10 > 5:\nprint(\"Correct\")",
+            correctCode: "if 10 > 5:\n    print(\"Correct\")",
+            difficulty: 1,
+            hints: ["After the colon, take a step forward."],
+            storyFragment: "System Error: IndentationError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 3: Undefined Variable",
+            description: "Why does this crash?",
+            initialCode: "print(score)",
+            correctCode: "score = 100\nprint(score)",
+            difficulty: 1,
+            hints: ["You called my name,\nbut I was never introduced."],
+            storyFragment: "System Error: NameError: name 'score' is not defined",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 4: String + Integer",
+            description: "Fix the type mismatch.",
+            initialCode: "age = 20\nprint(\"Age: \" + age)",
+            correctCode: "print(\"Age: \" + str(age))",
+            difficulty: 1,
+            hints: ["I speak letters,\nyou bring numbers.\nMake us understand each other."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 5: Wrong Assignment in Condition",
+            description: "Fix the comparison error.",
+            initialCode: "if 5 = 5:\n    print(\"Equal\")",
+            correctCode: "if 5 == 5:\n    print(\"Equal\")",
+            difficulty: 1,
+            hints: ["One equals gives.\nTwo equals compares."],
+            storyFragment: "System Error: SyntaxError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 6: Division by Zero",
+            description: "Prevent the crash.",
+            initialCode: "result = 10 / 0\nprint(result)",
+            correctCode: "result = 10 / 2\nprint(result)",
+            difficulty: 1,
+            hints: ["Nothing cannot divide something."],
+            storyFragment: "System Error: ZeroDivisionError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 7: List Index Out of Range",
+            description: "Fix the indexing issue.",
+            initialCode: "numbers = [1, 2, 3]\nprint(numbers[3])",
+            correctCode: "print(numbers[2])",
+            difficulty: 1,
+            hints: ["I only have three seats.\nYou asked for the fourth."],
+            storyFragment: "System Error: IndexError: list index out of range",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 8: Missing Colon",
+            description: "Fix the syntax.",
+            initialCode: "for i in range(3)\n    print(i)",
+            correctCode: "for i in range(3):\n    print(i)",
+            difficulty: 1,
+            hints: ["A loop without punctuation\ncannot begin its journey."],
+            storyFragment: "System Error: SyntaxError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 9: Input Type Issue",
+            description: "Fix the type problem.",
+            initialCode: "num = input(\"Enter number: \")\nprint(num + 5)",
+            correctCode: "num = int(input(\"Enter number: \"))\nprint(num + 5)",
+            difficulty: 1,
+            hints: ["I accept words,\nbut you expect numbers."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 10: Infinite Loop",
+            description: "Stop the loop properly.",
+            initialCode: "while True:\n    print(\"Running\")",
+            correctCode: "count = 0\nwhile count < 3:\n    print(\"Running\")\n    count += 1",
+            difficulty: 1,
+            hints: ["I run forever\nunless you set my boundary."],
+            storyFragment: "System Error: Logical Error (Infinite Loop)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 11: Function Missing Return",
+            description: "Why is output None?",
+            initialCode: "def add(a, b):\n    c = a + b\n\nprint(add(2, 3))",
+            correctCode: "def add(a, b):\n    return a + b",
+            difficulty: 1,
+            hints: ["I calculate silently,\nbut never give back the result."],
+            storyFragment: "System Error: No error, but prints None",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 12: Wrong Logical Operator",
+            description: "Fix the condition.",
+            initialCode: "x = 7\nif x > 5 and x < 3:\n    print(\"Inside\")",
+            correctCode: "if x > 5 or x < 3:",
+            difficulty: 1,
+            hints: ["I block everyone\nwhen I should allow some."],
+            storyFragment: "System Error: Logical error",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 13: Dictionary Key Error",
+            description: "Fix the crash.",
+            initialCode: "data = {\"name\": \"Alex\"}\nprint(data[\"age\"])",
+            correctCode: "print(data.get(\"age\"))",
+            difficulty: 1,
+            hints: ["You searched for a key\nthat was never crafted."],
+            storyFragment: "System Error: KeyError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 14: Variable Shadowing",
+            description: "Fix the logic issue.",
+            initialCode: "x = 10\n\ndef test():\n    x = 5\n\ntest()\nprint(x)",
+            correctCode: "def test():\n    global x\n    x = 5",
+            difficulty: 1,
+            hints: ["I changed inside the room,\nbut outside I remained the same."],
+            storyFragment: "System Error: No error, but prints 10",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 15: Wrong Range Boundary",
+            description: "Fix off-by-one error.",
+            initialCode: "for i in range(1, 5):\n    print(i)\n\n\n(Expected 1 to 5)",
+            correctCode: "for i in range(1, 6):",
+            difficulty: 1,
+            hints: ["I stop one step before the finish line."],
+            storyFragment: "System Error: Logical error",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 16: Wrong List Modification During Loop",
+            description: "Why does this skip elements?",
+            initialCode: "numbers = [1, 2, 3, 4]\nfor n in numbers:\n    if n % 2 == 0:\n        numbers.remove(n)\n\nprint(numbers)",
+            correctCode: "numbers = [1, 2, 3, 4]\nnumbers = [n for n in numbers if n % 2 != 0]\nprint(numbers)",
+            difficulty: 1,
+            hints: ["When you remove while walking,\nyou may skip the next step."],
+            storyFragment: "System Error: Logical Error (Unexpected result)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 17: Incorrect String Method",
+            description: "Fix the method error.",
+            initialCode: "text = \"hello\"\nprint(text.uppercase())",
+            correctCode: "print(text.upper())",
+            difficulty: 1,
+            hints: ["My name is close,\nbut not quite correct."],
+            storyFragment: "System Error: AttributeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 18: Tuple Modification Error",
+            description: "Why does this fail?",
+            initialCode: "point = (1, 2)\npoint[0] = 5",
+            correctCode: "point = (5, 2)",
+            difficulty: 1,
+            hints: ["I am fixed once created.\nYou cannot change my bones."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 19: Wrong Function Call Arguments",
+            description: "Fix the call mismatch.",
+            initialCode: "def greet(name):\n    print(\"Hello\", name)\n\ngreet()",
+            correctCode: "greet(\"Alex\")",
+            difficulty: 1,
+            hints: ["You called me,\nbut forgot to tell me who."],
+            storyFragment: "System Error: TypeError (missing argument)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 20: Using += on String Instead of List",
+            description: "Why is result strange?",
+            initialCode: "items = []\nitems += \"apple\"\nprint(items)",
+            correctCode: "items.append(\"apple\")",
+            difficulty: 1,
+            hints: ["I break words into letters\nwhen I should keep them whole."],
+            storyFragment: "System Error: Logical issue (['a','p','p','l','e'])",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 21: Incorrect Boolean Comparison",
+            description: "Fix the condition.",
+            initialCode: "flag = True\nif flag == \"True\":\n    print(\"Yes\")",
+            correctCode: "if flag:\n    print(\"Yes\")",
+            difficulty: 1,
+            hints: ["I am truth itself,\nnot a word describing it."],
+            storyFragment: "System Error: Logical error",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 22: Wrong Range Step",
+            description: "Why does this not print anything?",
+            initialCode: "for i in range(5, 1):\n    print(i)",
+            correctCode: "for i in range(5, 1, -1):",
+            difficulty: 1,
+            hints: ["If I walk backwards,\nyou must tell me how."],
+            storyFragment: "System Error: Logical error (no output)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 23: Variable Used Before Assignment",
+            description: "Fix the crash.",
+            initialCode: "def test():\n    print(x)\n    x = 5\n\ntest()",
+            correctCode: "def test():\n    global x\n    print(x)\n    x = 5",
+            difficulty: 1,
+            hints: ["You tried to use me\nbefore I existed inside this room."],
+            storyFragment: "System Error: UnboundLocalError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 24: Incorrect List Index Type",
+            description: "Why does this fail?",
+            initialCode: "nums = [10, 20, 30]\nprint(nums[\"1\"])",
+            correctCode: "print(nums[1])",
+            difficulty: 1,
+            hints: ["Lists speak numbers,\nnot strings."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 25: Using is Instead of ==",
+            description: "Fix comparison issue.",
+            initialCode: "a = 1000\nb = 1000\n\nif a is b:\n    print(\"Same\")",
+            correctCode: "if a == b:",
+            difficulty: 1,
+            hints: ["I compare identity,\nnot equality."],
+            storyFragment: "System Error: Logical issue",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 26: Incorrect Exception Handling",
+            description: "Fix the crash handling.",
+            initialCode: "try:\n    print(10 / 0)\nexcept:\n    print(\"Error\")\n\n\n(No specific error caught)",
+            correctCode: "except ZeroDivisionError:",
+            difficulty: 1,
+            hints: ["Catch the right storm,\nnot every cloud in the sky."],
+            storyFragment: "System Error: Logic Error / Unexpected Behavior",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 27: Wrong List Slicing",
+            description: "Why missing last element?",
+            initialCode: "nums = [1,2,3,4]\nprint(nums[0:3])\n\n\n(Expected all)",
+            correctCode: "print(nums[0:4])",
+            difficulty: 1,
+            hints: ["I stop before the last gate."],
+            storyFragment: "System Error: Logic Error / Unexpected Behavior",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 28: Forgetting to Close File",
+            description: "Improve this.",
+            initialCode: "file = open(\"test.txt\", \"w\")\nfile.write(\"Hello\")",
+            correctCode: "with open(\"test.txt\", \"w\") as file:\n    file.write(\"Hello\")",
+            difficulty: 1,
+            hints: ["Open the door properly,\nand close it when done."],
+            storyFragment: "System Error: Resource not closed",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 29: Wrong Operator Precedence",
+            description: "Fix calculation.",
+            initialCode: "result = 2 + 3 * 4\n\n\n(Expected 20)",
+            correctCode: "result = (2 + 3) * 4",
+            difficulty: 1,
+            hints: ["Multiplication acts first\nunless you guide it."],
+            storyFragment: "System Error: Logic Error / Unexpected Behavior",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 30: Default Mutable Argument",
+            description: "Why does list grow unexpectedly?",
+            initialCode: "def add_item(item, lst=[]):\n    lst.append(item)\n    return lst",
+            correctCode: "def add_item(item, lst=None):\n    if lst is None:\n        lst = []\n    lst.append(item)\n    return lst",
+            difficulty: 1,
+            hints: ["I remember past lives\nwhen I should start fresh."],
+            storyFragment: "System Error: Logical bug",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 31: Modifying Dictionary While Looping",
+            description: "Why does this crash?",
+            initialCode: "data = {\"a\": 1, \"b\": 2}\nfor key in data:\n    del data[key]",
+            correctCode: "for key in list(data.keys()):\n    del data[key]",
+            difficulty: 1,
+            hints: ["If you change the map\nwhile reading it,\nyou will get lost."],
+            storyFragment: "System Error: RuntimeError: dictionary changed size during iteration",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 32: Wrong Unpacking",
+            description: "Fix the unpacking error.",
+            initialCode: "a, b = [1, 2, 3]",
+            correctCode: "a, b, c = [1, 2, 3]",
+            difficulty: 1,
+            hints: ["Three gifts were given,\nbut only two hands were ready."],
+            storyFragment: "System Error: ValueError: too many values to unpack",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 33: Incorrect Use of all()",
+            description: "Why is this always True?",
+            initialCode: "nums = [0, 1, 2]\nif all(nums):\n    print(\"All true\")",
+            correctCode: "if all(n > 0 for n in nums):",
+            difficulty: 1,
+            hints: ["Zero hides among truth,\nyet truth is not complete."],
+            storyFragment: "System Error: Logical misunderstanding",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 34: Comparing List Directly to Integer",
+            description: "Fix the comparison.",
+            initialCode: "nums = [1,2,3]\nif nums > 2:\n    print(\"Yes\")",
+            correctCode: "if any(n > 2 for n in nums):",
+            difficulty: 1,
+            hints: ["Ask each member,\nnot the whole crowd at once."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 35: Wrong String Formatting",
+            description: "Fix formatting error.",
+            initialCode: "name = \"Alex\"\nprint(\"Hello %d\" % name)",
+            correctCode: "print(\"Hello %s\" % name)",
+            difficulty: 1,
+            hints: ["I expect a number,\nbut you gave me a name."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 36: Recursive Function Without Base Case",
+            description: "Why does it crash?",
+            initialCode: "def count_down(n):\n    print(n)\n    count_down(n-1)\n\ncount_down(5)",
+            correctCode: "def count_down(n):\n    if n <= 0:\n        return\n    print(n)\n    count_down(n-1)",
+            difficulty: 1,
+            hints: ["Without a stopping point,\nI fall forever."],
+            storyFragment: "System Error: RecursionError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 37: Shadowing Built-in Name",
+            description: "Why is this wrong?",
+            initialCode: "list = [1,2,3]\nprint(list(\"abc\"))",
+            correctCode: "my_list = [1,2,3]\nprint(list(\"abc\"))",
+            difficulty: 1,
+            hints: ["Do not steal the name\nof a powerful tool."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 38: Incorrect Float Comparison",
+            description: "Why might this fail?",
+            initialCode: "if 0.1 + 0.2 == 0.3:\n    print(\"Equal\")",
+            correctCode: "import math\nif math.isclose(0.1 + 0.2, 0.3):",
+            difficulty: 1,
+            hints: ["Floating numbers are not exact;\nthey whisper, not shout."],
+            storyFragment: "System Error: Logical precision issue",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 39: Using append Instead of extend",
+            description: "Why nested list?",
+            initialCode: "a = [1,2]\nb = [3,4]\na.append(b)\nprint(a)",
+            correctCode: "a.extend(b)",
+            difficulty: 1,
+            hints: ["I add the box,\ninstead of its contents."],
+            storyFragment: "System Error: Logical issue → [1,2,[3,4]]",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 40: Incorrect Default Parameter Order",
+            description: "Fix syntax.",
+            initialCode: "def test(a=5, b):\n    return a + b",
+            correctCode: "def test(b, a=5):",
+            difficulty: 1,
+            hints: ["Required guests must arrive\nbefore optional ones."],
+            storyFragment: "System Error: SyntaxError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 41: Generator Consumed Once",
+            description: "Why empty second time?",
+            initialCode: "gen = (x for x in range(3))\nprint(list(gen))\nprint(list(gen))",
+            correctCode: "gen = [x for x in range(3)]",
+            difficulty: 1,
+            hints: ["I can be used once,\nthen I vanish."],
+            storyFragment: "System Error: Logical issue (second print empty)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 42: Incorrect Use of map",
+            description: "Why TypeError?",
+            initialCode: "nums = [1,2,3]\nprint(map(lambda x: x+1, nums)[0])",
+            correctCode: "print(list(map(lambda x: x+1, nums))[0])",
+            difficulty: 1,
+            hints: ["I am iterable,\nnot directly indexable."],
+            storyFragment: "System Error: TypeError (map not subscriptable)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 43: Sorting Without Assignment",
+            description: "Why not sorted?",
+            initialCode: "nums = [3,1,2]\nsorted(nums)\nprint(nums)",
+            correctCode: "nums = sorted(nums)",
+            difficulty: 1,
+            hints: ["I sort in silence\nunless you store the result."],
+            storyFragment: "System Error: Logical issue",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 44: Missing self in Class Method",
+            description: "Fix the class method.",
+            initialCode: "class Person:\n    def greet():\n        print(\"Hello\")\n\np = Person()\np.greet()",
+            correctCode: "class Person:\n    def greet(self):",
+            difficulty: 1,
+            hints: ["Inside a class,\nremember who is speaking."],
+            storyFragment: "System Error: TypeError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 45: Wrong Import Usage",
+            description: "Fix import error.",
+            initialCode: "import math\nprint(sqrt(16))",
+            correctCode: "print(math.sqrt(16))",
+            difficulty: 1,
+            hints: ["You brought the toolbox,\nbut forgot to open it properly."],
+            storyFragment: "System Error: NameError",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 46: Incorrect Counter Logic",
+            description: "Why does this print wrong count?",
+            initialCode: "numbers = [1, 2, 3, 4, 5]\ncount = 0\n\nfor n in numbers:\n    if n % 2 == 0:\n        count = 1\n\nprint(count)",
+            correctCode: "for n in numbers:\n    if n % 2 == 0:\n        count += 1",
+            difficulty: 1,
+            hints: ["I reset myself\ninstead of growing stronger."],
+            storyFragment: "System Error: Logical Error (Always prints 1 if at least one even number)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 47: Nested Loop Mistake",
+            description: "Why output incorrect pairs?",
+            initialCode: "for i in range(3):\n    for j in range(i):\n        print(i, j)\n\n\n(Expected full 3x3 grid)",
+            correctCode: "for i in range(3):\n    for j in range(3):\n        print(i, j)",
+            difficulty: 1,
+            hints: ["You limited the inner world\nby the outer one."],
+            storyFragment: "System Error: Logical limitation",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 48: Incorrect Condition Order",
+            description: "Why wrong classification?",
+            initialCode: "score = 85\n\nif score > 50:\n    print(\"Pass\")\nelif score > 80:\n    print(\"Distinction\")",
+            correctCode: "if score > 80:\n    print(\"Distinction\")\nelif score > 50:\n    print(\"Pass\")",
+            difficulty: 1,
+            hints: ["Check the highest throne first,\nnot the lower seat."],
+            storyFragment: "System Error: Logical ordering issue",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 49: Incorrect String Accumulation",
+            description: "Why missing characters?",
+            initialCode: "text = \"hello\"\nresult = \"\"\n\nfor char in text:\n    result = char\n\nprint(result)",
+            correctCode: "for char in text:\n    result += char",
+            difficulty: 1,
+            hints: ["You replace me each time,\ninstead of building me."],
+            storyFragment: "System Error: Logical bug (only last char printed)",
+            locked: true
+        ),
+        Puzzle(
+            title: "Level 50: Combined Logical Bug (Mini Boss)",
+            description: "Why wrong sum result?",
+            initialCode: "numbers = [1, 2, 3, 4, 5]\ntotal = 0\n\nfor i in range(len(numbers)):\n    if i % 2 == 0:\n        total += numbers[i]\n\nprint(total)\n\n\n(Expected sum of even numbers: 6)",
+            correctCode: "for num in numbers:\n    if num % 2 == 0:\n        total += num",
+            difficulty: 1,
+            hints: ["You examined the position,\nnot the value itself."],
+            storyFragment: "System Error: Logical misunderstanding (checks index, not value)",
+            locked: true
+        ),
+    ]

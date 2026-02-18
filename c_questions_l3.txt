@@ -1,0 +1,334 @@
+    private static func generateCLevel3Questions() -> [Question] {
+        var questions: [Question] = []
+
+        questions.append(Question(
+            title: "Level 3 – Question 1",
+            description: "Why does the struct field remain unchanged after assignment?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int x;\n} Point;\nint main() {\n    Point p;\n    int x = 5;\n    p.x = x;\n    int x = 10;\n    p.x = x;\n    printf(\"%d\", p.x);\n}",
+            correctCode: "Point p;\nint x = 5;\np.x = x;\nx = 10;\np.x = x;",
+            difficulty: 3,
+            riddle: "Shadow hides the real field.",
+            conceptExplanation: "Redeclaring int x inside same scope shadows previous variable.\nUse same variable without redeclaration.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 2",
+            description: "Why does this print 0 instead of 10?",
+            initialCode: "#include <stdio.h>\nint add(int a, int b) { return a + b; }\nint main() {\n    int (*fptr)(int,int);\n    fptr(5,5);\n    printf(\"%d\", fptr(5,5));\n}",
+            correctCode: "int (*fptr)(int,int) = add;\nprintf(\"%d\", fptr(5,5));",
+            difficulty: 3,
+            riddle: "Pointer points nowhere.",
+            conceptExplanation: "fptr was uninitialized → calling it undefined.\nMust assign function address to pointer.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 3",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int x; } Point;\nint main() {\n    Point* p;\n    p->x = 10;\n    printf(\"%d\", p->x);\n}",
+            correctCode: "Point pt;\nPoint* p = &pt;\np->x = 10;\nprintf(\"%d\", p->x);",
+            difficulty: 3,
+            riddle: "Pointer must point to something real.",
+            conceptExplanation: "p is uninitialized → dereference crash.\nMust assign valid memory address.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 4",
+            description: "Why does inner struct remain default?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int x;\n} Inner;\ntypedef struct {\n    Inner in;\n} Outer;\nint main() {\n    Outer o;\n    Inner in;\n    in.x = 5;\n    o.in = in;\n    in.x = 10;\n    printf(\"%d\", o.in.x);\n}",
+            correctCode: "Outer o;\no.in.x = 5;\no.in.x = 10;\nprintf(\"%d\", o.in.x);",
+            difficulty: 3,
+            riddle: "Copy was made; original changes later.",
+            conceptExplanation: "Struct assignment copies value → modifying in after copying doesn't affect o.in.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 5",
+            description: "Why doesn't the value change through double pointer?",
+            initialCode: "#include <stdio.h>\nint main() {\n    int x = 5;\n    int* p = &x;\n    int** pp;\n    **pp = 10;\n    printf(\"%d\", x);\n}",
+            correctCode: "int x = 5;\nint* p = &x;\nint** pp = &p;\n**pp = 10;\nprintf(\"%d\", x);",
+            difficulty: 3,
+            riddle: "Double pointer must point to a valid pointer.",
+            conceptExplanation: "pp uninitialized → dereference crash.\nMust assign valid pointer address.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 6",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } S;\nint main() {\n    S s = {{1,2}};\n    int* p = s.arr;\n    printf(\"%d %d %d\", *p, *(p+1), *(p+2));\n}",
+            correctCode: "S s = {{1,2,0}};\nint* p = s.arr;\nprintf(\"%d %d %d\", *p, *(p+1), *(p+2));",
+            difficulty: 3,
+            riddle: "Pointer walks too far, array too small.",
+            conceptExplanation: "*(p+2) → out-of-bounds → undefined.\nAllocate enough array size.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 7",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int (*fptr)(int,int);\n} S;\nint add(int a,int b){return a+b;}\nint main() {\n    S s;\n    printf(\"%d\", s.fptr(2,3));\n}",
+            correctCode: "S s;\ns.fptr = add;\nprintf(\"%d\", s.fptr(2,3));",
+            difficulty: 3,
+            riddle: "Pointer inside struct must be assigned.",
+            conceptExplanation: "s.fptr uninitialized → crash.\nMust assign valid function address.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 8",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int* p;\n} S;\nint main() {\n    S s;\n    *(s.p) = 5;\n    printf(\"%d\", *(s.p));\n}",
+            correctCode: "int x;\nS s;\ns.p = &x;\n*(s.p) = 5;\nprintf(\"%d\", *(s.p));",
+            difficulty: 3,
+            riddle: "Pointer inside struct must point to real memory.",
+            conceptExplanation: "s.p uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 9",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int x; } S;\nint main() {\n    S* s;\n    S** pp;\n    (**pp).x = 5;\n    printf(\"%d\", s->x);\n}",
+            correctCode: "S s_instance;\nS* s = &s_instance;\nS** pp = &s;\n(**pp).x = 5;\nprintf(\"%d\", s->x);",
+            difficulty: 3,
+            riddle: "Pointers must chain to real memory.",
+            conceptExplanation: "pp uninitialized → dereference crash.\nMust initialize all levels.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 10",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int (*f)(int);\n} Inner;\ntypedef struct {\n    Inner in;\n} Outer;\nint sqr(int x){ return x*x; }\nint main() {\n    Outer o;\n    printf(\"%d\", o.in.f(5));\n}",
+            correctCode: "Outer o;\no.in.f = sqr;\nprintf(\"%d\", o.in.f(5));",
+            difficulty: 3,
+            riddle: "Nested pointer to function must be initialized.",
+            conceptExplanation: "o.in.f uninitialized → crash.\nMust assign valid function address.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 11",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int arr[2];\n    int (*f)(int,int);\n} S;\nint add(int a,int b){return a+b;}\nint main() {\n    S s;\n    printf(\"%d %d %d\", s.arr[0], s.arr[1], s.f(2,3));\n}",
+            correctCode: "S s = {{1,2}};\ns.f = add;\nprintf(\"%d %d %d\", s.arr[0], s.arr[1], s.f(2,3));",
+            difficulty: 3,
+            riddle: "Array initialized, function pointer assigned.",
+            conceptExplanation: "s.arr uninitialized → undefined.\ns.f uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 12",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int x; } S;\nint main() {\n    S* s;\n    S** pp;\n    (**pp).x = 10;\n    printf(\"%d\", (**pp).x);\n}",
+            correctCode: "S s_instance;\nS* s = &s_instance;\nS** pp = &s;\n(**pp).x = 10;\nprintf(\"%d\", (**pp).x);",
+            difficulty: 3,
+            riddle: "All levels must point to valid memory.",
+            conceptExplanation: "pp uninitialized → dereference crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 13",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } Inner;\ntypedef struct { Inner in; } Outer;\nint main() {\n    Outer o;\n    int* p = o.in.arr;\n    printf(\"%d %d %d\", p[0], p[1], p[2]);\n}",
+            correctCode: "Outer o = {{{1,2,0}}};\nint* p = o.in.arr;\nprintf(\"%d %d %d\", p[0], p[1], p[2]);",
+            difficulty: 3,
+            riddle: "Array size too small, pointer walks too far.",
+            conceptExplanation: "p[2] → out-of-bounds → undefined.\nAllocate enough array space.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 14",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct {\n    int (*f)(int);\n} Inner;\ntypedef struct {\n    Inner in;\n} Outer;\nint sqr(int x){return x*x;}\nint main() {\n    Outer o;\n    printf(\"%d\", o.in.f(5));\n}",
+            correctCode: "Outer o;\no.in.f = sqr;\nprintf(\"%d\", o.in.f(5));",
+            difficulty: 3,
+            riddle: "Nested function pointer must be assigned.",
+            conceptExplanation: "o.in.f uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 15",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S* s;\n    S** pp;\n    printf(\"%d\", (**pp).f(4));\n}",
+            correctCode: "S s_instance;\nS* s = &s_instance;\nS** pp = &s;\ns.f = sqr;\nprintf(\"%d\", (**pp).f(4));",
+            difficulty: 3,
+            riddle: "Pointer-to-pointer must chain to initialized struct.",
+            conceptExplanation: "pp uninitialized → dereference crash.\nf must be assigned.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 16",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } Inner;\ntypedef struct { Inner* in; } Outer;\nint main() {\n    Outer o;\n    o.in->arr[0] = 1;\n    printf(\"%d\", o.in->arr[0]);\n}",
+            correctCode: "Inner inner_instance;\nOuter o;\no.in = &inner_instance;\no.in->arr[0] = 1;\nprintf(\"%d\", o.in->arr[0]);",
+            difficulty: 3,
+            riddle: "Pointer inside struct must point to a valid instance.",
+            conceptExplanation: "o.in uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 17",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } S;\nint main() {\n    S s = {{1,2}};\n    int* p = s.arr;\n    printf(\"%d %d %d\", *p++, *p++, *p++);\n}",
+            correctCode: "S s = {{1,2,0}};\nint* p = s.arr;\nprintf(\"%d %d %d\", p[0], p[1], p[2]);",
+            difficulty: 3,
+            riddle: "Pointer walks too far, array too small.",
+            conceptExplanation: "Last *p++ → out-of-bounds → undefined behavior.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 18",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; int (*f)(int,int); } S;\nint add(int a,int b){return a+b;}\nint main() {\n    S s;\n    printf(\"%d %d %d\", s.arr[0], s.arr[1], s.f(1,2));\n}",
+            correctCode: "S s = {{1,2}};\ns.f = add;\nprintf(\"%d %d %d\", s.arr[0], s.arr[1], s.f(1,2));",
+            difficulty: 3,
+            riddle: "Array initialized, function pointer assigned.",
+            conceptExplanation: "s.arr uninitialized → undefined.\ns.f uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 19",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int x; } Inner;\ntypedef struct { Inner* in; } Outer;\nint main() {\n    Outer* o;\n    Outer** pp;\n    (**pp).in->x = 5;\n    printf(\"%d\", (**pp).in->x);\n}",
+            correctCode: "Inner inner_instance;\nOuter outer_instance;\nOuter* o = &outer_instance;\nOuter** pp = &o;\no->in = &inner_instance;\n(**pp).in->x = 5;\nprintf(\"%d\", (**pp).in->x);",
+            difficulty: 3,
+            riddle: "Pointers must be chained and initialized.",
+            conceptExplanation: "pp uninitialized → crash.\nin pointer must point to valid memory.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 20",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S* s;\n    printf(\"%d %d %d\", s->arr[0], s->arr[1], s->f(5));\n}",
+            correctCode: "S s_instance = {{1,2}};\ns_instance.f = sqr;\nS* s = &s_instance;\nprintf(\"%d %d %d\", s->arr[0], s->arr[1], s->f(5));",
+            difficulty: 3,
+            riddle: "Pointer must point to a valid struct, function pointer must be assigned.",
+            conceptExplanation: "s uninitialized → crash.\ns->f uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 21",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; int (*f)(int); } Inner;\ntypedef struct { Inner* in; } Outer;\nint sqr(int x){return x*x;}\nint main() {\n    Outer* o;\n    Outer** pp;\n    (**pp).in->arr[0] = 5;\n    (**pp).in->f(3);\n}",
+            correctCode: "Inner inner_instance = {{1,2}};\nOuter outer_instance;\nouter_instance.in = &inner_instance;\nOuter* o = &outer_instance;\nOuter** pp = &o;\n(**pp).in->arr[0] = 5;\n(**pp).in->f = sqr;\nprintf(\"%d\", (**pp).in->f(3));",
+            difficulty: 3,
+            riddle: "All pointers must be chained to valid memory.",
+            conceptExplanation: "pp and in uninitialized → crash.\nFunction pointer must be assigned before call.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 22",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } S;\nint main() {\n    S s[2] = {{{1,2}}, {{3,4}}};\n    int* p = s[0].arr;\n    printf(\"%d %d %d %d %d\", p[0], p[1], p[2], p[3], p[4]);\n}",
+            correctCode: "S s[2] = {{{1,2,0}}, {{3,4,0}}};\nint* p = s[0].arr;\nprintf(\"%d %d %d %d %d\", p[0], p[1], p[2], s[1].arr[0], s[1].arr[1]);",
+            difficulty: 3,
+            riddle: "Pointer walks across structs → array must be large enough.",
+            conceptExplanation: "p[2] → out-of-bounds → undefined.\nMust allocate arrays carefully.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 23",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S* s;\n    S** pp;\n    printf(\"%d\", (**pp).f(5));\n}",
+            correctCode: "S s_instance;\ns_instance.f = sqr;\nS* s = &s_instance;\nS** pp = &s;\nprintf(\"%d\", (**pp).f(5));",
+            difficulty: 3,
+            riddle: "Pointers chain → each must be valid, function pointer assigned.",
+            conceptExplanation: "pp uninitialized → crash.\nf must point to valid function.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 24",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } Inner;\ntypedef struct { Inner in; } Outer;\nint main() {\n    Outer o = {{{1,2}}};\n    int* p = o.in.arr;\n    printf(\"%d %d %d\", *p++, *p++, *p++);\n}",
+            correctCode: "Outer o = {{{1,2,0}}};\nint* p = o.in.arr;\nprintf(\"%d %d %d\", p[0], p[1], p[2]);",
+            difficulty: 3,
+            riddle: "Pointer moves faster than array.",
+            conceptExplanation: "Last *p++ → out-of-bounds → undefined.\nAllocate array large enough.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 25",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S s[2];\n    S** pp;\n    printf(\"%d\", (**pp).f(3));\n}",
+            correctCode: "S s[2];\ns[0].f = sqr;\nS* p = s;\nS** pp = &p;\nprintf(\"%d\", (**pp).f(3));",
+            difficulty: 3,
+            riddle: "Pointer-to-pointer must chain to initialized struct.",
+            conceptExplanation: "pp uninitialized → crash.\nFunction pointer must be assigned.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 26",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } Inner;\ntypedef struct { Inner in[2]; } Outer;\nint main() {\n    Outer o = {{{1,2}},{{3,4}}};\n    int* p = o.in[0].arr;\n    if(*p & 1 == 1)\n        printf(\"%d\", *(p+2));\n}",
+            correctCode: "if((*p & 1) == 1)\n    printf(\"%d\", o.in[1].arr[0]);",
+            difficulty: 3,
+            riddle: "Operator precedence + pointer bounds.",
+            conceptExplanation: "== precedence → logic wrong.\n*(p+2) → out-of-bounds → undefined.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 27",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S s[2];\n    S** pp;\n    printf(\"%d\", (**pp).f(2));\n}",
+            correctCode: "S s[2];\ns[0].f = sqr;\nS* p = s;\nS** pp = &p;\nprintf(\"%d\", (**pp).f(2));",
+            difficulty: 3,
+            riddle: "All pointers must chain → assign function.",
+            conceptExplanation: "pp uninitialized → crash.\nf uninitialized → crash.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 28",
+            description: "Why does this print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; } Inner;\ntypedef struct { Inner in; } Outer;\nint main() {\n    Outer o = {{{1,2}}};\n    int* p = o.in.arr;\n    printf(\"%d %d %d\", *p++, *p++, *p++);\n}",
+            correctCode: "Outer o = {{{1,2,0}}};\nint* p = o.in.arr;\nprintf(\"%d %d %d\", p[0], p[1], p[2]);",
+            difficulty: 3,
+            riddle: "Pointer walks too far → array too small.",
+            conceptExplanation: "Last dereference out-of-bounds → undefined behavior.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 29",
+            description: "Why does this crash?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int (*f)(int); } S;\nint sqr(int x){return x*x;}\nint main() {\n    S* s;\n    S** pp;\n    printf(\"%d\", (**pp).f(4));\n}",
+            correctCode: "S s_instance;\ns_instance.f = sqr;\nS* s = &s_instance;\nS** pp = &s;\nprintf(\"%d\", (**pp).f(4));",
+            difficulty: 3,
+            riddle: "Pointer-to-pointer → chain must be valid.",
+            conceptExplanation: "pp uninitialized → crash.\nFunction pointer must be assigned.",
+            language: .c
+        ))
+
+        questions.append(Question(
+            title: "Level 3 – Question 30",
+            description: "Why does this crash or print garbage?",
+            initialCode: "#include <stdio.h>\ntypedef struct { int arr[2]; int (*f)(int); } Inner;\ntypedef struct { Inner* in; } Outer;\nint sqr(int x){return x*x;}\nint main() {\n    Outer* o;\n    Outer** pp;\n    printf(\"%d %d %d\", (**pp).in->arr[0], (**pp).in->arr[1], (**pp).in->f(3));\n}",
+            correctCode: "Inner inner_instance = {{1,2}};\ninner_instance.f = sqr;\nOuter outer_instance;\nouter_instance.in = &inner_instance;\nOuter* o = &outer_instance;\nOuter** pp = &o;\nprintf(\"%d %d %d\", (**pp).in->arr[0], (**pp).in->arr[1], (**pp).in->f(3));",
+            difficulty: 3,
+            riddle: "All pointers must chain, function pointer assigned, array valid.",
+            conceptExplanation: "pp uninitialized → crash.\nin pointer uninitialized → crash.\nFunction pointer uninitialized → crash.\nArray bounds must be checked.",
+            language: .c
+        ))
+        return questions
+    }
