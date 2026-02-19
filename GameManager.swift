@@ -223,20 +223,25 @@ class GameManager: ObservableObject {
 
     // MARK: - Daily Streak Logic
     
+    private func normalizeDate(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return calendar.date(from: components) ?? date
+    }
+    
     private func checkDailyStreakOnLaunch() {
         guard let lastDate = lastActiveDate else { return }
         
+        let today = normalizeDate(Date())
+        let last = normalizeDate(lastDate)
+        
         let calendar = Calendar.current
-        if calendar.isDateInYesterday(lastDate) {
-            // Streak continues, do nothing until activity
-        } else if calendar.isDateInToday(lastDate) {
-            // Already active today
-        } else {
-            // Missed a day (or more), reset
-            let difference = calendar.dateComponents([.day], from: lastDate, to: Date()).day ?? 0
-            if difference > 1 {
-                dailyStreak = 0
-            }
+        let components = calendar.dateComponents([.day], from: last, to: today)
+        
+        if let days = components.day, days > 1 {
+            // Missed at least one full calendar day (e.g., solved Mon, today is Wed)
+            dailyStreak = 0
+            saveProgress()
         }
     }
 
@@ -254,26 +259,32 @@ class GameManager: ObservableObject {
 
     
     func registerActivity() {
-        let now = Date()
-        let calendar = Calendar.current
+        let today = normalizeDate(Date())
         
         if let lastDate = lastActiveDate {
-            if calendar.isDateInToday(lastDate) {
-                // Already counted for today
+            let last = normalizeDate(lastDate)
+            
+            if today == last {
+                // Case B: Same Day Activity - Do nothing
                 return
-            } else if calendar.isDateInYesterday(lastDate) {
-                // Consecutive day
+            }
+            
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.day], from: last, to: today)
+            
+            if components.day == 1 {
+                // Case C: Consecutive Day
                 dailyStreak += 1
             } else {
-                // Broken streak
+                // Case D: Missed One Or More Days (or clock went backwards)
                 dailyStreak = 1
             }
         } else {
-            // First time ever
+            // Case A: First Ever Activity
             dailyStreak = 1
         }
         
-        lastActiveDate = now
+        lastActiveDate = today
         saveProgress()
     }
     
@@ -516,8 +527,6 @@ class GameManager: ObservableObject {
         progress.currentLevelIndex = currentLevelIndex
         progress.completedQuestionIds = completedQuestionIds
         progress.streak = streak
-        progress.dailyStreak = dailyStreak
-        progress.lastActiveDate = lastActiveDate
         progress.totalXP = totalXP
         progress.coinBalance = coinBalance
         progress.unlockedHints = unlockedHints
@@ -547,8 +556,6 @@ class GameManager: ObservableObject {
         currentLevelIndex = progress.currentLevelIndex
         completedQuestionIds = progress.completedQuestionIds
         streak = progress.streak
-        dailyStreak = progress.dailyStreak
-        lastActiveDate = progress.lastActiveDate
         totalXP = progress.totalXP
         coinBalance = progress.coinBalance
         unlockedHints = progress.unlockedHints
@@ -589,6 +596,12 @@ class GameManager: ObservableObject {
         // 3. Persist global settings (shared)
         UserDefaults.standard.set(selectedLanguage.rawValue, forKey: languageKey)
         UserDefaults.standard.set(username, forKey: usernameKey)
+        
+        // Persist Daily Streak (Global)
+        UserDefaults.standard.set(dailyStreak, forKey: dailyStreakKey)
+        if let lastDate = lastActiveDate {
+            UserDefaults.standard.set(lastDate.timeIntervalSince1970, forKey: lastActiveDateKey)
+        }
     }
     private func loadProgress() {
         // 1. Shared Data
@@ -608,6 +621,12 @@ class GameManager: ObservableObject {
         } else {
             // Migration: If no new data, try to load legacy data into current language slot
             migrateLegacyData()
+        }
+        
+        // 3. Load Global Streak Data (Overrides per-language if any existed)
+        self.dailyStreak = UserDefaults.standard.integer(forKey: dailyStreakKey)
+        if let t = UserDefaults.standard.object(forKey: lastActiveDateKey) as? TimeInterval {
+            self.lastActiveDate = Date(timeIntervalSince1970: t)
         }
         
         // 3. Apply to Published Properties
