@@ -40,38 +40,57 @@ struct QuestionDashboardView: View {
 
                 ScrollView {
                     VStack(spacing: 30) {
-                        // Header Stats removed from here
                         
-                        // Section A
-                        VStack(alignment: .leading, spacing: 15) {
-                            Text("CORE MODULES (1–25)")
-                                .font(Theme.Typography.caption2)
-                                .foregroundColor(Theme.Colors.textSecondary)
-                                .tracking(2)
-                                .padding(.leading)
-                            
-                            LazyVGrid(columns: columns, spacing: 15) {
-                                ForEach(0..<25, id: \.self) { index in
-                                    QuestionTile(index: index)
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
+                        let totalQuestions = gameManager.currentLevel.questions.count
                         
-                        // Section B
-                        VStack(alignment: .leading, spacing: 15) {
-                            Text("ADVANCED MODULES (26–50)")
-                                .font(Theme.Typography.caption2)
-                                .foregroundColor(Theme.Colors.textSecondary)
-                                .tracking(2)
-                                .padding(.leading)
-                            
-                            LazyVGrid(columns: columns, spacing: 15) {
-                                ForEach(25..<50, id: \.self) { index in
-                                    QuestionTile(index: index)
+                        if totalQuestions <= 25 {
+                            // Single Section
+                             VStack(alignment: .leading, spacing: 15) {
+                                Text("MODULES (1–\(totalQuestions))")
+                                    .font(Theme.Typography.caption2)
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                                    .tracking(2)
+                                    .padding(.leading)
+                                
+                                LazyVGrid(columns: columns, spacing: 15) {
+                                    ForEach(0..<totalQuestions, id: \.self) { index in
+                                        QuestionTile(index: index)
+                                    }
                                 }
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal)
+                        } else {
+                            // Section A
+                            VStack(alignment: .leading, spacing: 15) {
+                                Text("CORE MODULES (1–25)")
+                                    .font(Theme.Typography.caption2)
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                                    .tracking(2)
+                                    .padding(.leading)
+                                
+                                LazyVGrid(columns: columns, spacing: 15) {
+                                    ForEach(0..<25, id: \.self) { index in
+                                        QuestionTile(index: index)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
+                            
+                            // Section B
+                            VStack(alignment: .leading, spacing: 15) {
+                                Text("ADVANCED MODULES (26–\(totalQuestions))")
+                                    .font(Theme.Typography.caption2)
+                                    .foregroundColor(Theme.Colors.textSecondary)
+                                    .tracking(2)
+                                    .padding(.leading)
+                                
+                                LazyVGrid(columns: columns, spacing: 15) {
+                                    ForEach(25..<totalQuestions, id: \.self) { index in
+                                        QuestionTile(index: index)
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                     .padding(.vertical)
@@ -94,56 +113,67 @@ struct DashboardHeader: View {
     }
     
     var body: some View {
-        GlassBar {
-            VStack(spacing: 12) {
+        VStack(spacing: 16) { // Increased spacing for cleaner look
+            HStack {
+                // Language Badge
+                HStack(spacing: 8) {
+                    Image(systemName: gameManager.selectedLanguage.iconName)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(Theme.Colors.accent)
+                    Text(gameManager.selectedLanguage.rawValue.uppercased())
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textPrimary) // Black on White
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Theme.Colors.accent.opacity(0.1))
+                .clipShape(Capsule()) // More modern shape
+                
+                Spacer()
+                
+                // Coins
+                HStack(spacing: 6) {
+                    BugCoin(size: 22) // Slightly larger
+                    Text("\(gameManager.coinBalance)")
+                        .font(Theme.Typography.title3) // Larger font
+                        .foregroundColor(Theme.Colors.textPrimary) // Black on White
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    HStack(spacing: 6) {
-                        Image(systemName: gameManager.selectedLanguage.iconName)
-                            .foregroundColor(Theme.Colors.accent)
-                        Text(gameManager.selectedLanguage.rawValue.uppercased())
-                            .font(Theme.Typography.caption2)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Theme.Colors.accent.opacity(0.1))
-                    .cornerRadius(8)
+                    Text("COMPLETION")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                        .tracking(1)
                     
                     Spacer()
                     
-                    HStack(spacing: 6) {
-                        BugCoin(size: 18)
-                        Text("\(gameManager.coinBalance)")
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(Theme.Colors.gold)
-                    }
+                    Text("\(progress) / \(gameManager.currentLevel.questions.count)")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .fontWeight(.bold)
                 }
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("COMPLETION: \(progress) / 50")
-                            .font(Theme.Typography.caption2)
-                            .foregroundColor(Theme.Colors.textSecondary)
-                        Spacer()
-                        if isThresholdReached {
-                            Text("NEXT LEVEL GO")
-                                .font(Theme.Typography.caption2)
-                                .foregroundColor(Theme.Colors.success)
-                        }
-                    }
+                // Progress Bar
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.black.opacity(0.08)) // Distinct light grey track
+                        .frame(height: 10) // Slightly thicker
                     
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.1))
-                            .frame(height: 8)
-                        Capsule()
-                            .fill(isThresholdReached ? Theme.Colors.success : Theme.Colors.accent)
-                            .frame(width: (UIScreen.main.bounds.width - 80) * CGFloat(Double(progress) / 50.0), height: 8)
-                            .neonGlow(color: isThresholdReached ? Theme.Colors.success : Theme.Colors.accent, radius: 4)
-                    }
+                    let fillWidth = (UIScreen.main.bounds.width - 72) * CGFloat(Double(progress) / Double(max(1, gameManager.currentLevel.questions.count)))
+                    
+                    Capsule()
+                        .fill(isThresholdReached ? Theme.Colors.success : Theme.Colors.accent)
+                        .frame(width: max(10, fillWidth), height: 10) // Ensure min width for visibility
+                        .shadow(color: (isThresholdReached ? Theme.Colors.success : Theme.Colors.accent).opacity(0.4), radius: 4, x: 0, y: 2)
                 }
             }
         }
+        .padding(20)
+        .background(Color.white)
+        .cornerRadius(24)
+        .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: 5) // Soft, premium shadow
         .padding(.horizontal)
     }
 }
@@ -167,6 +197,10 @@ struct QuestionTile: View {
         gameManager.attempts[question.title, default: 0] > 0
     }
     
+    var shiftProgress: Double {
+        gameManager.getShiftProgress(for: question)
+    }
+    
     var body: some View {
         NavigationLink(destination: QuestionWorkspaceView(questionIndex: index)) {
             ZStack(alignment: .topTrailing) {
@@ -181,9 +215,14 @@ struct QuestionTile: View {
                             .stroke(borderColor, lineWidth: 2)
                     )
                 
-                if inProgress && !isCompleted {
+                if isCompleted {
+                    // Completed State
+                } else if shiftProgress > 0 {
+                     // Use a progress indicator instead of just a dot for shift questions
+                     CircularProgressRing(progress: shiftProgress, color: Theme.Colors.electricCyan, strokeWidth: 3)
+                         .frame(width: 65, height: 65)
+                } else if inProgress {
                     Circle()
-
                         .frame(width: 12, height: 12)
                         .offset(x: 4, y: -4)
                         .neonGlow(color: Theme.Colors.electricCyan)

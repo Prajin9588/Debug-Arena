@@ -7,6 +7,7 @@ struct QuestionWorkspaceView: View {
     @State private var showConceptQuestion = false
     @State private var showRevealButton = false // Local state for animation
     @State private var selectedOption: Int = 0
+    @State private var showingExplanation: Int? = nil
 
     @Environment(\.dismiss) var dismiss
     
@@ -21,57 +22,62 @@ struct QuestionWorkspaceView: View {
     }
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Background
-                Theme.Colors.background
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    headerView
+        if question.shiftData != nil {
+            ShiftQuestionView(initialIndex: questionIndex)
+        } else {
+            GeometryReader { geometry in
+                ZStack {
+                    // Background
+                    Theme.Colors.background
+                        .ignoresSafeArea()
                     
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            missionBriefView
-                            codeEditorView
+                    VStack(spacing: 0) {
+                        headerView
+                        
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                missionBriefView
+                                codeEditorView
+                            }
+                        }
+                    }
+                    
+                    executionButton
+                    
+                    // OVERLAYS (Only Level Unlock)
+                    if case .levelComplete(let next, _) = gameManager.executionState {
+                        LevelUnlockOverlay(nextLevel: next, isForced: false) {
+                            dismiss()
                         }
                     }
                 }
-                
-                executionButton
-                
-                // OVERLAYS (Only Level Unlock)
-                if case .levelComplete(let next, _) = gameManager.executionState {
-                    LevelUnlockOverlay(nextLevel: next, isForced: false) {
-                        dismiss()
+                .overlay(
+                    // Concept Question Modal
+                    Group {
+                        if showConceptQuestion {
+                            ConceptQuestionView(question: question, isPresented: $showConceptQuestion) {
+                                gameManager.unlockHint()
+                            }
+                        }
                     }
-                }
+                )
             }
-            .overlay(
-                // Concept Question Modal
-                Group {
-                    if showConceptQuestion {
-                        ConceptQuestionView(question: question, isPresented: $showConceptQuestion) {
-                            gameManager.unlockHint()
-                        }
-                    }
-                }
-            )
+            .onAppear {
+                gameManager.currentQuestionIndex = questionIndex
+                userCode = question.initialCode
+            }
+            .navigationBarHidden(true)
         }
-        .onAppear {
-            gameManager.currentQuestionIndex = questionIndex
-            userCode = question.initialCode
-        }
-        .navigationBarHidden(true)
     }
     private var missionBriefView: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundColor(Theme.Colors.gold)
-                Text("MISSION BRIEF")
+                Image(systemName: "bolt.fill")
+                    .foregroundColor(Theme.Colors.electricCyan)
+                Text(question.difficulty == 2 ? "HIT (RIDDLE)" : "MISSION BRIEF")
                     .font(Theme.Typography.subheadline)
                     .foregroundColor(Theme.Colors.textSecondary)
+                    .tracking(1)
                 Spacer()
                 
                 // Language Badge
@@ -84,7 +90,21 @@ struct QuestionWorkspaceView: View {
                     .cornerRadius(6)
             }
             
-            if gameManager.unlockedHints.contains(question.title) {
+            if question.difficulty == 2 {
+                // Level 2 HIT Section: Always Visible
+                Text(question.riddle)
+                    .font(Theme.Typography.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(Theme.Colors.textPrimary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.Colors.electricCyan.opacity(0.05))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Theme.Colors.electricCyan.opacity(0.2), lineWidth: 1)
+                    )
+            } else if gameManager.unlockedHints.contains(question.title) {
                 Text(question.riddle)
                     .font(Theme.Typography.body)
                     .italic()
@@ -127,7 +147,7 @@ struct QuestionWorkspaceView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if question.difficulty == 2 {
                     // Level 2: Read-Only Code
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 0) {
                         Text(question.initialCode)
                             .font(Theme.Typography.codeFont)
                             .foregroundColor(Theme.Colors.textPrimary)
@@ -135,6 +155,12 @@ struct QuestionWorkspaceView: View {
                             .padding()
                     }
                     .background(Theme.Colors.codeBackground)
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                    )
+                    .padding(.horizontal)
                     
                     Divider().padding(.vertical, 8) // Below code: Divider or spacing
                     
@@ -164,6 +190,19 @@ struct QuestionWorkspaceView: View {
                                     
                                     Spacer()
                                     
+                                    // Info Button (i)
+                                    if question.conceptOptionsExplanations != nil {
+                                        Button(action: {
+                                            showingExplanation = index
+                                        }) {
+                                            Image(systemName: "info.circle")
+                                                .font(.system(size: 20))
+                                                .foregroundColor(Theme.Colors.electricCyan)
+                                                .padding(8)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+                                    
                                     // Visual Indicator
                                     if selectedOption == index {
                                         Image(systemName: "checkmark.circle.fill")
@@ -180,17 +219,50 @@ struct QuestionWorkspaceView: View {
                                 .cornerRadius(12)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.gray.opacity(0.2), lineWidth: 1) // Keep border for unselected too for Card feel
-                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.clear, lineWidth: selectedOption == index ? 2 : 0) // Extra strong border for selected
+                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.gray.opacity(0.2), lineWidth: 1)
+                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.clear, lineWidth: selectedOption == index ? 2 : 0)
                                 )
                                 .shadow(color: selectedOption == index ? Theme.Colors.electricCyan.opacity(0.2) : Color.clear, radius: 4, x: 0, y: 2)
                             }
                             }
-                            .buttonStyle(PlainButtonStyle()) // Ensure no navigation behavior
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 16)
+                    .sheet(item: Binding(
+                        get: { showingExplanation.map { IdentifiableInt(value: $0) } },
+                        set: { showingExplanation = $0?.value }
+                    )) { item in
+                        VStack(alignment: .leading, spacing: 20) {
+                            HStack {
+                                Text("Explanation")
+                                    .font(Theme.Typography.title3)
+                                    .bold()
+                                Spacer()
+                                Button(action: { showingExplanation = nil }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.gray)
+                                        .font(.title2)
+                                }
+                            }
+                            
+                            Text(question.conceptOptions[item.value])
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(Theme.Colors.electricCyan)
+                            
+                            if let explanations = question.conceptOptionsExplanations, item.value < explanations.count {
+                                Text(explanations[item.value])
+                                    .font(Theme.Typography.body)
+                                    .foregroundColor(Theme.Colors.textPrimary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding(30)
+                        .presentationDetents([.medium])
+                        .presentationDragIndicator(.visible)
+                    }
                     
                 } else {
                     // Level 1 & others: Editable Code

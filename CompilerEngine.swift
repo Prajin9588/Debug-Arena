@@ -204,61 +204,29 @@ class CompilerEngine {
     private func evaluateLevel2(code: String, question: Question) -> EvaluationResult {
         // Parse Selected Option
         var selectedOpt = -1
-        var codeToRun = code
         
         if let range = code.range(of: "// SELECTED_OPT: ") {
             let substr = code[range.upperBound...]
-            // Safer manual parsing
             let stringVal = String(substr).trimmingCharacters(in: .whitespacesAndNewlines)
             if let val = Int(stringVal) {
                 selectedOpt = val
             } else {
-                 // Try components if trimming failed (e.g. trailing code on same line? shouldn't happen based on injection)
                  let parts = String(substr).components(separatedBy: CharacterSet.decimalDigits.inverted)
                  if let first = parts.first, let val = Int(first) {
                      selectedOpt = val
                  }
             }
-            // Strip the comment line
-            if let newline = code.firstIndex(of: "\n") {
-                 codeToRun = String(code[newline...]).trimmingCharacters(in: .whitespacesAndNewlines)
-            } else {
-                 // only comment?
-                 codeToRun = ""
-            }
         }
         
-        let interpreter = SimpleInterpreter()
-        let output = interpreter.evaluate(code: codeToRun)
-        
-        // Determine Expected Error String
+        // Determine Expected Error Type
         guard question.conceptOptions.indices.contains(question.conceptCorrectAnswer) else {
              return EvaluationResult.simpleError(type: .unknown, message: "Invalid Question Configuration")
         }
         let expectedErrorFragment = question.conceptOptions[question.conceptCorrectAnswer]
         
-        // Level 2 Check: Code MUST crash, and User MUST identify why.
-        // We look for key phrases from the Interpreter's error output.
-        let crashOccurred = output.contains("Runtime Error") || output.contains("Fatal error") || output.contains("Could not cast")
-        
-        if !crashOccurred {
-             return EvaluationResult(
-                status: .incorrect,
-                score: 0,
-                level: .failed,
-                complexity: .medium,
-                edgeCaseHandling: false,
-                hardcodingDetected: false,
-                feedback: "Expected the code to crash, but it didn't.\nOutput:\n\(output)"
-            )
-        }
-        
-        // Did the crash match the expected type?
-        // Note: We check if expectation is substring of output
-        // The options in Question.swift are designed to match standard interpreter outputs.
-        
         // Verify User Selection
         if selectedOpt == question.conceptCorrectAnswer {
+             // For Level 2, we return a correct result if the user matched the diagnosis.
              return EvaluationResult(
                 status: .correct,
                 score: 100,
@@ -266,10 +234,10 @@ class CompilerEngine {
                 complexity: .medium,
                 edgeCaseHandling: true,
                 hardcodingDetected: false,
-                feedback: "Correct! You identified the runtime error: \(expectedErrorFragment)\nSystem Output: \(output)"
+                feedback: "Correct! You identified the error type: \(expectedErrorFragment)\n\nConcept: \(question.conceptExplanation)"
             )
         } else {
-            let userChoice = question.conceptOptions.indices.contains(selectedOpt) ? question.conceptOptions[selectedOpt] : "Unknown"
+            let userChoice = question.conceptOptions.indices.contains(selectedOpt) ? question.conceptOptions[selectedOpt] : "None Selected"
              return EvaluationResult(
                 status: .incorrect,
                 score: 0,
@@ -277,7 +245,7 @@ class CompilerEngine {
                 complexity: .medium,
                 edgeCaseHandling: false,
                 hardcodingDetected: false,
-                feedback: "Incorrect diagnosis.\nActual Error: \(expectedErrorFragment)\nYou Selected: \(userChoice)\n\nSystem Output:\n\(output)"
+                feedback: "Incorrect diagnosis.\n\nActual Type: \(expectedErrorFragment)\nYou Selected: \(userChoice)\n\nTry analyzing the code structure again."
             )
         }
     }

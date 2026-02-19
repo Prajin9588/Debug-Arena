@@ -16,13 +16,13 @@ struct GlassBar<Content: View>: View {
         .background(
             ZStack {
                 BlurView(style: .systemThinMaterialDark)
-                Color.white.opacity(0.05)
+                Color.white.opacity(0.15)
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 15))
         .overlay(
             RoundedRectangle(cornerRadius: 15)
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                .stroke(Color.white.opacity(0.3), lineWidth: 1)
         )
         .shadow(color: Color.black.opacity(0.3), radius: 10, x: 0, y: 5)
     }
@@ -35,7 +35,9 @@ struct BlurView: UIViewRepresentable {
         UIVisualEffectView(effect: UIBlurEffect(style: style))
     }
     
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {}
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
+    }
 }
 
 struct NeonGlow: ViewModifier {
