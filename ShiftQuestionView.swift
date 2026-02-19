@@ -45,7 +45,7 @@ struct ShiftQuestionView: View {
                             .background(Circle().fill(Color.white.opacity(0.05)))
                     }
                     
-                    Text("LEVEL \(gameManager.currentLevel.number) — QUESTION \(currentIndex + 1)")
+                    Text("LEVEL \(currentQuestions[currentIndex].levelNumber) : Question \(currentQuestions[currentIndex].questionNumber)")
                         .font(Theme.Typography.headline)
                         .foregroundColor(Theme.Colors.textPrimary)
                         .tracking(1)

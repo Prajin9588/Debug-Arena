@@ -3,16 +3,14 @@ import SwiftUI
 struct EvaluationResultView: View {
     let result: EvaluationResult
     var difficulty: Int? = nil
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     var body: some View {
-        VStack(spacing: 24) {
-            if (difficulty ?? result.difficulty) == 2 {
-                renderDetailedEvaluation()
-            } else {
-                renderDefaultEvaluation()
-            }
-        }
-        .padding(.vertical)
-        .background(Theme.Colors.background)
+        renderDetailedEvaluation()
+            .padding(.vertical)
+            .background(Theme.Colors.background)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+            .frame(maxWidth: .infinity)
     }
     
     // MARK: - Level 2 Detailed Evaluation
@@ -149,90 +147,6 @@ struct EvaluationResultView: View {
         }
     }
     
-    // MARK: - Default Evaluation
-    private func renderDefaultEvaluation() -> some View {
-        VStack(spacing: 20) {
-            // Existing styling but referencing result
-            HStack {
-                Text("EVALUATION RESULT")
-                    .font(Theme.Typography.caption2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .tracking(1)
-                Spacer()
-                
-                HStack(spacing: 6) {
-                    Image(systemName: result.status == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                    Text(result.status.rawValue.uppercased())
-                        .font(.system(size: 12, weight: .bold))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background((result.status == .correct ? Theme.Colors.success : Theme.Colors.error).opacity(0.1))
-                .foregroundColor(result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
-                .clipShape(Capsule())
-            }
-            .padding(.horizontal)
-            
-            HStack(spacing: 20) {
-                // Score Ring
-                ZStack {
-                    Circle()
-                        .stroke(Theme.Colors.secondaryBackground.opacity(0.5), lineWidth: 8)
-                        .frame(width: 80, height: 80)
-                    
-                    Circle()
-                        .trim(from: 0, to: CGFloat(result.score) / 100.0)
-                        .stroke(
-                            result.status == .correct ? Theme.Colors.success : Theme.Colors.error,
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 80, height: 80)
-                        .rotationEffect(.degrees(-90))
-                    
-                    Text("\(result.score)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(result.level.rawValue.uppercased())
-                        .font(Theme.Typography.title3)
-                        .bold()
-                        .foregroundColor(result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
-                    
-                    Text("Complexity: \(result.complexity.rawValue)")
-                        .font(Theme.Typography.subheadline)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                }
-                Spacer()
-            }
-            .padding()
-            .background(Theme.Colors.secondaryBackground)
-            .cornerRadius(16)
-            .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
-            .padding(.horizontal)
-            
-            // Simple Feedback
-            VStack(alignment: .leading, spacing: 12) {
-                Text("FEEDBACK")
-                    .font(Theme.Typography.caption2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .tracking(1)
-                    .padding(.horizontal)
-                
-                VStack(alignment: .leading, spacing: 0) {
-                     Text(result.feedback)
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .background(Theme.Colors.secondaryBackground)
-                .cornerRadius(12)
-                .padding(.horizontal)
-            }
-        }
-    }
     
     // MARK: - Subcomponents
     private func feedbackRow(label: String, value: String, color: Color = Theme.Colors.textSecondary) -> some View {

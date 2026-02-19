@@ -4,12 +4,12 @@ struct QuestionDashboardView: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.dismiss) var dismiss
     
-    let columns = [
-        GridItem(.fixed(65), spacing: 15),
-        GridItem(.fixed(65), spacing: 15),
-        GridItem(.fixed(65), spacing: 15),
-        GridItem(.fixed(65), spacing: 15)
-    ]
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    var columns: [GridItem] {
+        let count = horizontalSizeClass == .regular ? 8 : 4
+        return Array(repeating: GridItem(.fixed(65), spacing: 15), count: count)
+    }
     
     var body: some View {
         ZStack {
@@ -159,18 +159,21 @@ struct DashboardHeader: View {
                 }
                 
                 // Progress Bar
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.black.opacity(0.08)) // Distinct light grey track
-                        .frame(height: 10) // Slightly thicker
-                    
-                    let fillWidth = (UIScreen.main.bounds.width - 72) * CGFloat(Double(progress) / Double(max(1, gameManager.currentLevel.questions.count)))
-                    
-                    Capsule()
-                        .fill(isThresholdReached ? Theme.Colors.success : Theme.Colors.accent)
-                        .frame(width: max(10, fillWidth), height: 10) // Ensure min width for visibility
-                        .shadow(color: (isThresholdReached ? Theme.Colors.success : Theme.Colors.accent).opacity(0.4), radius: 4, x: 0, y: 2)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.08)) // Distinct light grey track
+                            .frame(height: 10) // Slightly thicker
+                        
+                        let fillWidth = geo.size.width * CGFloat(Double(progress) / Double(max(1, gameManager.currentLevel.questions.count)))
+                        
+                        Capsule()
+                            .fill(isThresholdReached ? Theme.Colors.success : Theme.Colors.accent)
+                            .frame(width: max(10, fillWidth), height: 10) // Ensure min width for visibility
+                            .shadow(color: (isThresholdReached ? Theme.Colors.success : Theme.Colors.accent).opacity(0.4), radius: 4, x: 0, y: 2)
+                    }
                 }
+                .frame(height: 10)
             }
         }
         .padding(20)

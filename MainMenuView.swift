@@ -4,6 +4,8 @@ struct MainMenuView: View {
     @EnvironmentObject var gameManager: GameManager
     @Binding var selectedTab: Int // Added binding for navigation
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -49,7 +51,11 @@ struct MainMenuView: View {
                                 .tracking(1)
                                 .padding(.horizontal)
                             
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                            let columns = horizontalSizeClass == .regular 
+                                ? [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())] 
+                                : [GridItem(.flexible()), GridItem(.flexible())]
+                            
+                            LazyVGrid(columns: columns, spacing: 16) {
                                 // Swift (Master)
                                 LanguageGridCard(
                                     language: "Swift",
@@ -69,6 +75,8 @@ struct MainMenuView: View {
                                 )
                             }
                             .padding(.horizontal)
+                            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+                            .frame(maxWidth: .infinity)
                         }
                         
                         // 4. Level Progression List
@@ -98,6 +106,8 @@ struct MainMenuView: View {
                                 }
                             }
                             .padding(.horizontal)
+                            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+                            .frame(maxWidth: .infinity)
                         }
                         .padding(.bottom, 40)
                     }

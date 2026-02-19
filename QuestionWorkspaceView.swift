@@ -9,9 +9,10 @@ struct QuestionWorkspaceView: View {
     @State private var selectedOption: Int? = nil // Level 2: nil means nothing selected
     @State private var showingExplanation: Int? = nil
     @State private var showSelectionWarning = false // For handling Run without selection
-    @State private var showLevel2DetailedResult = false
+    @State private var showDetailedResult = false
 
     @Environment(\.dismiss) var dismiss
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     // Shake animation state
     @State private var shakeSolutionButton = false
@@ -34,12 +35,36 @@ struct QuestionWorkspaceView: View {
                         .ignoresSafeArea()
                     
                     VStack(spacing: 0) {
-                        headerView
+                        WorkspaceHeader(
+                            levelNumber: question.levelNumber,
+                            questionNumber: question.questionNumber,
+                            streak: gameManager.streak,
+                            coins: gameManager.coinBalance,
+                            onBack: { dismiss() }
+                        )
                         
-                        ScrollView {
-                            VStack(spacing: 20) {
-                                missionBriefView
-                                codeEditorView
+                        if horizontalSizeClass == .regular {
+                            // Split Layout for iPad
+                            HStack(alignment: .top, spacing: 20) {
+                                ScrollView {
+                                    missionBriefView
+                                        .padding(.top, 20)
+                                }
+                                .frame(maxWidth: 400)
+                                
+                                ScrollView {
+                                    codeEditorView
+                                        .padding(.top, 20)
+                                }
+                            }
+                            .padding(.horizontal)
+                        } else {
+                            // Stack Layout for iPhone
+                            ScrollView {
+                                VStack(spacing: 20) {
+                                    missionBriefView
+                                    codeEditorView
+                                }
                             }
                         }
                     }
@@ -47,21 +72,7 @@ struct QuestionWorkspaceView: View {
                     executionButton
                     
                     // OVERLAYS (Results & Progress)
-                    // OVERLAYS (Results & Progress)
-                    if question.difficulty == 2 {
-                        // Level 2 Result is pushed via fullScreenCover/sheet below
-                    } else {
-                        if case .correct = gameManager.executionState {
-                            SuccessOverlay(score: 100) {
-                                gameManager.executionState = .idle
-                                dismiss() // Back to grid/dashboard
-                            }
-                        } else if case .error(let message) = gameManager.executionState {
-                            ErrorOverlay(message: message) {
-                                gameManager.executionState = .idle
-                            }
-                        }
-                    }
+                    // Results are now pushed via fullScreenCover below for all levels
                     
                     if case .levelComplete(let next, _) = gameManager.executionState {
                         LevelUnlockOverlay(nextLevel: next, isForced: false) {
@@ -90,16 +101,14 @@ struct QuestionWorkspaceView: View {
                 showSelectionWarning = false
             }
             .onChange(of: gameManager.executionState) { _, newState in
-                if question.difficulty == 2 {
-                    if newState == .correct || (caseError(newState) != nil) {
-                         showLevel2DetailedResult = true
-                    }
+                if newState == .correct || (caseError(newState) != nil) {
+                     showDetailedResult = true
                 }
             }
-            .fullScreenCover(isPresented: $showLevel2DetailedResult) {
+            .fullScreenCover(isPresented: $showDetailedResult) {
                 if let result = gameManager.lastEvaluationResult {
-                    DetailedEvaluationScreen(result: result, difficulty: 2) {
-                        showLevel2DetailedResult = false
+                    DetailedEvaluationScreen(result: result, difficulty: question.difficulty) {
+                        showDetailedResult = false
                         if result.status == .correct {
                             dismiss()
                         } else {
@@ -203,7 +212,6 @@ struct QuestionWorkspaceView: View {
             .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
             .padding(.horizontal)
             
-            evaluationResultSection
             
             Spacer().frame(height: 80)
         }
@@ -446,11 +454,19 @@ struct QuestionWorkspaceView: View {
         }
     }
 
-    // MARK: - Subviews
+}
+
+// MARK: - Standalone Dynamic Header
+struct WorkspaceHeader: View {
+    let levelNumber: Int
+    let questionNumber: Int
+    let streak: Int
+    let coins: Int
+    let onBack: () -> Void
     
-    private var headerView: some View {
+    var body: some View {
         HStack {
-            Button(action: { dismiss() }) {
+            Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.Colors.primaryGradient)
@@ -468,7 +484,7 @@ struct QuestionWorkspaceView: View {
                     .font(.caption)
                     .foregroundColor(Theme.Colors.electricCyan)
                 
-                Text("LEVEL \(gameManager.currentLevelIndex + 1): \(question.description)")
+                Text("LEVEL \(levelNumber) : Question \(questionNumber)")
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.textPrimary)
                     .lineLimit(1)
@@ -483,20 +499,18 @@ struct QuestionWorkspaceView: View {
             
             // Stats Pill
             HStack(spacing: 16) {
-
-                
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
-                    .foregroundColor(.orange)
-                    Text("\(gameManager.streak)")
-                    .font(Theme.Typography.statsFont)
+                        .foregroundColor(.orange)
+                    Text("\(streak)")
+                        .font(Theme.Typography.statsFont)
                 }
                 
                 HStack(spacing: 4) {
                     Image(systemName: "bitcoinsign.circle.fill")
-                    .foregroundColor(Theme.Colors.gold)
-                    Text("\(gameManager.coinBalance)")
-                    .font(Theme.Typography.statsFont)
+                        .foregroundColor(Theme.Colors.gold)
+                    Text("\(coins)")
+                        .font(Theme.Typography.statsFont)
                 }
             }
             .padding(.horizontal, 16)

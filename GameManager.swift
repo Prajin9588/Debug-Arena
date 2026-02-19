@@ -83,6 +83,7 @@ class GameManager: ObservableObject {
     
     init() {
         self.levels = Question.levels
+        populateQuestionMetadata()
         loadProgress()
         setupInitialState()
         // Check streak on launch to see if it was broken
@@ -91,6 +92,15 @@ class GameManager: ObservableObject {
         checkDailyHintReset()
         debugUnlockAllLevels() // Enabled for testing
         // enforceStrictLevelLocks()
+    }
+    
+    private func populateQuestionMetadata() {
+        for lIdx in 0..<levels.count {
+            for qIdx in 0..<levels[lIdx].questions.count {
+                levels[lIdx].questions[qIdx].levelNumber = levels[lIdx].number
+                levels[lIdx].questions[qIdx].questionNumber = qIdx + 1
+            }
+        }
     }
     
     private func debugUnlockAllLevels() {
@@ -192,6 +202,8 @@ class GameManager: ObservableObject {
                 levels.append(updatedLevels[i])
             }
         }
+        
+        populateQuestionMetadata()
     }
     
     func unlockThresholdReached(for levelIndex: Int) -> Bool {

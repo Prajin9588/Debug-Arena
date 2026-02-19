@@ -81,6 +81,8 @@ struct Question: Identifiable, Equatable {
     let initialCode: String
     let correctCode: String // For validation
     let difficulty: Int
+    var levelNumber: Int
+    var questionNumber: Int
     
     // Hint System
     let riddle: String // "Riddle must hint toward the fix"
@@ -116,6 +118,8 @@ struct Question: Identifiable, Equatable {
          difficulty: Int, 
          riddle: String, 
          conceptExplanation: String,
+         levelNumber: Int = 1,
+         questionNumber: Int = 1,
          conceptQuestion: String? = nil,
          conceptOptions conceptOptionsParam: [String]? = nil,
          conceptCorrectAnswer conceptCorrectAnswerParam: Int? = 0,
@@ -136,6 +140,8 @@ struct Question: Identifiable, Equatable {
         self.difficulty = difficulty
         self.riddle = riddle
         self.conceptExplanation = conceptExplanation
+        self.levelNumber = levelNumber
+        self.questionNumber = questionNumber
         
         // Default values if not provided (to avoid breaking existing data)
         self.conceptQuestion = conceptQuestion ?? "What is the primary concept involved in this bug?"

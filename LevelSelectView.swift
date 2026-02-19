@@ -4,10 +4,13 @@ struct LevelSelectView: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.dismiss) var dismiss
     
-    let columns = [
-        GridItem(.flexible(), spacing: 20),
-        GridItem(.flexible(), spacing: 20)
-    ]
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    var columns: [GridItem] {
+        horizontalSizeClass == .regular 
+            ? [GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20)]
+            : [GridItem(.flexible(), spacing: 20), GridItem(.flexible(), spacing: 20)]
+    }
     
     var body: some View {
         ZStack {
@@ -31,6 +34,8 @@ struct LevelSelectView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 20)
+                    .frame(maxWidth: horizontalSizeClass == .regular ? 900 : .infinity)
+                    .frame(maxWidth: .infinity)
 
                     LazyVGrid(columns: columns, spacing: 25) {
                         ForEach(gameManager.levels.indices, id: \.self) { index in
@@ -38,6 +43,8 @@ struct LevelSelectView: View {
                         }
                     }
                     .padding(.horizontal)
+                    .frame(maxWidth: horizontalSizeClass == .regular ? 900 : .infinity)
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.bottom, 50)
             }

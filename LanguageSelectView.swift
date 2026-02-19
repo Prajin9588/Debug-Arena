@@ -5,6 +5,8 @@ struct LanguageSelectView: View {
     @Environment(\.dismiss) var dismiss
     @State private var navigateToLevels = false
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     let columns = [
         GridItem(.flexible(), spacing: 20),
         GridItem(.flexible(), spacing: 20)
@@ -68,6 +70,8 @@ struct LanguageSelectView: View {
                     }
                 }
                 .padding(.horizontal)
+                .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+                .frame(maxWidth: .infinity)
                 
                 Spacer()
             }

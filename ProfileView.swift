@@ -5,6 +5,7 @@ struct ProfileView: View {
     
     // Animation State
     @State private var progressAnimated: CGFloat = 0.0
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     // UI State
     @State private var showingNameEditor = false
@@ -71,6 +72,8 @@ struct ProfileView: View {
                 Spacer(minLength: 50)
             }
             .padding(Theme.Layout.padding)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+            .frame(maxWidth: .infinity)
         }
         .background(Theme.Colors.background.ignoresSafeArea())
         .alert("Change Username", isPresented: $showingNameEditor) {
