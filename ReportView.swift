@@ -1,46 +1,69 @@
 import SwiftUI
 
+
 struct ReportView: View {
-    let result: EvaluationResult
-    var onDismiss: () -> Void
+    @EnvironmentObject var gameManager: GameManager
+    let result: EvaluationResult? // Made optional
+    var onDismiss: (() -> Void)? = nil // Made optional
     
     // Computed props for display
-    private var isPassed: Bool { result.status == .correct }
+    private var isPassed: Bool { result?.status == .correct }
     private var statusColor: Color { isPassed ? Theme.Colors.success : Theme.Colors.error }
     private var statusIcon: String { isPassed ? "checkmark.circle.fill" : "xmark.circle.fill" }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Dimiss Indicator
-                Capsule()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 5)
-                    .padding(.top, 12)
-                
-                // Status Banner
-                statusBanner
-                
-                // Performance Card
-                performanceCard
-                
-                // Failure Section (Conditional)
-                if !isPassed {
-                    failureSection
+                // Dimiss Indicator (Only if modal/result exists)
+                if result != nil {
+                    Capsule()
+                        .fill(Color.gray.opacity(0.3))
+                        .frame(width: 40, height: 5)
+                        .padding(.top, 12)
+                } else {
+                    // Dashboard Header
+                    HStack {
+                        Text("PROGRESS REPORT")
+                            .font(Theme.Typography.title)
+                            .fontWeight(.black)
+                            .foregroundStyle(Theme.Colors.primaryGradient)
+                            .tracking(2)
+                        Spacer()
+                    }
+                    .padding(.top, 20)
+                    .padding(.horizontal, 4)
                 }
                 
-                // Action Button
-                Button(action: onDismiss) {
-                    Text(isPassed ? "CONTINUE" : "TRY AGAIN")
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isPassed ? Theme.Colors.success : Theme.Colors.action)
-                        .cornerRadius(Theme.Layout.cornerRadius)
-                        .shadow(color: (isPassed ? Theme.Colors.success : Theme.Colors.action).opacity(0.3), radius: 10, y: 5)
+                // Evaluation Result Section
+                if let res = result {
+                    EvaluationResultView(result: res)
                 }
-                .padding(.top, 10)
+                
+                // NEW SECTIONS (Always visible)
+                
+                // 1. Progress Graph
+                progressGraphSection
+                
+                // 2. Global Metrics
+                globalMetricsSection
+                
+                // 3. Insights
+                insightsSection
+                
+                // Action Button (Only if result exists)
+                if let _ = result, let action = onDismiss {
+                    Button(action: action) {
+                        Text(isPassed ? "CONTINUE" : "TRY AGAIN")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(isPassed ? Theme.Colors.success : Theme.Colors.action)
+                            .cornerRadius(Theme.Layout.cornerRadius)
+                            .shadow(color: (isPassed ? Theme.Colors.success : Theme.Colors.action).opacity(0.3), radius: 10, y: 5)
+                    }
+                    .padding(.top, 10)
+                }
             }
             .padding(Theme.Layout.padding)
         }
@@ -49,167 +72,283 @@ struct ReportView: View {
     
     // MARK: - Components
     
-    private var statusBanner: some View {
-        HStack(spacing: 16) {
-            Image(systemName: statusIcon)
-                .font(.system(size: 40))
-                .foregroundColor(statusColor)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(isPassed ? "EVALUATION PASSED" : "EVALUATION FAILED")
-                    .font(Theme.Typography.title3)
-                    .foregroundColor(statusColor)
-                
-                Text(isPassed ? "Great job! Code compiled successfully." : "Issues found in your code.")
-                    .font(Theme.Typography.subheadline)
-                    .foregroundColor(Theme.Colors.textSecondary)
-            }
-            Spacer()
-        }
-        .padding()
-        .background(Theme.Colors.secondaryBackground)
-        .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                .stroke(statusColor.opacity(0.3), lineWidth: 1)
-        )
-    }
     
-    private var performanceCard: some View {
-        VStack(spacing: 16) {
+    // MARK: - New Enhanced Sections
+    
+    private var progressGraphSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("PERFORMANCE ANALYSIS")
+                Text("SKILL GROWTH")
                     .font(Theme.Typography.caption2)
                     .foregroundColor(Theme.Colors.textSecondary)
                 Spacer()
+                
+                // Legend
+                HStack(spacing: 12) {
+                    LegendItem(color: .orange, label: "Swift")
+                    LegendItem(color: .blue, label: "C Language")
+                }
             }
+            .padding(.horizontal, 4)
             
-            HStack(spacing: 20) {
-                // Score Ring
-                ZStack {
-                    Circle()
-                        .stroke(Theme.Colors.background, lineWidth: 8)
-                        .frame(width: 70, height: 70)
-                    
-                    Circle()
-                        .trim(from: 0, to: CGFloat(result.score) / 100.0)
-                        .stroke(
-                            statusColor,
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 70, height: 70)
-                        .rotationEffect(.degrees(-90))
-                    
-                    Text("\(result.score)")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Theme.Colors.textPrimary)
-                }
-                
-                Divider()
-                
-                // Stats
-                VStack(alignment: .leading, spacing: 12) {
-                    PerformanceRow(label: "Complexity", value: result.complexity.rawValue, icon: "cube.fill", color: Theme.Colors.electricCyan)
-                    PerformanceRow(label: "Level", value: result.level.rawValue.uppercased(), icon: "chart.bar.fill", color: .orange)
-                }
-                
-                Spacer()
-            }
-        }
-        .padding()
-        .background(Theme.Colors.secondaryBackground)
-        .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
-    }
-    
-    private var failureSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("DIAGNOSTICS")
-                .font(Theme.Typography.caption2)
-                .foregroundColor(Theme.Colors.textSecondary)
-                .padding(.leading, 4)
-            
-            VStack(alignment: .leading, spacing: 0) {
-                // Parse feedback items
-                ForEach(parseFeedback(result.feedback), id: \.self) { item in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: item.isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(item.isSuccess ? Theme.Colors.success : Theme.Colors.error)
-                            .padding(.top, 2)
-                        
-                        Text(item.text)
-                            .font(Theme.Typography.codeFont) // Use code font for error details
-                            .font(.system(size: 14))
-                            .foregroundColor(Theme.Colors.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        
-                        Spacer()
-                    }
-                    .padding()
-                    .background(item.isSuccess ? Color.white.opacity(0) : Theme.Colors.error.opacity(0.05))
-                    
-                    Divider()
-                }
-            }
+            // Dual Line Graph
+            DualLineGraph(
+                swiftData: extractHistory(for: "Swift"),
+                cData: extractHistory(for: "C")
+            )
+            .frame(height: 180)
+            .padding()
             .background(Theme.Colors.secondaryBackground)
             .cornerRadius(Theme.Layout.cornerRadius)
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                    .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-            )
+            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         }
     }
     
-    // Helpers
-    
-    struct FeedbackItem: Hashable {
-        let isSuccess: Bool
-        let text: String
+    private var globalMetricsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("PERFORMANCE METRICS")
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .padding(.horizontal, 4)
+            
+            HStack(spacing: 12) {
+                MetricCard(
+                    title: "Total Solved",
+                    swiftValue: "\(getSolvedCount(for: "Swift"))",
+                    cValue: "\(getSolvedCount(for: "C"))"
+                )
+                
+                MetricCard(
+                    title: "Avg Accuracy",
+                    swiftValue: String(format: "%.0f%%", getAccuracy(for: "Swift")),
+                    cValue: String(format: "%.0f%%", getAccuracy(for: "C"))
+                )
+            }
+            
+            HStack(spacing: 12) {
+                 MetricSingleCard(
+                    title: "Total XP Earned",
+                    value: "\(gameManager.progressData["Swift"]?.totalXP ?? 0 + (gameManager.progressData["C"]?.totalXP ?? 0))",
+                    icon: "star.fill",
+                    color: .yellow
+                 )
+                 
+                 MetricSingleCard(
+                    title: "Current Streak",
+                    value: "\(gameManager.dailyStreak) Days",
+                    icon: "flame.fill",
+                    color: .orange
+                 )
+            }
+        }
     }
     
-    private func parseFeedback(_ feedback: String) -> [FeedbackItem] {
-        // Reuse logic from EvaluationResultView roughly
-        let lines = feedback.components(separatedBy: "\n")
-        return lines.compactMap { line in
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty { return nil }
+    private var insightsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+             Text("AI INSIGHTS")
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .padding(.horizontal, 4)
             
-            // Heuristic detection
-            let isSuccess = trimmed.contains("✅") || trimmed.contains("Correct")
-            let cleanText = trimmed
-                .replacingOccurrences(of: "✅", with: "")
-                .replacingOccurrences(of: "❌", with: "")
-                .trimmingCharacters(in: .whitespaces)
-            
-            return FeedbackItem(isSuccess: isSuccess, text: cleanText)
+            HStack(alignment: .top, spacing: 15) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.title2)
+                    .foregroundColor(Theme.Colors.gold)
+                    .padding(10)
+                    .background(Theme.Colors.gold.opacity(0.1))
+                    .clipShape(Circle())
+                
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(generateInsightTitle())
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                    
+                    Text(generateInsightBody())
+                        .font(Theme.Typography.subheadline)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.Colors.secondaryBackground)
+            .cornerRadius(Theme.Layout.cornerRadius)
+            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+        }
+    }
+    
+    // MARK: - Helpers & Data Extraction
+    
+    private func extractHistory(for language: String) -> [Double] {
+        guard let progress = gameManager.progressData[language] else { return [] }
+        // Return mostly accuracy or XP. Prompt implies "Accuracy % or Score %"
+        // Let's use accuracy history
+        // If history is empty, return [0]
+        if progress.history.isEmpty { return [0.0] }
+        return progress.history.map { $0.accuracy }
+    }
+    
+    private func getSolvedCount(for language: String) -> Int {
+        return gameManager.progressData[language]?.completedQuestionIds.count ?? 0
+    }
+    
+    private func getAccuracy(for language: String) -> Double {
+        let hist = gameManager.progressData[language]?.history ?? []
+        return hist.last?.accuracy ?? 0.0
+    }
+    
+    private func generateInsightTitle() -> String {
+        let swiftAcc = getAccuracy(for: "Swift")
+        if swiftAcc > 80 { return "Swift Expert!" }
+        if swiftAcc > 50 { return "Making Progress" }
+        return "Keep Practicing"
+    }
+    
+    private func generateInsightBody() -> String {
+        let swiftAcc = getAccuracy(for: "Swift")
+        if swiftAcc > 80 { return "Your Swift accuracy is impressive. Try tackling more advanced algorithms in Level 4." }
+        if swiftAcc > 50 { return "You're getting better at Swift. Focus on understanding error messages to improve further." }
+        return "Don't give up! Debugging is a skill that takes time. Review the hints and explanations carefully."
+    }
+    
+}
+
+// MARK: - Subcomponents
+
+struct LegendItem: View {
+    let color: Color
+    let label: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(label).font(Theme.Typography.caption).foregroundColor(Theme.Colors.textSecondary)
         }
     }
 }
 
-// Subcomponent for Performance Card
-struct PerformanceRow: View {
-    let label: String
+struct DualLineGraph: View {
+    let swiftData: [Double]
+    let cData: [Double]
+    
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                // Grid lines
+                VStack {
+                    Divider()
+                    Spacer()
+                    Divider()
+                    Spacer()
+                    Divider()
+                }
+                
+                // C Line (Blue)
+                Path { path in
+                    drawPath(in: &path, data: cData, rect: proxy.frame(in: .local))
+                }
+                .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                
+                // Swift Line (Orange)
+                Path { path in
+                    drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local))
+                }
+                .stroke(Color.orange, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                
+                // Dots for last points
+                /* Optional dots */
+            }
+        }
+        .padding(10)
+    }
+    
+    private func drawPath(in path: inout Path, data: [Double], rect: CGRect) {
+        guard data.count > 1 else { return }
+        
+        let stepX = rect.width / CGFloat(max(data.count - 1, 1))
+        let maxY = 100.0 // Accuracy is 0-100
+        
+        // Safe mapping
+        let p0 = CGPoint(x: 0, y: rect.height - (CGFloat(data[0]) / maxY * rect.height))
+        path.move(to: p0)
+        
+        for index in 1..<data.count {
+            let val = data[index]
+            let x = CGFloat(index) * stepX
+            let y = rect.height - (CGFloat(val) / maxY * rect.height)
+            path.addLine(to: CGPoint(x: x, y: y))
+        }
+    }
+}
+
+struct MetricCard: View {
+    let title: String
+    let swiftValue: String
+    let cValue: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Swift")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text(swiftValue)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+                Spacer()
+                Divider()
+                Spacer()
+                VStack(alignment: .leading) {
+                    Text("C")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                    Text(cValue)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+            }
+        }
+        .padding()
+        .background(Theme.Colors.secondaryBackground)
+        .cornerRadius(Theme.Layout.cornerRadius)
+        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct MetricSingleCard: View {
+    let title: String
     let value: String
     let icon: String
     let color: Color
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .font(.caption)
-                .frame(width: 20)
-            
-            VStack(alignment: .leading, spacing: 0) {
-                Text(label)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(color)
+                Text(title)
                     .font(Theme.Typography.caption2)
                     .foregroundColor(Theme.Colors.textSecondary)
-                Text(value)
-                    .font(Theme.Typography.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(Theme.Colors.textPrimary)
             }
+            
+            Text(value)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundColor(Theme.Colors.textPrimary)
         }
+        .padding()
+        .background(Theme.Colors.secondaryBackground)
+        .cornerRadius(Theme.Layout.cornerRadius)
+        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+        .frame(maxWidth: .infinity)
     }
 }
+

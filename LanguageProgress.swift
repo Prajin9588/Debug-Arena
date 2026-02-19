@@ -25,5 +25,17 @@ struct LanguageProgress: Codable {
     
     // Meta
     var attempts: [String: Int] = [:]
+    var lifetimeAttempts: Int = 0
     var unlockedLevels: Set<Int> = [1]
+    
+    // History Tracking
+    var history: [HistoryEntry] = []
+}
+
+struct HistoryEntry: Codable, Identifiable {
+    var id = UUID()
+    let date: Date
+    let xp: Int
+    let solvedCount: Int
+    let accuracy: Double
 }

@@ -6,29 +6,27 @@ public class StructureValidator {
     
     /// Main validation entry point. 
     /// Returns nil if valid, or an EvaluationResult if invalid.
-    func validate(code: String, language: Language) -> EvaluationResult? {
+    func validate(code: String, language: Language, questionID: UUID) -> EvaluationResult? {
         // 1. Normalize: Remove comments and strings to clean up structural checks
         let cleanedCode = removeCommentsAndStrings(from: code)
         
         // 2. Common Structural Checks (Brackets)
         if !areBracketsBalanced(cleanedCode) {
-            return failureResult(reason: "Unbalanced brackets {} [] () detected.")
+            return failureResult(questionID: questionID, reason: "Unbalanced brackets {} [] () detected.")
         }
         
         // 3. Language Specific Checks
         switch language {
         case .c:
-            return validateC(code: cleanedCode, original: code)
+            return validateC(code: cleanedCode, original: code, questionID: questionID)
         case .cpp:
-            return validateCPP(code: cleanedCode, original: code)
+            return validateCPP(code: cleanedCode, original: code, questionID: questionID)
         case .java:
-            return validateJava(code: cleanedCode, original: code)
+            return validateJava(code: cleanedCode, original: code, questionID: questionID)
         case .python:
-            return validatePython(code: code) // Python significant whitespace needs original lines sometimes? 
-                                            // Actually, cleanedCode is better for token checks, but strict indentation might need original. 
-                                            // Let's use original for indentation, cleaned for tokens.
+            return validatePython(code: code, questionID: questionID) 
         case .swift:
-            return validateSwift(code: cleanedCode, original: code)
+            return validateSwift(code: cleanedCode, original: code, questionID: questionID)
         }
     }
     
@@ -79,7 +77,7 @@ public class StructureValidator {
     
     // MARK: - Language Specific Validations
     
-    private func validateC(code: String, original: String) -> EvaluationResult? {
+    private func validateC(code: String, original: String, questionID: UUID) -> EvaluationResult? {
         // C Presence Requirements (User Specified):
         // Keywords: int, float, double, char, return, if, else, for, while, void, main
         // Symbols: { } ( ) ;
@@ -97,10 +95,10 @@ public class StructureValidator {
         
         // 2. Check Symbols
         if !areBracketsBalanced(normalized) {
-            return failureResult(reason: "Unbalanced braces or parentheses.")
+            return failureResult(questionID: questionID, reason: "Unbalanced braces or parentheses.")
         }
         if !normalized.contains(";") {
-             return failureResult(reason: "Missing semicolons ';'.")
+             return failureResult(questionID: questionID, reason: "Missing semicolons ';'.")
         }
         
         // 3. Check Main Function
@@ -111,24 +109,24 @@ public class StructureValidator {
         // Use regex for safety on 'original' or 'code'.
         let mainRegex = "(int|void)\\s+main\\s*\\("
         if original.range(of: mainRegex, options: .regularExpression) == nil {
-             return failureResult(reason: "Missing 'int main()' or 'void main()' entry point.")
+             return failureResult(questionID: questionID, reason: "Missing 'int main()' or 'void main()' entry point.")
         }
         
         // 4. Check Keywords (Skeleton)
         // Ensure "return" exists if "int main" is used?
         if original.contains("int main") && !normalized.contains("return") {
-            return failureResult(reason: "Missing 'return' statement in non-void function.")
+            return failureResult(questionID: questionID, reason: "Missing 'return' statement in non-void function.")
         }
         
         // 5. Basic include check (Legacy rule I added, user didn't explicitly ask in this snippet but in previous)
         if (original.contains("printf") || original.contains("scanf")) && !original.contains("#include") {
-             return failureResult(reason: "Missing '#include <stdio.h>' for input/output.")
+             return failureResult(questionID: questionID, reason: "Missing '#include <stdio.h>' for input/output.")
         }
         
         return nil
     }
     
-    private func validateCPP(code: String, original: String) -> EvaluationResult? {
+    private func validateCPP(code: String, original: String, questionID: UUID) -> EvaluationResult? {
         // C++ Presence Requirements (User Specified):
         // Keywords: int, float, double, char, return, if, else, for, while,
         //           void, main, class, public, private, cout, cin
@@ -144,17 +142,17 @@ public class StructureValidator {
         
         // 2. Check Symbols
         if !areBracketsBalanced(normalized) {
-            return failureResult(reason: "Unbalanced braces or parentheses.")
+            return failureResult(questionID: questionID, reason: "Unbalanced braces or parentheses.")
         }
          if !normalized.contains(";") {
-             return failureResult(reason: "Missing semicolons ';'.")
+             return failureResult(questionID: questionID, reason: "Missing semicolons ';'.")
         }
         
         // 3. Check Main Function
         // "int main(" or "void main("
         let mainRegex = "(int|void)\\s+main\\s*\\("
         if original.range(of: mainRegex, options: .regularExpression) == nil {
-             return failureResult(reason: "Missing 'int main()' or 'void main()' entry point.")
+             return failureResult(questionID: questionID, reason: "Missing 'int main()' or 'void main()' entry point.")
         }
         
         // 4. Check Keywords (Context Aware)
@@ -162,19 +160,19 @@ public class StructureValidator {
         // Checks for std:: or using namespace
         if (original.contains("cout") || original.contains("cin")) {
             if !original.contains("std::") && !original.contains("using namespace std") {
-                return failureResult(reason: "Missing 'std::' prefix or 'using namespace std;'.")
+                return failureResult(questionID: questionID, reason: "Missing 'std::' prefix or 'using namespace std;'.")
             }
         }
         
         // 5. Basic include check
         if (original.contains("cout") || original.contains("cin")) && !original.contains("#include <iostream>") {
-             return failureResult(reason: "Missing '#include <iostream>' for C++ I/O.")
+             return failureResult(questionID: questionID, reason: "Missing '#include <iostream>' for C++ I/O.")
         }
         
         return nil
     }
     
-    private func validateJava(code: String, original: String) -> EvaluationResult? {
+    private func validateJava(code: String, original: String, questionID: UUID) -> EvaluationResult? {
         // Java Presence Requirements (User Specified):
         // Keywords: class, public, static, void, main, if, else, for, while, return
         // Symbols: { } ( ) ;
@@ -220,10 +218,10 @@ public class StructureValidator {
         
         // 3. Check Symbols
         if !areBracketsBalanced(normalized) {
-            return failureResult(reason: "Unbalanced braces or parentheses.")
+            return failureResult(questionID: questionID, reason: "Unbalanced braces or parentheses.")
         }
         if !normalized.contains(";") {
-             return failureResult(reason: "Missing semicolons ';'.")
+             return failureResult(questionID: questionID, reason: "Missing semicolons ';'.")
         }
         
         // 4. Check Main Method Signature (on original code to match spaces/formatting if needed, or normalized? 
@@ -240,13 +238,13 @@ public class StructureValidator {
         }
         
         if !missingTokens.isEmpty {
-             return failureResult(reason: "Missing required elements: \(missingTokens.joined(separator: ", ")).")
+             return failureResult(questionID: questionID, reason: "Missing required elements: \(missingTokens.joined(separator: ", ")).")
         }
         
         return nil
     }
     
-    private func validatePython(code: String) -> EvaluationResult? {
+    private func validatePython(code: String, questionID: UUID) -> EvaluationResult? {
         // Python Presence Requirements (User Specified):
         // Keywords: def, if, elif, else, for, while, return, class, import
         // Symbols: : ( )
@@ -283,7 +281,7 @@ public class StructureValidator {
         let hasColon = codeWithoutComments.contains(":")
         
         if hasColon && !hasIndentation {
-             return failureResult(reason: "Missing indentation (4 spaces) following a declaration.")
+             return failureResult(questionID: questionID, reason: "Missing indentation (4 spaces) following a declaration.")
         }
 
         // 3. Normalize for Keyword/Symbol check (Squash spaces)
@@ -296,7 +294,7 @@ public class StructureValidator {
              // But strict presence system says "Required symbols: :".
              // I will enforce it only if the user implies complex logic (which they usually do in this app).
              // User prompt: "Required symbols: :". I will enforce.
-             return failureResult(reason: "Missing structural symbol ':'.")
+             return failureResult(questionID: questionID, reason: "Missing structural symbol ':'.")
         }
         
         // Parentheses Balance
@@ -310,7 +308,7 @@ public class StructureValidator {
         // I'll ensure we don't fail for missing {} or ;.
         
         if !areBracketsBalanced(normalized) {
-             return failureResult(reason: "Unbalanced parentheses or brackets.")
+             return failureResult(questionID: questionID, reason: "Unbalanced parentheses or brackets.")
         }
         
         // 5. Check Keywords
@@ -339,7 +337,7 @@ public class StructureValidator {
         return nil
     }
     
-    private func validateSwift(code: String, original: String) -> EvaluationResult? {
+    private func validateSwift(code: String, original: String, questionID: UUID) -> EvaluationResult? {
         // Swift Presence Requirements (User Specified):
         // Keywords: func, if, for, while, return
         // Symbols: { } ( ) : ;
@@ -385,13 +383,13 @@ public class StructureValidator {
         
         // Critical: Balanced Symbols
         if !areBracketsBalanced(code) { // code here is cleanedCode
-             return failureResult(reason: "Unbalanced brackets or parentheses.")
+             return failureResult(questionID: questionID, reason: "Unbalanced brackets or parentheses.")
         }
         
         // Check for specific Swift-isms if evident
         // e.g. "func " must have "{" eventually
         if original.contains("func ") && !original.contains("{") {
-            return failureResult(reason: "Function definition missing body '{'.")
+            return failureResult(questionID: questionID, reason: "Function definition missing body '{'.")
         }
         
         // User requested detection of: func, if, for, while, return, let/var
@@ -402,8 +400,9 @@ public class StructureValidator {
     
     // MARK: - Helpers
     
-    private func failureResult(reason: String) -> EvaluationResult {
+    private func failureResult(questionID: UUID, reason: String) -> EvaluationResult {
         return EvaluationResult(
+            questionID: questionID,
             status: .incorrect,
             score: 0,
             level: .failed,

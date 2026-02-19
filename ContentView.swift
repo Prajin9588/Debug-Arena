@@ -16,41 +16,16 @@ struct ContentView: View {
                 .toolbarBackground(.visible, for: .tabBar)
                 .toolbarColorScheme(.light, for: .tabBar)
             
-            // Tab 1: Reports
-            if let result = gameManager.lastEvaluationResult {
-                ReportView(result: result, onDismiss: {
-                    // Optional: maybe clear result or just do nothing in tab mode
-                })
-                .tabItem {
-                    Label("Reports", systemImage: "chart.bar.fill")
-                }
-                .tag(1)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarColorScheme(.light, for: .tabBar)
-            } else {
-                // Empty State for Reports
-                VStack(spacing: 16) {
-                    Image(systemName: "chart.bar.xaxis")
-                        .font(.system(size: 50))
-                        .foregroundColor(Theme.Colors.textSecondary)
-                    Text("No Reports Yet")
-                        .font(Theme.Typography.title3)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                    Text("Complete a coding challenge to see your detailed analysis here.")
-                        .font(Theme.Typography.body)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Theme.Colors.background)
-                .tabItem {
-                    Label("Reports", systemImage: "chart.bar.fill")
-                }
-                .tag(1)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarColorScheme(.light, for: .tabBar)
+            // Tab 1: Reports (Dashboard)
+            ReportView(result: gameManager.lastEvaluationResult, onDismiss: {
+                gameManager.lastEvaluationResult = nil // Clear result on dismiss
+            })
+            .tabItem {
+                Label("Reports", systemImage: "chart.bar.fill")
             }
+            .tag(1)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarColorScheme(.light, for: .tabBar)
             
             // Tab 2: Profile
             ProfileView(gameManager: gameManager)
@@ -61,6 +36,7 @@ struct ContentView: View {
                 .toolbarBackground(.visible, for: .tabBar)
                 .toolbarColorScheme(.light, for: .tabBar)
         }
+        .environmentObject(gameManager)
         .accentColor(.blue) // Global Tint
     }
 }

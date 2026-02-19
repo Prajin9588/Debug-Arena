@@ -70,7 +70,17 @@ enum Complexity: String, Codable {
     case high = "High"
 }
 
-struct EvaluationResult {
+struct TestCaseResult: Codable, Hashable {
+    let input: String
+    let expected: String
+    let actual: String
+    let passed: Bool
+}
+
+struct EvaluationResult: Codable {
+    // QUESTION SCOPING
+    let questionID: UUID
+    
     // Legacy support (optional, can be computed from detailed result if needed)
     var isSuccess: Bool { status == .correct }
     var errorType: ErrorType? { status == .correct ? nil : .logic } // Simplified mapping
@@ -85,8 +95,17 @@ struct EvaluationResult {
     let feedback: String
     let message: String // Kept for compatibility, aliases to feedback
     let line: Int?
+    let difficulty: Int
     
-    init(status: EvaluationStatus, score: Int, level: UserLevel, complexity: Complexity, edgeCaseHandling: Bool, hardcodingDetected: Bool, feedback: String, line: Int? = nil) {
+    // Detailed Test Data
+    var testResults: [TestCaseResult] = []
+    
+    // Rewards
+    var coinsEarned: Int = 0
+    var xpEarned: Int = 0
+    
+    init(questionID: UUID, status: EvaluationStatus, score: Int, level: UserLevel, complexity: Complexity, edgeCaseHandling: Bool, hardcodingDetected: Bool, feedback: String, line: Int? = nil, difficulty: Int = 1, testResults: [TestCaseResult] = [], coinsEarned: Int = 0, xpEarned: Int = 0) {
+        self.questionID = questionID
         self.status = status
         self.score = score
         self.level = level
@@ -96,11 +115,16 @@ struct EvaluationResult {
         self.feedback = feedback
         self.message = feedback
         self.line = line
+        self.difficulty = difficulty
+        self.testResults = testResults
+        self.coinsEarned = coinsEarned
+        self.xpEarned = xpEarned
     }
     
     // Helper for legacy simple errors
-    static func simpleError(type: ErrorType, message: String, line: Int? = nil) -> EvaluationResult {
+    static func simpleError(questionID: UUID, type: ErrorType, message: String, line: Int? = nil) -> EvaluationResult {
         return EvaluationResult(
+            questionID: questionID,
             status: .incorrect,
             score: 0,
             level: .failed,
@@ -108,7 +132,8 @@ struct EvaluationResult {
             edgeCaseHandling: false,
             hardcodingDetected: false,
             feedback: "\(type.rawValue): \(message)",
-            line: line
+            line: line,
+            difficulty: 1
         )
     }
 }

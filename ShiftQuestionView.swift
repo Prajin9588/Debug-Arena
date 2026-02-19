@@ -72,6 +72,12 @@ struct ShiftQuestionView: View {
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
                 .animation(.easeInOut, value: currentIndex)
+                .onChange(of: currentIndex) { _, _ in
+                    // architecture change: Reset state on swipe
+                    evaluationResult = nil
+                    selectedLineInfo = nil
+                    showOptions = false
+                }
                 
                 // Instruction Footer
                 Text("Swipe to navigate • Tap flagged lines to inspect")
@@ -230,7 +236,7 @@ struct ShiftQuestionView: View {
                     
                     VStack {
                         Spacer()
-                        EvaluationResultView(result: result)
+                        EvaluationResultView(result: result, difficulty: currentQuestions[currentIndex].difficulty)
                             .padding()
                             .transition(.move(edge: .bottom))
                         Spacer()
@@ -500,6 +506,7 @@ struct ShiftOptionsSheet: View {
                         }
                         
                         let result = EvaluationResult(
+                            questionID: currentQuestion.id,
                             status: status,
                             score: score,
                             level: level,

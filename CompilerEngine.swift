@@ -18,7 +18,7 @@ class CompilerEngine {
         
         // 2. Initial Structure Check
         if normalizedCode.isEmpty {
-            return EvaluationResult.simpleError(type: .syntax, message: "Code cannot be empty.")
+            return EvaluationResult.simpleError(questionID: question.id, type: .syntax, message: "Code cannot be empty.")
         }
         
         // Variables for scoring
@@ -39,6 +39,7 @@ class CompilerEngine {
         let syntaxCheck = interpreter.evaluate(code: code)
         if syntaxCheck.contains("Syntax Error:") {
              return EvaluationResult(
+                questionID: question.id,
                 status: .incorrect, // Mapped from isSuccess: false
                 score: 0,
                 level: .failed,
@@ -49,6 +50,7 @@ class CompilerEngine {
             )
         }
         
+        var testResults: [TestCaseResult] = []
         var passedTestCount = 0
         let totalTests = (question.hiddenTests?.count ?? 0) > 0 ? (question.hiddenTests?.count ?? 0) : 1
         
@@ -63,20 +65,29 @@ class CompilerEngine {
                 let expected = test.expectedOutput.trimmingCharacters(in: .whitespacesAndNewlines)
                 let actual = output.trimmingCharacters(in: .whitespacesAndNewlines)
                 
-                if actual == expected {
+                let passed = actual == expected || actual.lowercased() == expected.lowercased()
+                
+                if passed {
                     passedTestCount += 1
-                } else if actual.lowercased() == expected.lowercased() {
-                    // Soft Pass (Case insensitive)
-                    passedTestCount += 1
-                    feedbackItems.append("⚠️ Test \(index + 1): Case mismatch. (Expected: \(expected), Got: \(actual))")
                 } else {
                     passedHiddenTests = false
-                    // Only show detail for the first failure to avoid overwhelming user
+                }
+                
+                testResults.append(TestCaseResult(
+                    input: driverCode.isEmpty ? "(Standard Execution)" : driverCode,
+                    expected: expected,
+                    actual: actual,
+                    passed: passed
+                ))
+                
+                // Legacy feedback items
+                if passed {
+                    if actual.lowercased() == expected.lowercased() && actual != expected {
+                         feedbackItems.append("⚠️ Test \(index + 1): Case mismatch.")
+                    }
+                } else {
                     if feedbackItems.filter({ $0.contains("❌") }).isEmpty {
                         feedbackItems.append("❌ Test \(index + 1) Failed")
-                        feedbackItems.append("Input: \(driverCode.isEmpty ? "(Standard Execution)" : driverCode)")
-                        feedbackItems.append("Expected: \(expected)")
-                        feedbackItems.append("Got: \(actual)")
                     }
                 }
             }
@@ -92,44 +103,41 @@ class CompilerEngine {
             let goldenOutput = interpreter.evaluate(code: question.correctCode).trimmingCharacters(in: .whitespacesAndNewlines)
             let userOutput = interpreter.evaluate(code: code).trimmingCharacters(in: .whitespacesAndNewlines)
             
-            if userOutput == goldenOutput {
+            let passed = userOutput == goldenOutput || userOutput.lowercased() == goldenOutput.lowercased()
+            
+            if passed {
                  passedTestCount = 1
                  passedHiddenTests = true
                  feedbackItems.append("✅ Output matches expected result.")
-            } else if userOutput.lowercased() == goldenOutput.lowercased() {
-                 passedTestCount = 1
-                 passedHiddenTests = true
-                 feedbackItems.append("⚠️ Output matched but case differs. (Expected: \(goldenOutput), Got: \(userOutput))")
             } else {
                  passedHiddenTests = false
                  feedbackItems.append("❌ Output Mismatch")
-                 feedbackItems.append("Expected: \(goldenOutput)")
-                 feedbackItems.append("Got: \(userOutput)")
             }
+            
+            testResults.append(TestCaseResult(
+                input: "Main execution",
+                expected: goldenOutput,
+                actual: userOutput,
+                passed: passed
+            ))
         }
 
         // 5. Anti-Hardcoding / Concept Validation (Secondary)
         if isHardcoded(code: code, question: question) {
              hardcodingDetected = true
-             // passedHiddenTests = false // Don't fail explicitly, but cap score?
-             // User requirement: If any test fail -> success is false. 
-             // Hardcoding is a form of logic failure.
              passedHiddenTests = false 
              score = 30
-             feedbackItems.append("⚠️ Hardcoding detected. Please use the required logic constructs (loops / conditions).")
+             feedbackItems.append("⚠️ Hardcoding detected. Please use the required logic constructs.")
         }
         
         // 6. Logic & Complexity Analysis
         let complexityScore = analyzeComplexity(code: code, language: question.language)
         
         // 7. Dynamic Scoring Logic
-        // Base Score Calculation (max 70 points for logic)
         let logicScore = (Double(passedTestCount) / Double(totalTests)) * 70.0
-        
         score = Int(logicScore) + 20 // Base 20 for compiling
         
         if passedHiddenTests && !hardcodingDetected {
-             // Bonus for perfection
              score = max(score, 90) 
         }
         
@@ -138,29 +146,34 @@ class CompilerEngine {
             feedbackItems.append("✨ Optimized Approach")
         }
         
-        // Scale/Clamp
         score = max(0, min(100, score))
         
         // 8. Level Classification
-        let level: UserLevel
+        let userLevel: UserLevel
         switch score {
-        case 90...100: level = .expert
-        case 75...89: level = .advanced
-        case 50...74: level = .intermediate
-        case 30...49: level = .beginner
-        default: level = .failed
+        case 90...100: userLevel = .expert
+        case 75...89: userLevel = .advanced
+        case 50...74: userLevel = .intermediate
+        case 30...49: userLevel = .beginner
+        default: userLevel = .failed
         }
         
         let finalFeedback = feedbackItems.joined(separator: "\n")
+        let status: EvaluationStatus = (userLevel == .failed) ? .incorrect : .correct
         
         return EvaluationResult(
-            status: level == .failed ? .incorrect : .correct,
+            questionID: question.id,
+            status: status,
             score: score,
-            level: level,
+            level: userLevel,
             complexity: complexityScore.level,
             edgeCaseHandling: passedHiddenTests,
             hardcodingDetected: hardcodingDetected,
-            feedback: finalFeedback
+            feedback: finalFeedback,
+            difficulty: question.difficulty,
+            testResults: testResults,
+            coinsEarned: status == .correct ? 1 : 0,
+            xpEarned: status == .correct ? 10 : 0
         )
     }
     
@@ -172,7 +185,7 @@ class CompilerEngine {
             .replacingOccurrences(of: "”", with: "\"")
             .replacingOccurrences(of: "‘", with: "'")
             .replacingOccurrences(of: "’", with: "'")
-            .replacingOccurrences(of: ";", with: "\n") // Treat semicolons as line breaks for analysis
+            .replacingOccurrences(of: ";", with: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
@@ -193,16 +206,13 @@ class CompilerEngine {
     }
     
     private func matchesPattern(_ code: String, pattern: String) -> Bool {
-        // Try regex match
         if let _ = code.range(of: pattern, options: .regularExpression) {
             return true
         }
-        // Fallback to simple contains
         return code.contains(pattern)
     }
     
     private func evaluateLevel2(code: String, question: Question) -> EvaluationResult {
-        // Parse Selected Option
         var selectedOpt = -1
         
         if let range = code.range(of: "// SELECTED_OPT: ") {
@@ -218,36 +228,34 @@ class CompilerEngine {
             }
         }
         
-        // Determine Expected Error Type
         guard question.conceptOptions.indices.contains(question.conceptCorrectAnswer) else {
-             return EvaluationResult.simpleError(type: .unknown, message: "Invalid Question Configuration")
+             return EvaluationResult.simpleError(questionID: question.id, type: .unknown, message: "Invalid Configuration")
         }
         let expectedErrorFragment = question.conceptOptions[question.conceptCorrectAnswer]
+        let userChoice = question.conceptOptions.indices.contains(selectedOpt) ? question.conceptOptions[selectedOpt] : "None Selected"
+        let isCorrect = selectedOpt == question.conceptCorrectAnswer
         
-        // Verify User Selection
-        if selectedOpt == question.conceptCorrectAnswer {
-             // For Level 2, we return a correct result if the user matched the diagnosis.
-             return EvaluationResult(
-                status: .correct,
-                score: 100,
-                level: .passed,
-                complexity: .medium,
-                edgeCaseHandling: true,
-                hardcodingDetected: false,
-                feedback: "Correct! You identified the error type: \(expectedErrorFragment)\n\nConcept: \(question.conceptExplanation)"
-            )
-        } else {
-            let userChoice = question.conceptOptions.indices.contains(selectedOpt) ? question.conceptOptions[selectedOpt] : "None Selected"
-             return EvaluationResult(
-                status: .incorrect,
-                score: 0,
-                level: .failed,
-                complexity: .medium,
-                edgeCaseHandling: false,
-                hardcodingDetected: false,
-                feedback: "Incorrect diagnosis.\n\nActual Type: \(expectedErrorFragment)\nYou Selected: \(userChoice)\n\nTry analyzing the code structure again."
-            )
-        }
+        let testResult = TestCaseResult(
+            input: "Diagnosis Selection",
+            expected: expectedErrorFragment,
+            actual: userChoice,
+            passed: isCorrect
+        )
+        
+        return EvaluationResult(
+            questionID: question.id,
+            status: isCorrect ? .correct : .incorrect,
+            score: isCorrect ? 100 : 0,
+            level: isCorrect ? .passed : .failed,
+            complexity: .medium,
+            edgeCaseHandling: isCorrect,
+            hardcodingDetected: false,
+            feedback: isCorrect ? "Correct! You identified the error: \(expectedErrorFragment)" : "Incorrect diagnosis. Try again.",
+            difficulty: question.difficulty,
+            testResults: [testResult],
+            coinsEarned: isCorrect ? 1 : 0,
+            xpEarned: isCorrect ? 10 : 0
+        )
     }
 
     private func isHardcoded(code: String, question: Question) -> Bool {
@@ -330,42 +338,40 @@ class CompilerEngine {
     
     // MARK: - Syntax Checking (Reused/Updated)
     
-    private func checkSyntax(code: String, language: Language) -> EvaluationResult? {
+    private func checkSyntax(code: String, language: Language, questionID: UUID) -> EvaluationResult? {
          let lines = code.components(separatedBy: .newlines)
          
          switch language {
          case .c, .cpp:
-             // Check for main
              if !code.contains("int main") {
-                 return EvaluationResult.simpleError(type: .syntax, message: "Missing 'int main()' function")
+                 return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing 'int main()' function")
              }
              // Check for semicolon
              for (index, line) in lines.enumerated() {
                  let trimmed = line.trimmingCharacters(in: .whitespaces)
                  if !trimmed.isEmpty && !trimmed.hasPrefix("//") && !trimmed.hasPrefix("#") && !trimmed.hasSuffix(";") && !trimmed.hasSuffix("{") && !trimmed.hasSuffix("}") && !trimmed.hasSuffix(">") {
-                     return EvaluationResult.simpleError(type: .syntax, message: "Missing semicolon ';'", line: index + 1)
+                     return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing semicolon ';'", line: index + 1)
                  }
              }
          case .java:
-             // Check for class
              if !code.contains("class ") {
-                  return EvaluationResult.simpleError(type: .syntax, message: "Missing class definition")
+                  return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing class definition")
              }
              if !code.contains("public static void main") {
-                 return EvaluationResult.simpleError(type: .syntax, message: "Missing 'public static void main'")
+                 return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing 'public static void main'")
              }
              // Check for semicolon
              for (index, line) in lines.enumerated() {
                  let trimmed = line.trimmingCharacters(in: .whitespaces)
                  if !trimmed.isEmpty && !trimmed.hasPrefix("//") && !trimmed.hasPrefix("@") && !trimmed.hasSuffix(";") && !trimmed.hasSuffix("{") && !trimmed.hasSuffix("}") {
-                      return EvaluationResult.simpleError(type: .syntax, message: "Missing semicolon ';'", line: index + 1)
+                      return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing semicolon ';'", line: index + 1)
                  }
              }
          case .python:
              for (index, line) in lines.enumerated() {
                  let trimmed = line.trimmingCharacters(in: .whitespaces)
                  if (trimmed.hasPrefix("if") || trimmed.hasPrefix("for") || trimmed.hasPrefix("while") || trimmed.hasPrefix("def") || trimmed.hasPrefix("class")) && !trimmed.hasSuffix(":") {
-                     return EvaluationResult.simpleError(type: .syntax, message: "Missing colon ':'", line: index + 1)
+                     return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing colon ':'", line: index + 1)
                  }
              }
          case .swift:

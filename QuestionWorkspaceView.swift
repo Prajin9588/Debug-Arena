@@ -6,8 +6,10 @@ struct QuestionWorkspaceView: View {
     @State private var userCode: String = ""
     @State private var showConceptQuestion = false
     @State private var showRevealButton = false // Local state for animation
-    @State private var selectedOption: Int = 0
+    @State private var selectedOption: Int? = nil // Level 2: nil means nothing selected
     @State private var showingExplanation: Int? = nil
+    @State private var showSelectionWarning = false // For handling Run without selection
+    @State private var showLevel2DetailedResult = false
 
     @Environment(\.dismiss) var dismiss
     
@@ -44,7 +46,23 @@ struct QuestionWorkspaceView: View {
                     
                     executionButton
                     
-                    // OVERLAYS (Only Level Unlock)
+                    // OVERLAYS (Results & Progress)
+                    // OVERLAYS (Results & Progress)
+                    if question.difficulty == 2 {
+                        // Level 2 Result is pushed via fullScreenCover/sheet below
+                    } else {
+                        if case .correct = gameManager.executionState {
+                            SuccessOverlay(score: 100) {
+                                gameManager.executionState = .idle
+                                dismiss() // Back to grid/dashboard
+                            }
+                        } else if case .error(let message) = gameManager.executionState {
+                            ErrorOverlay(message: message) {
+                                gameManager.executionState = .idle
+                            }
+                        }
+                    }
+                    
                     if case .levelComplete(let next, _) = gameManager.executionState {
                         LevelUnlockOverlay(nextLevel: next, isForced: false) {
                             dismiss()
@@ -64,10 +82,40 @@ struct QuestionWorkspaceView: View {
             }
             .onAppear {
                 gameManager.currentQuestionIndex = questionIndex
+                // architecture change: Reset state on appear
+                gameManager.resetQuestionState(for: question)
+                
                 userCode = question.initialCode
+                selectedOption = nil
+                showSelectionWarning = false
+            }
+            .onChange(of: gameManager.executionState) { _, newState in
+                if question.difficulty == 2 {
+                    if newState == .correct || (caseError(newState) != nil) {
+                         showLevel2DetailedResult = true
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showLevel2DetailedResult) {
+                if let result = gameManager.lastEvaluationResult {
+                    DetailedEvaluationScreen(result: result, difficulty: 2) {
+                        showLevel2DetailedResult = false
+                        if result.status == .correct {
+                            dismiss()
+                        } else {
+                            gameManager.executionState = .idle
+                            selectedOption = nil
+                        }
+                    }
+                }
             }
             .navigationBarHidden(true)
         }
+    }
+    
+    private func caseError(_ state: GameManager.ExecutionState) -> String? {
+        if case .error(let msg) = state { return msg }
+        return nil
     }
     private var missionBriefView: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -135,166 +183,16 @@ struct QuestionWorkspaceView: View {
 
     private var codeEditorView: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("SOURCE CODE")
-                    .font(Theme.Typography.caption2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .padding(.leading)
-                Spacer()
-            }
-            .padding(.top, 10)
+            editorHeader
             
             VStack(alignment: .leading, spacing: 0) {
                 if question.difficulty == 2 {
-                    // Level 2: Read-Only Code
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(question.initialCode)
-                            .font(Theme.Typography.codeFont)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                    }
-                    .background(Theme.Colors.codeBackground)
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.gray.opacity(0.1), lineWidth: 1)
-                    )
-                    .padding(.horizontal)
-                    
-                    Divider().padding(.vertical, 8) // Below code: Divider or spacing
-                    
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("IDENTIFY THE ERROR TYPE") // Consistent label
-                            .font(Theme.Typography.caption2)
-                            .foregroundColor(Theme.Colors.electricCyan)
-                            .padding(.horizontal)
-                            .padding(.bottom, 4)
-                        
-                        // Options list (vertical stack)
-                        VStack(spacing: 12) {
-                            ForEach(0..<question.conceptOptions.count, id: \.self) { index in
-                            Button(action: {
-                                // 1. Update State
-                                selectedOption = index
-                                // 2. Haptic Feedback
-                                let impact = UIImpactFeedbackGenerator(style: .medium)
-                                impact.impactOccurred()
-                            }) {
-                                HStack {
-                                    Text(question.conceptOptions[index])
-                                        .font(Theme.Typography.body)
-                                        .fontWeight(selectedOption == index ? .bold : .regular)
-                                        .foregroundColor(selectedOption == index ? Theme.Colors.electricCyan : Theme.Colors.textPrimary)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Spacer()
-                                    
-                                    // Info Button (i)
-                                    if question.conceptOptionsExplanations != nil {
-                                        Button(action: {
-                                            showingExplanation = index
-                                        }) {
-                                            Image(systemName: "info.circle")
-                                                .font(.system(size: 20))
-                                                .foregroundColor(Theme.Colors.electricCyan)
-                                                .padding(8)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    }
-                                    
-                                    // Visual Indicator
-                                    if selectedOption == index {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(Theme.Colors.electricCyan)
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .font(.system(size: 20))
-                                            .foregroundColor(Color.gray.opacity(0.4))
-                                    }
-                                }
-                                .padding(16)
-                                .background(selectedOption == index ? Theme.Colors.electricCyan.opacity(0.15) : Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.gray.opacity(0.2), lineWidth: 1)
-                                        .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.clear, lineWidth: selectedOption == index ? 2 : 0)
-                                )
-                                .shadow(color: selectedOption == index ? Theme.Colors.electricCyan.opacity(0.2) : Color.clear, radius: 4, x: 0, y: 2)
-                            }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
-                    .sheet(item: Binding(
-                        get: { showingExplanation.map { IdentifiableInt(value: $0) } },
-                        set: { showingExplanation = $0?.value }
-                    )) { item in
-                        VStack(alignment: .leading, spacing: 20) {
-                            HStack {
-                                Text("Explanation")
-                                    .font(Theme.Typography.title3)
-                                    .bold()
-                                Spacer()
-                                Button(action: { showingExplanation = nil }) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.gray)
-                                        .font(.title2)
-                                }
-                            }
-                            
-                            Text(question.conceptOptions[item.value])
-                                .font(Theme.Typography.headline)
-                                .foregroundColor(Theme.Colors.electricCyan)
-                            
-                            if let explanations = question.conceptOptionsExplanations, item.value < explanations.count {
-                                Text(explanations[item.value])
-                                    .font(Theme.Typography.body)
-                                    .foregroundColor(Theme.Colors.textPrimary)
-                            }
-                            
-                            Spacer()
-                        }
-                        .padding(30)
-                        .presentationDetents([.medium])
-                        .presentationDragIndicator(.visible)
-                    }
-                    
+                    level2CodeDisplay
+                    Divider().padding(.vertical, 8)
+                    level2OptionsList
                 } else {
-                    // Level 1 & others: Editable Code
-                    if userCode.isEmpty {
-                        Text("Enter your code here...")
-                            .foregroundColor(.gray.opacity(0.5))
-                            .font(Theme.Typography.codeFont)
-                            .padding(8)
-                            .padding(.top, 8)
-                    }
-                    
-                    TextEditor(text: $userCode)
-                        .font(Theme.Typography.codeFont)
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .padding(8)
-                        .scrollContentBackground(.hidden) // Remove default background
-                        .background(Color.clear)
-                        .frame(minHeight: 200)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled(true)
-                        .onChange(of: userCode) { _, newValue in
-                            let filtered = newValue.replacingOccurrences(of: "“", with: "\"")
-                                .replacingOccurrences(of: "”", with: "\"")
-                                .replacingOccurrences(of: "‘", with: "'")
-                                .replacingOccurrences(of: "’", with: "'")
-                            
-                            if filtered != newValue {
-                                userCode = filtered
-                            }
-                        }
+                    standardCodeEditor
                 }
-
             }
             .background(Theme.Colors.codeBackground)
             .cornerRadius(Theme.Layout.cornerRadius)
@@ -305,18 +203,195 @@ struct QuestionWorkspaceView: View {
             .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
             .padding(.horizontal)
             
-            // RESULT SECTION (Inline)
-            if let result = gameManager.lastEvaluationResult, !gameManager.executionState.isRunning {
-                EvaluationResultView(result: result)
+            evaluationResultSection
+            
+            Spacer().frame(height: 80)
+        }
+    }
+
+    private var editorHeader: some View {
+        HStack {
+            Text("SOURCE CODE")
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .padding(.leading)
+            Spacer()
+        }
+        .padding(.top, 10)
+    }
+
+    private var level2CodeDisplay: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(question.initialCode)
+                .font(Theme.Typography.codeFont)
+                .foregroundColor(Theme.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+        }
+        .background(Theme.Colors.codeBackground)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+        )
+        .padding(.horizontal)
+    }
+
+    private var level2OptionsList: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("IDENTIFY THE ERROR TYPE")
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.electricCyan)
+                .padding(.horizontal)
+                .padding(.bottom, 4)
+            
+            VStack(spacing: 12) {
+                ForEach(0..<question.conceptOptions.count, id: \.self) { index in
+                    optionRow(index: index)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.bottom, 16)
+        .sheet(item: Binding(
+            get: { showingExplanation.map { IdentifiableInt(value: $0) } },
+            set: { showingExplanation = $0?.value }
+        )) { item in
+            explanationModal(index: item.value)
+        }
+    }
+
+    private func optionRow(index: Int) -> some View {
+        HStack(spacing: 0) {
+            Button(action: {
+                selectedOption = index
+                showSelectionWarning = false
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+            }) {
+                HStack {
+                    Text(index < question.conceptOptions.count ? question.conceptOptions[index] : "")
+                        .font(Theme.Typography.body)
+                        .fontWeight(selectedOption == index ? .bold : .regular)
+                        .foregroundColor(selectedOption == index ? Theme.Colors.electricCyan : Theme.Colors.textPrimary)
+                        .multilineTextAlignment(.leading)
+                    
+                    Spacer()
+                    
+                    if selectedOption == index {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Theme.Colors.electricCyan)
+                    } else {
+                        Image(systemName: "circle")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color.gray.opacity(0.4))
+                    }
+                }
+                .padding(.vertical, 16)
+                .padding(.leading, 16)
+                .padding(.trailing, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            if question.conceptOptionsExplanations != nil {
+                Button(action: {
+                    showingExplanation = index
+                }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.Colors.electricCyan)
+                        .padding(16)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .background(selectedOption == index ? Theme.Colors.electricCyan.opacity(0.15) : Color.white)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(selectedOption == index ? Theme.Colors.electricCyan : Color.gray.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: selectedOption == index ? Theme.Colors.electricCyan.opacity(0.1) : Color.clear, radius: 4, x: 0, y: 2)
+    }
+
+    private func explanationModal(index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                Text("Explanation")
+                    .font(Theme.Typography.title3)
+                    .bold()
+                Spacer()
+                Button(action: { showingExplanation = nil }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.gray)
+                        .font(.title2)
+                }
+            }
+            
+            Text(index < question.conceptOptions.count ? question.conceptOptions[index] : "")
+                .font(Theme.Typography.headline)
+                .foregroundColor(Theme.Colors.electricCyan)
+            
+            if let explanations = question.conceptOptionsExplanations, index < explanations.count {
+                Text(explanations[index])
+                    .font(Theme.Typography.body)
+                    .foregroundColor(Theme.Colors.textPrimary)
+            }
+            
+            Spacer()
+        }
+        .padding(30)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var standardCodeEditor: some View {
+        ZStack(alignment: .topLeading) {
+            if userCode.isEmpty {
+                Text("Enter your code here...")
+                    .foregroundColor(.gray.opacity(0.5))
+                    .font(Theme.Typography.codeFont)
+                    .padding(12)
+                    .padding(.top, 8)
+            }
+            
+            TextEditor(text: $userCode)
+                .font(Theme.Typography.codeFont)
+                .foregroundColor(Theme.Colors.textPrimary)
+                .padding(8)
+                .scrollContentBackground(.hidden)
+                .background(Color.clear)
+                .frame(minHeight: 200)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .onChange(of: userCode) { _, newValue in
+                    let filtered = newValue.replacingOccurrences(of: "“", with: "\"")
+                        .replacingOccurrences(of: "”", with: "\"")
+                        .replacingOccurrences(of: "‘", with: "'")
+                        .replacingOccurrences(of: "’", with: "'")
+                    
+                    if filtered != newValue {
+                        userCode = filtered
+                    }
+                }
+        }
+    }
+
+    private var evaluationResultSection: some View {
+        Group {
+            if let result = gameManager.lastEvaluationResult, 
+               result.questionID == question.id, // Safety: Only show if matches current question
+               !gameManager.executionState.isRunning, 
+               question.difficulty != 2 {
+                EvaluationResultView(result: result, difficulty: question.difficulty)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if gameManager.executionState.isRunning {
-                // Loading / Console State
                 CompilerConsoleView(gameManager: gameManager)
                     .frame(height: 200)
                     .transition(.opacity)
             }
-            
-            Spacer().frame(height: 80) // Spacing for floating button
         }
     }
 
@@ -325,7 +400,12 @@ struct QuestionWorkspaceView: View {
             Spacer()
             Button(action: {
                 if question.difficulty == 2 {
-                    let code = "// SELECTED_OPT: \(selectedOption)\n" + question.initialCode
+                    guard let selection = selectedOption else {
+                        withAnimation { showSelectionWarning = true }
+                        return
+                    }
+                    showSelectionWarning = false
+                    let code = "// SELECTED_OPT: \(selection)\n" + question.initialCode
                     gameManager.runCode(userCode: code)
                 } else {
                     gameManager.runCode(userCode: userCode)
@@ -353,7 +433,16 @@ struct QuestionWorkspaceView: View {
                 .animation(.spring(), value: gameManager.executionState)
             }
             .disabled(gameManager.executionState == .running)
-            .padding(.bottom, 30)
+            
+            if showSelectionWarning {
+                Text("⚠️ PLEASE SELECT AN OPTION")
+                    .font(Theme.Typography.caption2)
+                    .foregroundColor(Theme.Colors.error)
+                    .padding(.top, 8)
+                    .transition(.opacity)
+            }
+            
+            Spacer().frame(height: 30)
         }
     }
 
@@ -595,6 +684,37 @@ struct LevelUnlockOverlay: View {
                     .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 2)
             )
             .padding(30)
+        }
+    }
+}
+
+// MARK: - Detailed Evaluation Screen (for Level 2 Navigate)
+struct DetailedEvaluationScreen: View {
+    let result: EvaluationResult
+    let difficulty: Int
+    let action: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    EvaluationResultView(result: result, difficulty: difficulty)
+                    
+                    Button(action: action) {
+                        Text(result.status == .correct ? "CONTINUE" : "TRY AGAIN")
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(result.status == .correct ? Theme.Colors.success : Theme.Colors.action)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                    }
+                    .padding(.bottom, 40)
+                }
+            }
+            .background(Theme.Colors.background.ignoresSafeArea())
+            .navigationBarHidden(true)
         }
     }
 }

@@ -5,7 +5,10 @@ struct QuestionDashboardView: View {
     @Environment(\.dismiss) var dismiss
     
     let columns = [
-        GridItem(.adaptive(minimum: 65), spacing: 15)
+        GridItem(.fixed(65), spacing: 15),
+        GridItem(.fixed(65), spacing: 15),
+        GridItem(.fixed(65), spacing: 15),
+        GridItem(.fixed(65), spacing: 15)
     ]
     
     var body: some View {
@@ -194,7 +197,7 @@ struct QuestionTile: View {
     }
     
     var inProgress: Bool {
-        gameManager.attempts[question.title, default: 0] > 0
+        gameManager.attempts[question.title, default: 0] > 0 || shiftProgress > 0
     }
     
     var shiftProgress: Double {
@@ -203,7 +206,8 @@ struct QuestionTile: View {
     
     var body: some View {
         NavigationLink(destination: QuestionWorkspaceView(questionIndex: index)) {
-            ZStack(alignment: .topTrailing) {
+            ZStack { // Default: .center
+                // Base Tile
                 Text("\(index + 1)")
                     .font(Theme.Typography.headline)
                     .frame(width: 65, height: 65)
@@ -215,19 +219,28 @@ struct QuestionTile: View {
                             .stroke(borderColor, lineWidth: 2)
                     )
                 
+                // Status Indicators
                 if isCompleted {
                     // Completed State
                 } else if shiftProgress > 0 {
-                     // Use a progress indicator instead of just a dot for shift questions
-                     CircularProgressRing(progress: shiftProgress, color: Theme.Colors.electricCyan, strokeWidth: 3)
-                         .frame(width: 65, height: 65)
+                    // Standardized Rounded Progress Ring (Matches Tile Shape)
+                    RoundedRectangle(cornerRadius: 15)
+                        .trim(from: 0, to: shiftProgress)
+                        .stroke(Theme.Colors.electricCyan, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 65, height: 65)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(), value: shiftProgress)
                 } else if inProgress {
+                    // Indicator for non-shift progress
                     Circle()
-                        .frame(width: 12, height: 12)
-                        .offset(x: 4, y: -4)
+                        .frame(width: 8, height: 8)
+                        .foregroundColor(Theme.Colors.electricCyan)
                         .neonGlow(color: Theme.Colors.electricCyan)
+                        .frame(width: 65, height: 65, alignment: .topTrailing)
+                        .offset(x: 2, y: -2)
                 }
             }
+            .frame(width: 65, height: 65) // FORCE fixed size to prevent grid shifting
         }
         .buttonStyle(PlainButtonStyle())
     }

@@ -2,15 +2,28 @@ import SwiftUI
 
 struct EvaluationResultView: View {
     let result: EvaluationResult
-    
+    var difficulty: Int? = nil
     var body: some View {
-        VStack(spacing: 20) {
-            // HEADER
+        VStack(spacing: 24) {
+            if (difficulty ?? result.difficulty) == 2 {
+                renderDetailedEvaluation()
+            } else {
+                renderDefaultEvaluation()
+            }
+        }
+        .padding(.vertical)
+        .background(Theme.Colors.background)
+    }
+    
+    // MARK: - Level 2 Detailed Evaluation
+    private func renderDetailedEvaluation() -> some View {
+        VStack(spacing: 24) {
+            // 1. Header Section
             HStack {
                 Text("EVALUATION RESULT")
                     .font(Theme.Typography.caption2)
                     .foregroundColor(Theme.Colors.textSecondary)
-                    .tracking(1)
+                    .tracking(2)
                 
                 Spacer()
                 
@@ -20,8 +33,8 @@ struct EvaluationResultView: View {
                     Text(result.status.rawValue.uppercased())
                         .font(.system(size: 12, weight: .bold))
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     (result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
                         .opacity(0.1)
@@ -31,7 +44,135 @@ struct EvaluationResultView: View {
             }
             .padding(.horizontal)
             
-            // CARD CONTENT
+            // 2. Score Card Section
+            VStack(spacing: 20) {
+                HStack(spacing: 25) {
+                    // Circular Progress Arc
+                    ZStack {
+                        Circle()
+                            .stroke(Theme.Colors.secondaryBackground.opacity(0.5), lineWidth: 10)
+                            .frame(width: 90, height: 90)
+                        
+                        Circle()
+                            .trim(from: 0, to: CGFloat(result.score) / 100.0)
+                            .stroke(
+                                result.status == .correct ? Theme.Colors.success : Theme.Colors.error,
+                                style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                            )
+                            .frame(width: 90, height: 90)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 1.0), value: result.score)
+                        
+                        Text("\(result.score)")
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundColor(Theme.Colors.textPrimary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(result.status == .correct ? "PASSED" : "FAILED")
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
+                        
+                        Text("Complexity: \(result.complexity.rawValue)")
+                            .font(Theme.Typography.subheadline)
+                            .foregroundColor(Theme.Colors.textSecondary)
+                    }
+                    
+                    Spacer()
+                }
+            }
+            .padding(20)
+            .background(Theme.Colors.secondaryBackground)
+            .cornerRadius(20)
+            .shadow(color: Theme.Layout.cardShadow, radius: 10, x: 0, y: 5)
+            .padding(.horizontal)
+            
+            // 3. Feedback Section
+            VStack(alignment: .leading, spacing: 15) {
+                HStack {
+                    Text("FEEDBACK")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                        .tracking(2)
+                    Spacer()
+                    
+                    let passedCount = result.testResults.filter { $0.passed }.count
+                    Text("Passed \(passedCount)/\(result.testResults.count) tests")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
+                .padding(.horizontal)
+                
+                VStack(spacing: 12) {
+                    ForEach(result.testResults.indices, id: \.self) { index in
+                        let test = result.testResults[index]
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Image(systemName: test.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundColor(test.passed ? Theme.Colors.success : Theme.Colors.error)
+                                Text("Test \(index + 1) \(test.passed ? "Passed" : "Failed")")
+                                    .font(Theme.Typography.headline)
+                                    .foregroundColor(Theme.Colors.textPrimary)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                feedbackRow(label: "Input", value: test.input)
+                                feedbackRow(label: "Expected", value: test.expected)
+                                feedbackRow(label: "Actual", value: test.actual, color: test.passed ? Theme.Colors.textSecondary : Theme.Colors.error)
+                            }
+                            .padding(.leading, 28)
+                        }
+                        .padding()
+                        .background(Theme.Colors.secondaryBackground.opacity(0.5))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(test.passed ? Theme.Colors.success.opacity(0.2) : Theme.Colors.error.opacity(0.2), lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(.horizontal)
+            }
+            
+            // Inline Rewards
+            if result.status == .correct {
+                HStack(spacing: 20) {
+                    rewardItem(icon: AnyView(BugCoin(size: 16)), label: "+\(result.coinsEarned) Coin")
+                    rewardItem(icon: AnyView(Text("⚡️").font(.system(size: 14))), label: "+\(result.xpEarned) XP")
+                }
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(Theme.Colors.success.opacity(0.05))
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    // MARK: - Default Evaluation
+    private func renderDefaultEvaluation() -> some View {
+        VStack(spacing: 20) {
+            // Existing styling but referencing result
+            HStack {
+                Text("EVALUATION RESULT")
+                    .font(Theme.Typography.caption2)
+                    .foregroundColor(Theme.Colors.textSecondary)
+                    .tracking(1)
+                Spacer()
+                
+                HStack(spacing: 6) {
+                    Image(systemName: result.status == .correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    Text(result.status.rawValue.uppercased())
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background((result.status == .correct ? Theme.Colors.success : Theme.Colors.error).opacity(0.1))
+                .foregroundColor(result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal)
+            
             HStack(spacing: 20) {
                 // Score Ring
                 ZStack {
@@ -57,13 +198,12 @@ struct EvaluationResultView: View {
                     Text(result.level.rawValue.uppercased())
                         .font(Theme.Typography.title3)
                         .bold()
-                        .foregroundColor(colorForLevel(result.level))
+                        .foregroundColor(result.status == .correct ? Theme.Colors.success : Theme.Colors.error)
                     
                     Text("Complexity: \(result.complexity.rawValue)")
                         .font(Theme.Typography.subheadline)
                         .foregroundColor(Theme.Colors.textSecondary)
                 }
-                
                 Spacer()
             }
             .padding()
@@ -72,7 +212,7 @@ struct EvaluationResultView: View {
             .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
             .padding(.horizontal)
             
-            // FEEDBACK SECTION
+            // Simple Feedback
             VStack(alignment: .leading, spacing: 12) {
                 Text("FEEDBACK")
                     .font(Theme.Typography.caption2)
@@ -81,69 +221,41 @@ struct EvaluationResultView: View {
                     .padding(.horizontal)
                 
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(parseFeedback(result.feedback), id: \.self) { item in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: item.isSuccess ? "checkmark.square.fill" : "xmark.square.fill")
-                                .foregroundColor(item.isSuccess ? Theme.Colors.success : Theme.Colors.error)
-                                .font(.system(size: 16))
-                                .padding(.top, 2)
-                            
-                            Text(item.text)
-                                .font(Theme.Typography.body)
-                                .foregroundColor(Theme.Colors.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            
-                            Spacer()
-                        }
+                     Text(result.feedback)
+                        .font(Theme.Typography.body)
+                        .foregroundColor(Theme.Colors.textPrimary)
                         .padding()
-                        .background(Color.white.opacity(0.02))
-                        .overlay(
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundColor(Color.white.opacity(0.05)),
-                            alignment: .bottom
-                        )
-                    }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .background(Theme.Colors.secondaryBackground)
                 .cornerRadius(12)
                 .padding(.horizontal)
             }
         }
-        .padding(.vertical)
-        .background(Theme.Colors.background)
     }
     
-    // Helper to parse feedback string into list items
-    private struct FeedbackItem: Hashable {
-        let isSuccess: Bool
-        let text: String
-    }
-    
-    private func parseFeedback(_ feedback: String) -> [FeedbackItem] {
-        // Assuming feedback items are separated by newlines
-        // And maybe prefixed with emojis like ✅, ❌, ⚠️
-        
-        let lines = feedback.components(separatedBy: .newlines)
-        return lines.compactMap { line -> FeedbackItem? in
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.isEmpty { return nil }
+    // MARK: - Subcomponents
+    private func feedbackRow(label: String, value: String, color: Color = Theme.Colors.textSecondary) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("\(label):")
+                .font(Theme.Typography.caption)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .frame(width: 70, alignment: .leading)
             
-            let isSuccess = trimmed.contains("✅") || (!trimmed.contains("❌") && !trimmed.contains("⚠️"))
-            // Determine status based on content if not explicit
-            // For now simpler:
-            return FeedbackItem(isSuccess: isSuccess, text: trimmed)
+            Text(value)
+                .font(Theme.Typography.codeFont)
+                .font(.system(size: 13))
+                .foregroundColor(color)
+                .multilineTextAlignment(.leading)
         }
     }
     
-    private func colorForLevel(_ level: UserLevel) -> Color {
-        switch level {
-        case .failed: return Theme.Colors.error
-        case .beginner: return .orange
-        case .intermediate: return .yellow
-        case .advanced: return .blue
-        case .expert: return Theme.Colors.success
-        case .passed: return Theme.Colors.success
+    private func rewardItem(icon: AnyView, label: String) -> some View {
+        HStack(spacing: 6) {
+            icon
+            Text(label)
+                .font(Theme.Typography.headline)
+                .foregroundColor(Theme.Colors.success)
         }
     }
 }

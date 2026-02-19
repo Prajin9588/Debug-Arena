@@ -39,6 +39,8 @@ class GameManager: ObservableObject {
     @Published var dailyStreak: Int = 0
     @Published var lastActiveDate: Date?
     @Published var totalXP: Int = 0
+    @Published var lifetimeAttempts: Int = 0
+    @Published var history: [HistoryEntry] = []
     
     // Testing Flag
     @Published var isTestingMode: Bool = true
@@ -200,6 +202,13 @@ class GameManager: ObservableObject {
     
 
     
+    func resetQuestionState(for question: Question) {
+        lastEvaluationResult = nil
+        executionState = .idle
+        // Reset attempts for this question as requested
+        attempts[question.title] = 0
+    }
+
     // MARK: - Daily Streak Logic
     
     private func checkDailyStreakOnLaunch() {
@@ -263,6 +272,7 @@ class GameManager: ObservableObject {
         
         // Increment attempts
         attempts[currentQuestion.title, default: 0] += 1
+        lifetimeAttempts += 1
         executionState = .running
         
         // Immediate execution on next run loop to allow UI update
@@ -295,6 +305,7 @@ class GameManager: ObservableObject {
             earnCoins(1)
             streak += 1
             registerActivity() // Update Daily Streak
+            captureHistorySnapshot() // Capture progress for graph
             totalXP += 10 // Fixed XP per question
             
             // Contract: "Attempts reset only after correct solution"
@@ -312,6 +323,20 @@ class GameManager: ObservableObject {
         
         executionState = .correct
         saveProgress()
+    }
+    
+    private func captureHistorySnapshot() {
+        // Calculate Accuracy
+        let solved = completedQuestionIds.count
+        let accuracy = lifetimeAttempts > 0 ? (Double(solved) / Double(lifetimeAttempts)) * 100.0 : 0.0
+        
+        let entry = HistoryEntry(
+            date: Date(),
+            xp: totalXP,
+            solvedCount: solved,
+            accuracy: accuracy
+        )
+        history.append(entry)
     }
     
     private func checkLevelUnlock() {
@@ -487,9 +512,11 @@ class GameManager: ObservableObject {
         progress.revealedSolutions = revealedSolutions
         progress.dailyFreeHintsUsed = dailyFreeHintsUsed
         progress.lastDailyReset = lastDailyReset
-        progress.shiftThoughts = shiftThoughts
         progress.shiftFoundOptionIds = shiftFoundOptionIds
+        progress.shiftThoughts = shiftThoughts
         progress.attempts = attempts
+        progress.lifetimeAttempts = lifetimeAttempts
+        progress.history = history
         
         // Unlocked Levels
         let unlockedSet = Set(levels.filter { $0.unlocked }.map { $0.number })
@@ -519,6 +546,8 @@ class GameManager: ObservableObject {
         shiftThoughts = progress.shiftThoughts
         shiftFoundOptionIds = progress.shiftFoundOptionIds
         attempts = progress.attempts
+        lifetimeAttempts = progress.lifetimeAttempts
+        history = progress.history
         
         // Restore Level Unlock State
         // First lock all except level 1 (unless strict mode logic overrides)
