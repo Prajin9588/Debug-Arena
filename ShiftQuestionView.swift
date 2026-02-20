@@ -6,24 +6,40 @@ struct ShiftQuestionView: View {
     
     @State private var currentIndex: Int
     
-    // Selection State
-    @State private var selectedLineInfo: (questionIndex: Int, lineNumber: Int)? = nil
-    @State private var showOptions = false
+    // Line Evaluation State
+    // Key: Line Number (1-based)
+    enum LineVerdict {
+        case correct
+        case incorrectReasoning // Error exists, but user explanation wrong
+        case noError // User claimed error on valid line
+        case notEvaluated
+    }
     
-    // Analysis/Notes State
-    @State private var showThoughtPad = false
-    @State private var currentThought = ""
-    @State private var editingContext: (line: Int, optionText: String)? = nil
+    @State private var lineVerdicts: [Int: LineVerdict] = [:]
+    @State private var selectedLine: Int? = nil
+    @State private var showReasoningSheet = false
     
-    // Evaluation Result State
+    // Evaluation Result State (for Level Completion)
     @State private var evaluationResult: EvaluationResult? = nil
     
-    // Explanation State
-    @State private var showExplanation = false
-    @State private var activeExplanation: String = ""
+    // Feedback Toast State
+    @State private var feedbackMessage: String? = nil
+    @State private var showFeedback = false
+    @State private var feedbackType: FeedbackType = .neutral
+    
+    enum FeedbackType {
+        case success, error, neutral
+    }
     
     init(initialIndex: Int) {
         _currentIndex = State(initialValue: initialIndex)
+    }
+    
+    var currentQuestion: Question {
+        if gameManager.currentLevel.questions.indices.contains(currentIndex) {
+            return gameManager.currentLevel.questions[currentIndex]
+        }
+        return gameManager.currentLevel.questions[0]
     }
     
     var currentQuestions: [Question] {
@@ -35,36 +51,23 @@ struct ShiftQuestionView: View {
             Theme.Colors.background.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom Header
-                HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title3.bold())
-                            .foregroundColor(Theme.Colors.accent)
-                            .padding(10)
-                            .background(Circle().fill(Color.white.opacity(0.05)))
-                    }
-                    
-                    Text("LEVEL \(currentQuestions[currentIndex].levelNumber) : Question \(currentQuestions[currentIndex].questionNumber)")
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(Theme.Colors.textPrimary)
-                        .tracking(1)
-                    
-                    Spacer()
-                    
-                    Text("\(currentIndex + 1)/\(currentQuestions.count)")
-                        .font(Theme.Typography.caption)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                }
-                .padding()
+                // Header (Replacing old HStack with WorkspaceHeader)
+                WorkspaceHeader(
+                    levelNumber: currentQuestion.levelNumber,
+                    questionNumber: currentQuestion.questionNumber,
+                    streak: gameManager.streak,
+                    coins: gameManager.coinBalance,
+                    onBack: { dismiss() }
+                )
                 
                 // Swipeable Code View
                 TabView(selection: $currentIndex) {
                     ForEach(0..<currentQuestions.count, id: \.self) { index in
                         ShiftCodeSnippetView(
                             question: currentQuestions[index],
+                            lineVerdicts: lineVerdicts,
                             onLineTap: { lineNum in
-                                handleLineTap(questionIndex: index, lineNum: lineNum)
+                                handleLineTap(lineNum: lineNum)
                             }
                         )
                         .tag(index)
@@ -73,201 +76,240 @@ struct ShiftQuestionView: View {
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
                 .animation(.easeInOut, value: currentIndex)
                 .onChange(of: currentIndex) { _, _ in
-                    // architecture change: Reset state on swipe
-                    evaluationResult = nil
-                    selectedLineInfo = nil
-                    showOptions = false
+                    resetStateForNewQuestion()
                 }
                 
                 // Instruction Footer
-                Text("Swipe to navigate • Tap flagged lines to inspect")
-                    .font(Theme.Typography.caption2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .padding(.bottom)
+                VStack(spacing: 4) {
+                    Text("DEBUGGER MODE ENABLED")
+                        .font(Theme.Typography.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(Theme.Colors.electricCyan)
+                    Text("Tap any line to log an error hypothesis.")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
+                .padding(.bottom)
             }
-            .blur(radius: showOptions ? 5 : 0)
+            .blur(radius: showReasoningSheet ? 5 : 0)
             
-            // Options Modal
-            if showOptions, let info = selectedLineInfo, let detail = getLineDetail(info) {
+            // Reasoning Sheet Overlay
+            if showReasoningSheet, let line = selectedLine {
                 Color.black.opacity(0.6)
                     .ignoresSafeArea()
-                    .onTapGesture { closeOptions() }
+                    .onTapGesture { closeSheet() }
                 
-                VStack {
-                    Spacer()
-                    ShiftOptionsSheet(
-                        detail: detail,
-                        currentQuestion: currentQuestions[currentIndex],
-                        onExplanation: { option in
-                            activeExplanation = option.explanation
-                            showExplanation = true
-                        },
-                        onThought: { option in
-                            editingContext = (detail.lineNumber, option.text)
-                            currentThought = gameManager.getThought(
-                                questionTitle: currentQuestions[currentIndex].title,
-                                lineNum: detail.lineNumber,
-                                optionText: option.text
-                            )
-                            showThoughtPad = true
-                        },
-                        onEvaluate: { result in
-                            // Close options sheet first
-                            closeOptions()
-                            // Show result after small delay to allow transition
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                evaluationResult = result
-                            }
-                        },
-                        onComplete: {
-                            dismiss()
-                        }
-                    )
-                    .transition(.move(edge: .bottom))
-                }
+                ReasoningSheet(
+                    lineNumber: line,
+                    question: currentQuestion,
+                    onSubmit: { reasoning in
+                        evaluateReasoning(line: line, text: reasoning)
+                    },
+                    onClose: closeSheet
+                )
+                .transition(.move(edge: .bottom))
                 .zIndex(10)
             }
             
-            // Explanation Modal
-            if showExplanation {
-                Color.black.opacity(0.4).ignoresSafeArea().onTapGesture { showExplanation = false }
-                VStack {
-                    Spacer()
-                    VStack(spacing: 16) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.largeTitle)
-                            .foregroundColor(Theme.Colors.accent)
-                        Text("INSIGHT")
-                            .font(Theme.Typography.subheadline)
-                            .tracking(2)
-                            .foregroundColor(Theme.Colors.textSecondary)
-                        
-                        Text(activeExplanation)
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                        
-                        Button("GOT IT") {
-                            showExplanation = false
-                        }
-                        .font(Theme.Typography.headline)
+            // Evaluation Result Overlay (Level Completion)
+            if let result = evaluationResult {
+                ZStack {
+                    Color.black.opacity(0.6).ignoresSafeArea()
+                    EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
                         .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Theme.Colors.accent)
-                        .foregroundColor(.black)
-                        .cornerRadius(12)
-                    }
-                    .padding(30)
-                    .background(Theme.Colors.secondaryBackground)
-                    .cornerRadius(20)
-                    .shadow(radius: 20)
-                    .padding()
+                        .onTapGesture {
+                            // If passed, dismiss or move on
+                            if result.status == .correct {
+                                dismiss()
+                            } else {
+                                evaluationResult = nil
+                            }
+                        }
                 }
                 .zIndex(20)
             }
             
-            if showThoughtPad {
-                Color.black.opacity(0.4).ignoresSafeArea().onTapGesture {
-                     if let context = editingContext {
-                        gameManager.saveThought(
-                            questionTitle: currentQuestions[currentIndex].title,
-                            lineNum: context.line,
-                            optionText: context.optionText,
-                            thought: currentThought
-                        )
-                     }
-                     showThoughtPad = false
-                }
+            // Feedback Toast
+            if showFeedback, let msg = feedbackMessage {
                 VStack {
                     Spacer()
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Image(systemName: "brain.head.profile")
-                                .foregroundColor(Theme.Colors.textSecondary)
-                            Text("MY THOUGHTS")
-                                .font(Theme.Typography.headline)
-                                .foregroundColor(Theme.Colors.textSecondary)
-                            Spacer()
-                            Button("Save") {
-                                if let context = editingContext {
-                                    gameManager.saveThought(
-                                        questionTitle: currentQuestions[currentIndex].title,
-                                        lineNum: context.line,
-                                        optionText: context.optionText,
-                                        thought: currentThought
-                                    )
-                                }
-                                showThoughtPad = false
-                            }
-                            .foregroundColor(Theme.Colors.accent)
-                        }
-                        
-                        TextEditor(text: $currentThought)
-                            .frame(height: 150)
-                            .padding(10)
-                            .background(Color.white.opacity(0.05))
-                            .cornerRadius(10)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                    }
-                    .padding(20)
-                    .background(Theme.Colors.secondaryBackground)
-                    .cornerRadius(20)
-                    .keyboardAwarePadding()
+                    Text(msg)
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .background(
+                            feedbackType == .success ? Theme.Colors.success :
+                            feedbackType == .error ? Theme.Colors.error :
+                            Theme.Colors.accent
+                        )
+                        .cornerRadius(12)
+                        .shadow(radius: 10)
+                        .padding(.bottom, 50)
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(30)
-            }
-            
-            // Evaluation Result Overlay
-            if let result = evaluationResult {
-                ZStack {
-                    Color.black.opacity(0.6)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            evaluationResult = nil
-                            // If passed/completed, maybe we should check if we need to dismiss? 
-                            // Rely on user flow or check progress again?
-                            let progress = gameManager.getShiftProgress(for: currentQuestions[currentIndex])
-                            if progress >= 1.0 {
-                                dismiss() // Or show level complete
-                            }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        if showFeedback {
+                            withAnimation { showFeedback = false }
                         }
-                    
-                    VStack {
-                        Spacer()
-                        EvaluationResultView(result: result, difficulty: currentQuestions[currentIndex].difficulty)
-                            .padding()
-                            .transition(.move(edge: .bottom))
-                        Spacer()
                     }
                 }
-                .zIndex(40)
             }
         }
         .navigationBarHidden(true)
-    }
-    
-    private func handleLineTap(questionIndex: Int, lineNum: Int) {
-        let question = currentQuestions[questionIndex]
-        // Only open if line has details (error line) – verified by dataset
-        if let data = question.shiftData, data.errorLines[lineNum] != nil {
-            selectedLineInfo = (questionIndex, lineNum)
-            withAnimation(.spring()) {
-                showOptions = true
-            }
+        .onAppear {
+            // Ensure state is clean on load
+            resetStateForNewQuestion()
         }
     }
     
-    private func getLineDetail(_ info: (questionIndex: Int, lineNumber: Int)) -> ShiftLineDetail? {
-        let question = currentQuestions[info.questionIndex]
-        return question.shiftData?.errorLines[info.lineNumber]
+    // MARK: - Logic
+    
+    private func resetStateForNewQuestion() {
+        lineVerdicts = [:]
+        selectedLine = nil
+        showReasoningSheet = false
+        evaluationResult = nil
+        showFeedback = false
     }
     
-    private func closeOptions() {
+    private func handleLineTap(lineNum: Int) {
+        // Allow re-evaluating lines unless they are already "Correct"
+        if lineVerdicts[lineNum] == .correct { return }
+        selectedLine = lineNum
         withAnimation {
-            showOptions = false
-            selectedLineInfo = nil
+            showReasoningSheet = true
+        }
+    }
+    
+    private func closeSheet() {
+        withAnimation {
+            showReasoningSheet = false
+            selectedLine = nil
+        }
+    }
+    
+    private func evaluateReasoning(line: Int, text: String) {
+        guard let data = currentQuestion.shiftData else { return }
+        
+        let isErrorLine = data.errorLines[line] != nil
+        var verdict: LineVerdict = .notEvaluated
+        var feedbackMsg = ""
+        var type: FeedbackType = .neutral
+        
+        if isErrorLine {
+            // It IS an error line. Check user reasoning against options.
+            if let detail = data.errorLines[line] {
+                // Find matching option
+                let (matchedOption, isCorrectOpt) = findMatchingOption(userText: text, options: detail.options)
+                
+                if let option = matchedOption {
+                    if isCorrectOpt {
+                        verdict = .correct
+                        feedbackMsg = "✅ LOGIC VERIFIED: Correctly identified the error."
+                        type = .success
+                        
+                        // Mark progress in GameManager
+                        gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: option.id)
+                        checkCompletion()
+                    } else {
+                        verdict = .incorrectReasoning
+                        feedbackMsg = "❌ INCORRECT REASONING: Error exists, but your explanation matches a misconception."
+                        type = .error
+                    }
+                } else {
+                    // Matches nothing - fallback
+                    verdict = .incorrectReasoning
+                    feedbackMsg = "⚠️ UNCLEAR REASONING: Try using standard technical terms."
+                    type = .error
+                }
+            }
+        } else {
+            // It is NOT an error line
+            verdict = .noError
+            feedbackMsg = "⚠️ NO ERROR: This line is valid. Avoid false positives."
+            type = .neutral
+        }
+        
+        // Update State
+        lineVerdicts[line] = verdict
+        closeSheet()
+        
+        // Trigger Haptic & Feedback
+        let impact = UINotificationFeedbackGenerator()
+        if type == .success {
+            impact.notificationOccurred(.success)
+        } else {
+            impact.notificationOccurred(.error)
+        }
+        
+        feedbackMessage = feedbackMsg
+        feedbackType = type
+        withAnimation { showFeedback = true }
+    }
+    
+    private func findMatchingOption(userText: String, options: [ShiftOption]) -> (ShiftOption?, Bool) {
+        // Semantic Matching Logic
+        let normalizedUser = userText.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Check Correct Option First
+        if let correct = options.first(where: { $0.isCorrect }) {
+            if isMatch(user: normalizedUser, target: correct.text) {
+                return (correct, true)
+            }
+        }
+        
+        // Check Distractors
+        for opt in options where !opt.isCorrect {
+            if isMatch(user: normalizedUser, target: opt.text) {
+                return (opt, false)
+            }
+        }
+        
+        return (nil, false)
+    }
+    
+    private func isMatch(user: String, target: String) -> Bool {
+        let normTarget = target.lowercased()
+        
+        // Direct containment
+        if user.contains(normTarget) || normTarget.contains(user) {
+            if user.count > 3 { return true }
+        }
+        
+        // Token overlap
+        let userTokens = Set(user.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
+        let targetTokens = Set(normTarget.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
+        
+        let intersection = userTokens.intersection(targetTokens)
+        
+        if !targetTokens.isEmpty {
+            let ratio = Double(intersection.count) / Double(targetTokens.count)
+            return ratio >= 0.5
+        }
+        
+        return false
+    }
+    
+    private func checkCompletion() {
+        let progress = gameManager.getShiftProgress(for: currentQuestion)
+        if progress >= 1.0 {
+            // Level Complete
+            gameManager.handleShiftCompletion(for: currentQuestion)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.evaluationResult = EvaluationResult(
+                    questionID: currentQuestion.id,
+                    status: .correct,
+                    score: 100,
+                    level: .expert,
+                    complexity: .medium,
+                    edgeCaseHandling: true,
+                    hardcodingDetected: false,
+                    feedback: "✅ All errors identified and explained correctly."
+                )
+            }
         }
     }
 }
@@ -276,6 +318,7 @@ struct ShiftQuestionView: View {
 
 struct ShiftCodeSnippetView: View {
     let question: Question
+    let lineVerdicts: [Int: ShiftQuestionView.LineVerdict]
     let onLineTap: (Int) -> Void
     
     var lines: [String] {
@@ -288,285 +331,191 @@ struct ShiftCodeSnippetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
                     let lineNum = index + 1
-                    let isInteractive = question.shiftData?.errorLines[lineNum] != nil
+                    let verdict = lineVerdicts[lineNum]
                     
                     HStack(alignment: .top, spacing: 10) {
+                        // Line Number
                         Text("\(lineNum)")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
                             .frame(width: 30, alignment: .trailing)
                         
+                        // Code Content
                         Text(line)
                             .font(.system(.body, design: .monospaced))
-                            .foregroundColor(isInteractive ? Theme.Colors.textPrimary : Theme.Colors.textSecondary)
+                            .foregroundColor(Theme.Colors.textPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(isInteractive ? Theme.Colors.accent.opacity(0.05) : Color.clear)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(backgroundColor(for: verdict))
                             .cornerRadius(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(borderColor(for: verdict), lineWidth: 1)
+                            )
                         
-                        if isInteractive {
-                            Image(systemName: "hand.tap.fill")
+                        // Status Icon
+                        if let v = verdict {
+                            statusIcon(for: v)
+                        } else {
+                            Image(systemName: "hand.tap")
                                 .font(.caption2)
-                                .foregroundColor(Theme.Colors.accent)
+                                .foregroundColor(Theme.Colors.textSecondary.opacity(0.3))
                         }
                     }
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
-                    .background(isInteractive ? Color.white.opacity(0.03) : Color.clear)
+                    .contentShape(Rectangle()) // Make full row tappable
                     .onTapGesture {
-                        if isInteractive {
-                            let impact = UIImpactFeedbackGenerator(style: .medium)
-                            impact.impactOccurred()
-                            onLineTap(lineNum)
-                        }
+                        onLineTap(lineNum)
                     }
                 }
             }
             .padding()
         }
     }
+    
+    func backgroundColor(for verdict: ShiftQuestionView.LineVerdict?) -> Color {
+        guard let v = verdict else { return Color.clear }
+        switch v {
+        case .correct: return Theme.Colors.success.opacity(0.2)
+        case .incorrectReasoning: return Theme.Colors.error.opacity(0.2)
+        case .noError: return Theme.Colors.textSecondary.opacity(0.1)
+        case .notEvaluated: return Color.clear
+        }
+    }
+    
+    func borderColor(for verdict: ShiftQuestionView.LineVerdict?) -> Color {
+        guard let v = verdict else { return Color.clear }
+        switch v {
+        case .correct: return Theme.Colors.success
+        case .incorrectReasoning: return Theme.Colors.error
+        case .noError: return Theme.Colors.textSecondary
+        case .notEvaluated: return Color.clear
+        }
+    }
+    
+    func statusIcon(for verdict: ShiftQuestionView.LineVerdict) -> some View {
+        switch verdict {
+        case .correct:
+            return AnyView(Image(systemName: "checkmark.seal.fill").foregroundColor(Theme.Colors.success))
+        case .incorrectReasoning:
+            return AnyView(Image(systemName: "exclamationmark.triangle.fill").foregroundColor(Theme.Colors.error))
+        case .noError:
+            return AnyView(Image(systemName: "xmark.circle").foregroundColor(Theme.Colors.textSecondary))
+        case .notEvaluated:
+            return AnyView(Image(systemName: "circle").foregroundColor(.clear))
+        }
+    }
 }
 
-struct ShiftOptionsSheet: View {
-    let detail: ShiftLineDetail
-    let currentQuestion: Question
-    let onExplanation: (ShiftOption) -> Void
-    let onThought: (ShiftOption) -> Void
-    let onEvaluate: (EvaluationResult) -> Void
-    let onComplete: () -> Void
-    @EnvironmentObject var gameManager: GameManager
+struct ReasoningSheet: View {
+    let lineNumber: Int
+    let question: Question
+    let onSubmit: (String) -> Void
+    let onClose: () -> Void
     
-    @State private var attemptedOptionIds: Set<UUID> = []
-    @State private var isEvaluated = false
+    @State private var reasoningText: String = ""
+    @FocusState private var isFocused: Bool
+    
+    var isErrorLine: Bool {
+        question.shiftData?.errorLines[lineNumber] != nil
+    }
+    
+    var hints: [String] {
+        guard isErrorLine, let detail = question.shiftData?.errorLines[lineNumber] else { return [] }
+        return detail.options.map { $0.text }
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Line \(detail.lineNumber) Analysis")
-                .font(Theme.Typography.headline)
-                .foregroundColor(Theme.Colors.accent)
-                .padding(.bottom, 5)
+        VStack(spacing: 0) {
+            Spacer()
             
-            ForEach(detail.options, id: \.id) { option in
-                let isAlreadyFound = gameManager.shiftFoundOptionIds[currentQuestion.title]?.contains(option.id) ?? false
-                let isSelected = attemptedOptionIds.contains(option.id)
-                let isCorrect = option.isCorrect
-                
-                // Visual State Logic
-                var showSuccess: Bool {
-                    isAlreadyFound || (isEvaluated && isSelected && isCorrect)
-                }
-                
-                var showError: Bool {
-                    isEvaluated && isSelected && !isCorrect
-                }
-                
-                var showSelected: Bool {
-                    !isEvaluated && isSelected && !isAlreadyFound
-                }
-                
-                Button(action: {
-                    if !isEvaluated && !isAlreadyFound {
-                        withAnimation {
-                            if attemptedOptionIds.contains(option.id) {
-                                attemptedOptionIds.remove(option.id)
-                            } else {
-                                attemptedOptionIds.insert(option.id)
-                            }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                HStack {
+                    Text("LINE \(lineNumber) INVESTIGATION")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.electricCyan)
+                        .tracking(1)
+                    Spacer()
+                    Button(action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.gray)
                     }
-                }) {
-                    HStack {
-                        Text(option.text)
-                            .font(Theme.Typography.body)
-                            .foregroundColor(Theme.Colors.textPrimary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 8)
+                }
+                
+                Text(isErrorLine ? "Why did you choose this line as the error?" : "Why do you think this line is incorrect?")
+                    .font(Theme.Typography.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                // Hints (Only for actual errors)
+                if isErrorLine {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("THINKING SUPPORT (Reference Concepts)")
+                            .font(Theme.Typography.caption2)
+                            .foregroundColor(Theme.Colors.textSecondary)
                         
-                        // Status Icon
-                        if showSuccess {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(Theme.Colors.success)
-                        } else if showError {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(Theme.Colors.error)
-                        } else if showSelected {
-                            Image(systemName: "circle.circle.fill") // Custom "Radio/Check" look
-                                .font(.title2)
-                                .foregroundColor(Theme.Colors.accent)
-                        } else if !isAlreadyFound {
-                             Image(systemName: "circle")
-                                .font(.title2)
-                                .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
-                        }
-                        
-                        HStack(spacing: 12) {
-                            Button(action: { onExplanation(option) }) {
-                                Image(systemName: "info.circle")
-                                    .font(.title2)
-                                    .foregroundColor(Theme.Colors.electricCyan)
-                            }
-                            
-                            Button(action: { onThought(option) }) {
-                                Image(systemName: "brain.head.profile")
-                                    .font(.title2)
+                        ForEach(hints, id: \.self) { hint in
+                            HStack(alignment: .top) {
+                                Image(systemName: "lightbulb")
+                                    .font(.caption)
                                     .foregroundColor(Theme.Colors.gold)
+                                Text(hint)
+                                    .font(Theme.Typography.caption)
+                                    .foregroundColor(Theme.Colors.textSecondary)
                             }
                         }
                     }
                     .padding()
-                    .background(
-                        Group {
-                            if showSuccess {
-                                Theme.Colors.success.opacity(0.1)
-                            } else if showError {
-                                Theme.Colors.error.opacity(0.1)
-                            } else if showSelected {
-                                Theme.Colors.accent.opacity(0.1)
-                            } else {
-                                Theme.Colors.secondaryBackground
-                            }
-                        }
-                    )
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                showSuccess ? Theme.Colors.success :
-                                showError ? Theme.Colors.error :
-                                showSelected ? Theme.Colors.accent :
-                                Color.white.opacity(0.1),
-                                lineWidth: (showSuccess || showError || showSelected) ? 2 : 1
-                            )
-                    )
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(8)
                 }
-                .buttonStyle(PlainButtonStyle())
-                .disabled(isEvaluated || isAlreadyFound)
-            }
-            
-            if !isEvaluated {
-                Button(action: {
-                    withAnimation {
-                        isEvaluated = true
-                        
-                        // Process Results
-                        var hasCorrect = false
-                        var hasIncorrect = false
-                        
-                        for optionId in attemptedOptionIds {
-                            if let option = detail.options.first(where: { $0.id == optionId }) {
-                                if option.isCorrect {
-                                    hasCorrect = true
-                                    gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: optionId)
-                                } else {
-                                    hasIncorrect = true
-                                }
-                            }
-                        }
-                        
-                        // Completion Check
-                        if hasCorrect {
-                            let progress = gameManager.getShiftProgress(for: currentQuestion)
-                            if progress >= 1.0 {
-                                if !gameManager.completedQuestionIds.contains(currentQuestion.title) {
-                                    gameManager.handleShiftCompletion(for: currentQuestion)
-                                }
-                                // Delay dismissal to show success feedback
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    onComplete()
-                                }
-                            }
-                        }
-                        
-                        // Feedback
-                        let generator = UINotificationFeedbackGenerator()
-                        if hasIncorrect {
-                            generator.notificationOccurred(.error)
-                        } else if hasCorrect {
-                            generator.notificationOccurred(.success)
-                        }
-                        
-                        // Generate Evaluation Result
-                        let status: EvaluationStatus = (hasCorrect && !hasIncorrect) ? .correct : .incorrect
-                        let score = (hasCorrect && !hasIncorrect) ? 100 : 0
-                        let level: UserLevel = (status == .correct) ? .passed : .failed
-                        
-                        var feedbackString = ""
-                        if status == .correct {
-                            feedbackString = "✅ Correctly identified logical flaws.\nCode analysis successful."
-                        } else {
-                            feedbackString = "❌ Incorrect analysis.\n"
-                            if hasIncorrect {
-                                feedbackString += "Some selected options were false positives.\n"
-                            }
-                            if !hasCorrect {
-                                feedbackString += "Missed the actual error."
-                            }
-                        }
-                        
-                        let result = EvaluationResult(
-                            questionID: currentQuestion.id,
-                            status: status,
-                            score: score,
-                            level: level,
-                            complexity: .medium,
-                            edgeCaseHandling: true,
-                            hardcodingDetected: false,
-                            feedback: feedbackString
+                
+                // Input Area
+                VStack(alignment: .leading) {
+                    Text("YOUR REASONING")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                    
+                    TextEditor(text: $reasoningText)
+                        .frame(height: 120)
+                        .scrollContentBackground(.hidden)
+                        .padding()
+                        .background(Color.black.opacity(0.3))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
                         )
-                        
-                        onEvaluate(result)
+                        .foregroundColor(.white)
+                        .focused($isFocused)
+                }
+                
+                Button(action: {
+                    if !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty {
+                        onSubmit(reasoningText)
                     }
                 }) {
-                    Text("DONE")
+                    Text("VERIFY HYPOTHESIS")
                         .font(Theme.Typography.headline)
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(
-                            attemptedOptionIds.isEmpty ? Color.gray.opacity(0.5) : Theme.Colors.accent
-                        )
+                        .background(Theme.Colors.electricCyan)
                         .cornerRadius(12)
                 }
-                .disabled(attemptedOptionIds.isEmpty)
+                .disabled(reasoningText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .opacity(reasoningText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1.0)
+                
             }
-            
-            Text("Select options and tap Done to verify.")
-                .font(Theme.Typography.caption2)
-                .foregroundColor(Theme.Colors.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 5)
+            .padding(30)
+            .background(BlurView(style: .systemThinMaterialDark))
+            .cornerRadius(30)
+            .padding(.bottom, 20)
         }
-        .padding(30)
-        .background(BlurView(style: .systemThinMaterialDark))
-        .cornerRadius(30)
-        .shadow(radius: 20)
-    }
-}
-
-extension View {
-    func keyboardAwarePadding() -> some View {
-        ModifiedContent(content: self, modifier: KeyboardAwareModifier())
-    }
-}
-
-struct KeyboardAwareModifier: ViewModifier {
-    @State private var bottomPadding: CGFloat = 0
-    
-    func body(content: Content) -> some View {
-        content
-            .padding(.bottom, bottomPadding)
-            .onAppear {
-                NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillShowNotification, object: nil, queue: .main) { notif in
-                    if let value = notif.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue {
-                        let height = value.cgRectValue.height
-                        self.bottomPadding = height
-                    }
-                }
-                NotificationCenter.default.addObserver(forName: UIResponder.keyboardWillHideNotification, object: nil, queue: .main) { _ in
-                    self.bottomPadding = 0
-                }
-            }
+        .onAppear {
+            isFocused = true
+        }
     }
 }

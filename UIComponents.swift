@@ -133,3 +133,71 @@ struct BugCoin: View {
         }
     }
 }
+
+// MARK: - Shared Workspace Header
+struct WorkspaceHeader: View {
+    let levelNumber: Int
+    let questionNumber: Int
+    let streak: Int
+    let coins: Int
+    let onBack: () -> Void
+    
+    var body: some View {
+        HStack {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Theme.Colors.primaryGradient)
+                    .padding(10)
+                    .background(Color.white)
+                    .clipShape(Circle())
+                    .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
+            }
+            
+            Spacer()
+            
+            // Level Goal Pill
+            HStack(spacing: 12) {
+                Image(systemName: "target")
+                    .font(.caption)
+                    .foregroundColor(Theme.Colors.electricCyan)
+                
+                Text("LEVEL \(levelNumber) : Question \(questionNumber)")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
+            
+            Spacer()
+            
+            // Stats Pill
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(.orange)
+                    Text("\(streak)")
+                        .font(Theme.Typography.statsFont)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                }
+                
+                HStack(spacing: 4) {
+                    BugCoin(size: 20)
+                    Text("\(coins)")
+                        .font(Theme.Typography.statsFont)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
+        }
+        .padding()
+    }
+}
