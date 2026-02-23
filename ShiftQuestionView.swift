@@ -9,9 +9,10 @@ struct ShiftQuestionView: View {
     // Line Evaluation State
     // Key: Line Number (1-based)
     enum LineVerdict {
-        case correct
-        case incorrectReasoning // Error exists, but user explanation wrong
-        case noError // User claimed error on valid line
+        case correct         // All categories found, reasoning good
+        case weakReasoning   // Categories correct, but explanation is vague
+        case wrongCategory   // Selected incorrect categories
+        case noError         // Line is actually valid
         case notEvaluated
     }
     
@@ -102,8 +103,8 @@ struct ShiftQuestionView: View {
                 ReasoningSheet(
                     lineNumber: line,
                     question: currentQuestion,
-                    onSubmit: { reasoning in
-                        evaluateReasoning(line: line, text: reasoning)
+                    onSubmit: { reasoning, selectedOptions in
+                        evaluateReasoning(line: line, text: reasoning, selectedOptions: selectedOptions)
                     },
                     onClose: closeSheet
                 )
@@ -190,7 +191,7 @@ struct ShiftQuestionView: View {
         }
     }
     
-    private func evaluateReasoning(line: Int, text: String) {
+    private func evaluateReasoning(line: Int, text: String, selectedOptions: [ShiftOption]) {
         guard let data = currentQuestion.shiftData else { return }
         
         let isErrorLine = data.errorLines[line] != nil
@@ -199,31 +200,81 @@ struct ShiftQuestionView: View {
         var type: FeedbackType = .neutral
         
         if isErrorLine {
-            // It IS an error line. Check user reasoning against options.
-            if let detail = data.errorLines[line] {
-                // Find matching option
-                let (matchedOption, isCorrectOpt) = findMatchingOption(userText: text, options: detail.options)
+            // It IS an error line.
+            if let detail = data.errorLines[line], !selectedOptions.isEmpty {
+                // Check if any distractors were selected
+                let hasIncorrect = selectedOptions.contains(where: { !$0.isCorrect })
                 
-                if let option = matchedOption {
-                    if isCorrectOpt {
-                        verdict = .correct
-                        feedbackMsg = "✅ LOGIC VERIFIED: Correctly identified the error."
+                // Get all correct options for this line
+                let correctOptions = detail.options.filter { $0.isCorrect }
+                let allCorrectFound = correctOptions.allSatisfy { correctOpt in
+                    selectedOptions.contains(where: { $0.id == correctOpt.id })
+                }
+                
+                if hasIncorrect {
+                    verdict = .wrongCategory
+                    feedbackMsg = "❌ MISCLASSIFIED: One or more selected categories do not apply to this bug."
+                    type = .error
+                } else if !allCorrectFound {
+                    verdict = .notEvaluated
+                    feedbackMsg = "⚠️ INCOMPLETE: You identified some issues, but there are more applicable concepts on this line."
+                    type = .neutral
+                } else {
+                    // CATERGORIES ARE 100% CORRECT (Selected all of them, no distractors)
+                    // This is enough to PASS the line investigation in Level 3/4 (80% weight)
+                    let isWeightedLevel = currentQuestion.difficulty >= 3
+                    
+                    let normalizedText = text.lowercased()
+                    // Check for semantic match or keywords for EACH correct option
+                    let matchResults = correctOptions.map { opt -> Bool in
+                        let keywords = opt.text.lowercased().components(separatedBy: " ")
+                        return keywords.allSatisfy { normalizedText.contains($0) } || 
+                               isMatch(user: normalizedText, target: opt.text) ||
+                               isMatch(user: normalizedText, target: opt.explanation)
+                    }
+                    
+                    let allMatched = matchResults.allSatisfy { $0 }
+                    
+                    if isWeightedLevel {
+                        // Mark as correct immediately because categories are correct
+                        verdict = allMatched ? .correct : .weakReasoning
                         type = .success
                         
-                        // Mark progress in GameManager
-                        gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: option.id)
+                        let combinedExplanations = selectedOptions.map { "• \($0.explanation)" }.joined(separator: "\n\n")
+                        
+                        if allMatched {
+                            feedbackMsg = "✨ PERFECT: Line Clear!\nExcellent reasoning and classification.\n\n\(combinedExplanations)"
+                        } else {
+                            feedbackMsg = "✅ LINE CLEAR (80%)\nBug identified correctly! Try using more technical terms like '\(correctOptions.first?.text ?? "")' next time.\n\n\(combinedExplanations)"
+                        }
+                        
+                        // Register options as found to progress the question
+                        for opt in selectedOptions {
+                            gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
+                        }
                         checkCompletion()
                     } else {
-                        verdict = .incorrectReasoning
-                        feedbackMsg = "❌ INCORRECT REASONING: Error exists, but your explanation matches a misconception."
-                        type = .error
+                        // Level 1-2: Strict check
+                        if allMatched {
+                            verdict = .correct
+                            type = .success
+                            let combinedExplanations = selectedOptions.map { "• \($0.explanation)" }.joined(separator: "\n\n")
+                            feedbackMsg = "✅ VERIFIED\n\n\(combinedExplanations)"
+                            for opt in selectedOptions {
+                                gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
+                            }
+                            checkCompletion()
+                        } else {
+                            verdict = .weakReasoning
+                            feedbackMsg = "⚠️ WEAK REASONING: Please explain the concepts more clearly in your own words."
+                            type = .error
+                        }
                     }
-                } else {
-                    // Matches nothing - fallback
-                    verdict = .incorrectReasoning
-                    feedbackMsg = "⚠️ UNCLEAR REASONING: Try using standard technical terms."
-                    type = .error
                 }
+            } else {
+                verdict = .wrongCategory
+                feedbackMsg = "⚠️ INCOMPLETE: Please select all applicable reference concepts."
+                type = .error
             }
         } else {
             // It is NOT an error line
@@ -271,22 +322,40 @@ struct ShiftQuestionView: View {
     }
     
     private func isMatch(user: String, target: String) -> Bool {
-        let normTarget = target.lowercased()
+        let userLow = user.lowercased()
+        let targetLow = target.lowercased()
         
-        // Direct containment
-        if user.contains(normTarget) || normTarget.contains(user) {
-            if user.count > 3 { return true }
+        // Define Synonyms for Core Concepts
+        let synonyms: [String: [String]] = [
+            "calculation": ["math", "result", "computed", "sum", "value", "multiplied", "arithmetic", "computed", "eval"],
+            "reference": ["copy", "pointer", "address", "struct", "class", "memory", "original", "ref", "alloc"],
+            "logic": ["check", "missing", "condition", "edge-case", "skip", "mistake", "flaw", "flow", "branch"],
+            "trap": ["side-effect", "mutation", "changed", "global", "state", "modified", "broken"]
+        ]
+        
+        // Check for direct keywords or synonyms
+        for word in targetLow.components(separatedBy: .whitespaces) {
+            if word.count < 3 { continue }
+            if userLow.contains(word) { return true }
+            
+            // Check synonyms if any
+            for (key, list) in synonyms {
+                if word.contains(key) {
+                    if list.contains(where: { userLow.contains($0) }) {
+                        return true
+                    }
+                }
+            }
         }
         
-        // Token overlap
-        let userTokens = Set(user.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
-        let targetTokens = Set(normTarget.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
+        // 1. String similarity check (Levenshtein-ish)
+        let userTokens = Set(userLow.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
+        let targetTokens = Set(targetLow.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { $0.count > 2 })
         
         let intersection = userTokens.intersection(targetTokens)
-        
         if !targetTokens.isEmpty {
             let ratio = Double(intersection.count) / Double(targetTokens.count)
-            return ratio >= 0.5
+            if ratio >= 0.4 { return true }
         }
         
         return false
@@ -377,7 +446,8 @@ struct ShiftCodeSnippetView: View {
         guard let v = verdict else { return Color.clear }
         switch v {
         case .correct: return Theme.Colors.success.opacity(0.2)
-        case .incorrectReasoning: return Theme.Colors.error.opacity(0.2)
+        case .weakReasoning: return Color.yellow.opacity(0.2)
+        case .wrongCategory: return Theme.Colors.error.opacity(0.2)
         case .noError: return Theme.Colors.textSecondary.opacity(0.1)
         case .notEvaluated: return Color.clear
         }
@@ -387,7 +457,8 @@ struct ShiftCodeSnippetView: View {
         guard let v = verdict else { return Color.clear }
         switch v {
         case .correct: return Theme.Colors.success
-        case .incorrectReasoning: return Theme.Colors.error
+        case .weakReasoning: return Color.yellow
+        case .wrongCategory: return Theme.Colors.error
         case .noError: return Theme.Colors.textSecondary
         case .notEvaluated: return Color.clear
         }
@@ -396,33 +467,52 @@ struct ShiftCodeSnippetView: View {
     func statusIcon(for verdict: ShiftQuestionView.LineVerdict) -> some View {
         switch verdict {
         case .correct:
-            return AnyView(Image(systemName: "checkmark.seal.fill").foregroundColor(Theme.Colors.success))
-        case .incorrectReasoning:
-            return AnyView(Image(systemName: "exclamationmark.triangle.fill").foregroundColor(Theme.Colors.error))
+            return Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(Theme.Colors.success)
+        case .weakReasoning:
+            return Image(systemName: "exclamationmark.circle.fill")
+                .foregroundColor(.yellow)
+        case .wrongCategory:
+            return Image(systemName: "xmark.circle.fill")
+                .foregroundColor(Theme.Colors.error)
         case .noError:
-            return AnyView(Image(systemName: "xmark.circle").foregroundColor(Theme.Colors.textSecondary))
+            return Image(systemName: "info.circle")
+                .foregroundColor(Theme.Colors.textSecondary)
         case .notEvaluated:
-            return AnyView(Image(systemName: "circle").foregroundColor(.clear))
+            return Image(systemName: "hand.tap")
+                .foregroundColor(Theme.Colors.textSecondary.opacity(0.3))
         }
     }
-}
+    }
+
 
 struct ReasoningSheet: View {
     let lineNumber: Int
     let question: Question
-    let onSubmit: (String) -> Void
+    let onSubmit: (String, [ShiftOption]) -> Void
     let onClose: () -> Void
     
     @State private var reasoningText: String = ""
+    @State private var selectedOptionIds: Set<UUID> = []
     @FocusState private var isFocused: Bool
     
     var isErrorLine: Bool {
         question.shiftData?.errorLines[lineNumber] != nil
     }
     
-    var hints: [String] {
-        guard isErrorLine, let detail = question.shiftData?.errorLines[lineNumber] else { return [] }
-        return detail.options.map { $0.text }
+    // The specific concepts requested by the user
+    let referenceConcepts = [
+        "Wrong calculation",
+        "Value vs Reference",
+        "Logic oversight",
+        "Side-effect trap"
+    ]
+    
+    var availableOptions: [ShiftOption] {
+        if let detail = question.shiftData?.errorLines[lineNumber] {
+            return detail.options
+        }
+        return referenceConcepts.map { ShiftOption(text: $0, explanation: "", isCorrect: false) }
     }
     
     var body: some View {
@@ -444,42 +534,19 @@ struct ReasoningSheet: View {
                     }
                 }
                 
-                Text(isErrorLine ? "Why did you choose this line as the error?" : "Why do you think this line is incorrect?")
+                Text("Analyze this line and select ALL concepts that apply.")
                     .font(Theme.Typography.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                // Hints (Only for actual errors)
-                if isErrorLine {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("THINKING SUPPORT (Reference Concepts)")
-                            .font(Theme.Typography.caption2)
-                            .foregroundColor(Theme.Colors.textSecondary)
-                        
-                        ForEach(hints, id: \.self) { hint in
-                            HStack(alignment: .top) {
-                                Image(systemName: "lightbulb")
-                                    .font(.caption)
-                                    .foregroundColor(Theme.Colors.gold)
-                                Text(hint)
-                                    .font(Theme.Typography.caption)
-                                    .foregroundColor(Theme.Colors.textSecondary)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(8)
-                }
-                
-                // Input Area
-                VStack(alignment: .leading) {
-                    Text("YOUR REASONING")
+                // Reasoning Input
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("YOUR REASONING (Explain each selected concept)")
                         .font(Theme.Typography.caption2)
                         .foregroundColor(Theme.Colors.textSecondary)
                     
                     TextEditor(text: $reasoningText)
-                        .frame(height: 120)
+                        .frame(height: 100)
                         .scrollContentBackground(.hidden)
                         .padding()
                         .background(Color.black.opacity(0.3))
@@ -492,9 +559,49 @@ struct ReasoningSheet: View {
                         .focused($isFocused)
                 }
                 
+                // Concept Selection (Multiple interactive options)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("SELECT HYPOTHESIS CATEGORIES (Multi-Select)")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(availableOptions, id: \.id) { option in
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        if selectedOptionIds.contains(option.id) {
+                                            selectedOptionIds.remove(option.id)
+                                        } else {
+                                            selectedOptionIds.insert(option.id)
+                                        }
+                                    }
+                                }) {
+                                    let isSelected = selectedOptionIds.contains(option.id)
+                                    HStack {
+                                        Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                                        Text(option.text)
+                                    }
+                                    .font(Theme.Typography.caption)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 16)
+                                    .background(isSelected ? Theme.Colors.electricCyan : Color.white.opacity(0.05))
+                                    .foregroundColor(isSelected ? .black : .white)
+                                    .cornerRadius(20)
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 Button(action: {
-                    if !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty {
-                        onSubmit(reasoningText)
+                    if canSubmit {
+                        let selected = availableOptions.filter { selectedOptionIds.contains($0.id) }
+                        onSubmit(reasoningText, selected)
                     }
                 }) {
                     Text("VERIFY HYPOTHESIS")
@@ -502,12 +609,10 @@ struct ReasoningSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Theme.Colors.electricCyan)
+                        .background(canSubmit ? Theme.Colors.electricCyan : Color.gray)
                         .cornerRadius(12)
                 }
-                .disabled(reasoningText.trimmingCharacters(in: .whitespaces).isEmpty)
-                .opacity(reasoningText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1.0)
-                
+                .disabled(!canSubmit)
             }
             .padding(30)
             .background(BlurView(style: .systemThinMaterialDark))
@@ -517,5 +622,9 @@ struct ReasoningSheet: View {
         .onAppear {
             isFocused = true
         }
+    }
+    
+    private var canSubmit: Bool {
+        !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty && !selectedOptionIds.isEmpty
     }
 }

@@ -1,4 +1,4 @@
-i wanted you toimport Foundation
+import Foundation
 
 enum Language: String, CaseIterable, Identifiable {
     case swift = "Swift"
@@ -57,7 +57,15 @@ struct ShiftOption: Codable, Equatable, Hashable {
     let isCorrect: Bool
     
     init(text: String, explanation: String, isCorrect: Bool) {
-        self.id = UUID()
+        // Use a deterministic UUID based on the text to ensure persistence matches across app launches
+        let hashString = text.lowercased().trimmingCharacters(in: .whitespaces)
+        var hash = UInt64(5381)
+        for byte in hashString.utf8 {
+            hash = ((hash << 5) &+ hash) &+ UInt64(byte)
+        }
+        let uuidString = String(format: "550e8400-e29b-41d4-a716-%012llx", hash)
+        self.id = UUID(uuidString: uuidString) ?? UUID()
+        
         self.text = text
         self.explanation = explanation
         self.isCorrect = isCorrect
@@ -237,12 +245,12 @@ extension Question {
                 errorLines: [
                     2: ShiftLineDetail(lineNumber: 2, options: [
                         ShiftOption(text: "Wrong calculation", explanation: "Sum may miscalculate if variables not as expected; correct option.", isCorrect: true),
-                        ShiftOption(text: "Logic oversight", explanation: "Addition logic might fail with edge cases; correct option.", isCorrect: true),
+                        ShiftOption(text: "Logic oversight", explanation: "Addition logic might fail with edge cases.", isCorrect: true),
                         ShiftOption(text: "Syntax error", explanation: "Swift syntax valid; distractor.", isCorrect: false),
                         ShiftOption(text: "Null pointer", explanation: "Variables safely initialized; distractor.", isCorrect: false)
                     ]),
                     3: ShiftLineDetail(lineNumber: 3, options: [
-                        ShiftOption(text: "Wrong calculation", explanation: "Returning wrong value may occur if previous line miscomputed; correct option.", isCorrect: true),
+                        ShiftOption(text: "Wrong calculation", explanation: "Returning wrong value may occur if previous line miscomputed.", isCorrect: true),
                         ShiftOption(text: "Off-by-one", explanation: "Not applicable here; educationally highlights concept; correct option.", isCorrect: true),
                         ShiftOption(text: "Syntax error", explanation: "Return syntax valid; distractor.", isCorrect: false),
                         ShiftOption(text: "Infinite loop", explanation: "No loop; distractor.", isCorrect: false)
@@ -574,7 +582,7 @@ extension Question {
                         ShiftOption(text: "Logic oversight", explanation: "Function does not return modified struct; correct.", isCorrect: true),
                         ShiftOption(text: "Wrong calculation", explanation: "User may assume returned copy affects original; correct.", isCorrect: true),
                         ShiftOption(text: "Syntax error", explanation: "Void return correct; distractor.", isCorrect: false),
-                        ShiftOption(text: "Side-effect trap", explanation: "No side-effect on caller; correct.", isCorrect: true)
+                            ShiftOption(text: "Side-effect trap", explanation: "No side-effect on caller; correct.", isCorrect: true)
                     ]),
                     5: ShiftLineDetail(lineNumber: 5, options: [
                         ShiftOption(text: "Value vs Reference", explanation: "Struct behavior is copy-on-write; correct.", isCorrect: true),
