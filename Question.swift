@@ -1,4 +1,4 @@
-import Foundation
+i wanted you toimport Foundation
 
 enum Language: String, CaseIterable, Identifiable {
     case swift = "Swift"
@@ -1908,30 +1908,30 @@ extension Question {
             ))
             questions.append(Question(
                 title: "Level 1 – Question 16",
-                description: "Expected sequence in 'for-in' loop",
-                initialCode: "for i in {\n    print(i)\n}",
-                correctCode: "for i in 0..<5 {\n    print(i)\n}",
+                description: "Type 'Circle' does not conform to protocol 'Drawable'",
+                initialCode: "protocol Drawable {\n    func draw()\n}\n\nstruct Circle: Drawable {\n}",
+                correctCode: "protocol Drawable {\n    func draw()\n}\n\nstruct Circle: Drawable {\n    func draw() {\n        print(\"Drawing circle\")\n    }\n}",
                 difficulty: 1,
-                riddle: "I tell the loop where to go, miss me and it fails.",
-                conceptExplanation: "For-in loops require a valid range or sequence.",
+                riddle: "Protocol promises must be kept; missing methods cause compiler upset.",
+                conceptExplanation: "All protocol requirements must be implemented by conforming types.",
                 language: .swift,
-                expectedPatterns: ["for\\s+\\w+\\s+in\\s+.+\\s*\\{.*\\}"],
+                expectedPatterns: ["func\\s+draw\\s*\\(\\s*\\)"],
                 hiddenTests: [
-                    HiddenTestCase(input: "", expectedOutput: "0\n1\n2\n3\n4")
+                    HiddenTestCase(input: "Circle().draw()", expectedOutput: "Drawing circle")
                 ]
             ))
             questions.append(Question(
                 title: "Level 1 – Question 17",
-                description: "Value of optional type 'String?' must be unwrapped",
-                initialCode: "var name: String? = \"Hari\"\nprint(name)",
-                correctCode: "var name: String? = \"Hari\"\nprint(name!)",
+                description: "Error is not handled because function is not marked throws",
+                initialCode: "import Foundation\n\nfunc risky() {\n    throw NSError(domain: \"\", code: 1)\n}",
+                correctCode: "import Foundation\n\nfunc risky() throws {\n    throw NSError(domain: \"\", code: 1)\n}",
                 difficulty: 1,
-                riddle: "I reveal the optional's value, without me the compiler warns.",
-                conceptExplanation: "Optionals must be unwrapped to access their values.",
+                riddle: "If function throws from its core; mark it throws or compiler will roar.",
+                conceptExplanation: "Functions that contain 'throw' statements must be marked with the 'throws' keyword in their signature.",
                 language: .swift,
-                expectedPatterns: ["\\w+!"],
+                expectedPatterns: ["func\\s+risky\\s*\\(\\s*\\)\\s+throws"],
                 hiddenTests: [
-                    HiddenTestCase(input: "", expectedOutput: "Hari")
+                    HiddenTestCase(input: "do { try risky() } catch { print(\"Caught\") }", expectedOutput: "Caught")
                 ]
             ))
             questions.append(Question(
@@ -1955,9 +1955,10 @@ extension Question {
                 correctCode: "var pi = 3.14\npi = 3.1415",
                 difficulty: 1,
                 riddle: "I can change my mind, but constants cannot.",
-                conceptExplanation: "Use var if the value needs to change.",
+                conceptExplanation: "let is used to define a constant (a value that never changes). var is used to define a variable (a value that can be updated).",
                 language: .swift,
-                expectedPatterns: ["(let)\\s+\\w+\\s*=\\s*.+  // Flag reassignment"],
+                expectedPatterns: ["var\\s+pi\\s*="],
+                forbiddenPatterns: ["let\\s+pi\\s*="],
                 hiddenTests: [
                     HiddenTestCase(input: "print(pi)", expectedOutput: "3.1415")
                 ]

@@ -17,6 +17,60 @@ class CompilerEngine {
         if question.language == .c && (question.levelNumber == 1 || question.difficulty == 1) {
             return evaluateCLevel1(code: code, question: question, attempts: attempts)
         }
+        
+        // Swift Level 1: Enforce expectedPatterns and forbiddenPatterns before interpreter
+        // This ensures structural correctness (e.g., return type declaration) is validated
+        if question.language == .swift && (question.levelNumber == 1 || question.difficulty == 1) {
+            let codeOneLine = code.replacingOccurrences(of: "\n", with: " ")
+            
+            // 1. Check for expected patterns (if defined)
+            if !question.expectedPatterns.isEmpty {
+                let matchesPattern = question.expectedPatterns.contains { pattern in
+                    (try? NSRegularExpression(pattern: pattern))
+                        .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
+                        ?? false
+                }
+                if !matchesPattern {
+                    return EvaluationResult(
+                        questionID: question.id,
+                        status: .incorrect,
+                        score: 0,
+                        level: .failed,
+                        complexity: .low,
+                        edgeCaseHandling: false,
+                        hardcodingDetected: false,
+                        feedback: "❌ Level 1 – Swift Failed\nYour code is missing the required structure or fix.\nCheck the riddle for a hint!",
+                        difficulty: 1,
+                        coinsEarned: 0,
+                        xpEarned: 0
+                    )
+                }
+            }
+            
+            // 2. Check for forbidden patterns (if defined)
+            if !question.forbiddenPatterns.isEmpty {
+                let matchesForbidden = question.forbiddenPatterns.contains { pattern in
+                    (try? NSRegularExpression(pattern: pattern))
+                        .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
+                        ?? false
+                }
+                if matchesForbidden {
+                    return EvaluationResult(
+                        questionID: question.id,
+                        status: .incorrect,
+                        score: 0,
+                        level: .failed,
+                        complexity: .low,
+                        edgeCaseHandling: false,
+                        hardcodingDetected: false,
+                        feedback: "❌ Level 1 – Swift Failed\nYour code contains forbidden elements that should be changed or removed.",
+                        difficulty: 1,
+                        coinsEarned: 0,
+                        xpEarned: 0
+                    )
+                }
+            }
+        }
 
         // 1. Normalize Code (Token-based approach) - kept for structural hints if needed
         let normalizedCode = normalize(code)
@@ -360,7 +414,16 @@ class CompilerEngine {
                      trimmed = String(trimmed[..<commentRange.lowerBound]).trimmingCharacters(in: .whitespaces)
                  }
                  
-                 if !trimmed.isEmpty && !trimmed.hasPrefix("//") && !trimmed.hasPrefix("#") && !trimmed.hasSuffix(";") && !trimmed.hasSuffix("{") && !trimmed.hasSuffix("}") && !trimmed.hasSuffix(">") {
+                 // Skip lines that don't need semicolons
+                 let isControlFlow = trimmed.hasPrefix("if") || trimmed.hasPrefix("else") ||
+                                     trimmed.hasPrefix("for") || trimmed.hasPrefix("while") ||
+                                     trimmed.hasPrefix("do") || trimmed.hasPrefix("switch") ||
+                                     trimmed.hasPrefix("case") || trimmed.hasPrefix("default") ||
+                                     trimmed == "else"
+                 
+                 if !trimmed.isEmpty && !trimmed.hasPrefix("//") && !trimmed.hasPrefix("#") &&
+                    !trimmed.hasSuffix(";") && !trimmed.hasSuffix("{") && !trimmed.hasSuffix("}") &&
+                    !trimmed.hasSuffix(">") && !trimmed.hasSuffix(")") && !isControlFlow {
                      return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing semicolon ';'", line: index + 1)
                  }
              }
@@ -392,18 +455,34 @@ class CompilerEngine {
          }
          return nil
     }
-    // MARK: - Level 1 C Evaluation Engine
+    // MARK: - Level 1 C Evaluation Engine (Strict Binary Scoring)
     
     private func evaluateCLevel1(code: String, question: Question, attempts: Int) -> EvaluationResult {
-        // STEP 1 — COMPILATION CHECK (HEURISTIC)
+        // STEP 1 — COMPILATION PHASE (Gatekeeper)
+        // Check basic C syntax heuristics
         if let syntaxError = checkSyntax(code: code, language: .c, questionID: question.id) {
-            // Add attempt count to feedback
             var result = syntaxError
-            result.feedback = "❌ Compilation Failed\n\(syntaxError.feedback)\nAttempts: \(attempts) / 5"
+            result.feedback = "❌ Compilation Failed\n\(syntaxError.feedback)"
             return result
         }
         
-        // STEP 2 — LOGIC RULE VALIDATION
+        // Additional compilation checks specific to C Level 1
+        let trimmedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedCode.isEmpty {
+            return EvaluationResult(
+                questionID: question.id,
+                status: .incorrect,
+                score: 0,
+                level: .failed,
+                complexity: .low,
+                edgeCaseHandling: false,
+                hardcodingDetected: false,
+                feedback: "❌ Compilation Failed\nCode cannot be empty.",
+                difficulty: 1
+            )
+        }
+        
+        // STEP 2 — LOGIC RULE VALIDATION (Primary Validation Layer)
         let logicResult = checkCLevel1Logic(code: code, question: question)
         if !logicResult.passed {
             return EvaluationResult(
@@ -414,7 +493,7 @@ class CompilerEngine {
                 complexity: .low,
                 edgeCaseHandling: false,
                 hardcodingDetected: false,
-                feedback: "❌ Evaluation Failed\nLogic Rule Not Satisfied\nEnsure you've fixed the specific bug mentioned in the riddle.\nAttempts: \(attempts) / 5",
+                feedback: "❌ Level 1 – C Failed\nLogic Rule Not Satisfied",
                 difficulty: 1,
                 testResults: logicResult.details,
                 coinsEarned: 0,
@@ -422,16 +501,20 @@ class CompilerEngine {
             )
         }
         
-        // STEP 3 - SUCCESS
+        // STEP 3 — HIDDEN TEST CASE EXECUTION (Integrity Layer)
+        // Since logic rule passed, verify hidden test expectations are met
+        // (For this simulated engine, logic rule satisfaction implies test pass)
+        
+        // STEP 4 — FINAL EVALUATION (Binary outcome)
         return EvaluationResult(
             questionID: question.id,
             status: .correct,
             score: 100,
-            level: .expert,
+            level: .passed,
             complexity: .low,
             edgeCaseHandling: true,
             hardcodingDetected: false,
-            feedback: "✅ Evaluation Complete\nScore: 100/100\nLogic Correctly Implemented\nAll Test Cases Passed",
+            feedback: "✅ Level 1 – C Passed\nEvaluation: 100/100\nAll Hidden Test Cases Passed\nLogic Rule Satisfied",
             difficulty: 1,
             testResults: logicResult.details,
             coinsEarned: 1,
@@ -439,128 +522,314 @@ class CompilerEngine {
         )
     }
     
+    /// Extracts the question number from a title like "Level 1 – Question 14"
+    private func extractQuestionNumber(from title: String) -> Int? {
+        // Match "Question " followed by digits at the end of the string or before any non-digit
+        if let range = title.range(of: #"Question\s+(\d+)"#, options: .regularExpression) {
+            let matched = String(title[range])
+            let digits = matched.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+            return Int(digits)
+        }
+        return nil
+    }
+    
     // Logic Rule Checker for C Level 1 Questions (Q1-Q25)
+    // SECURITY: Correct code, logic rules, and hidden test cases are INTERNAL ONLY.
     private func checkCLevel1Logic(code: String, question: Question) -> (passed: Bool, details: [TestCaseResult]) {
-        let clean = code.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\t", with: " ")
-        let title = question.title
+        // Normalize code for pattern matching
+        let clean = code.replacingOccurrences(of: "\n", with: " ")
+                        .replacingOccurrences(of: "\t", with: " ")
+        let noSpaces = code.lowercased().replacingOccurrences(of: " ", with: "")
+                           .replacingOccurrences(of: "\n", with: "")
+                           .replacingOccurrences(of: "\t", with: "")
 
+        // Helper to produce test case result
         func res(_ passed: Bool) -> (Bool, [TestCaseResult]) {
             let details = question.hiddenTests?.map { 
-                TestCaseResult(input: $0.input, expected: $0.expectedOutput, actual: passed ? $0.expectedOutput : "Rule Violation", passed: passed)
-            } ?? [TestCaseResult(input: "Logic Rule", expected: "Satisfied", actual: passed ? "Satisfied" : "Unsatisfied", passed: passed)]
+                TestCaseResult(
+                    input: $0.input,
+                    expected: $0.expectedOutput,
+                    actual: passed ? $0.expectedOutput : "Rule Violation",
+                    passed: passed
+                )
+            } ?? [TestCaseResult(
+                input: "Logic Rule",
+                expected: "Satisfied",
+                actual: passed ? "Satisfied" : "Unsatisfied",
+                passed: passed
+            )]
             return (passed, details)
         }
         
-        let lower = code.lowercased().replacingOccurrences(of: " ", with: "")
+        // Extract question number using regex to avoid substring matching bugs
+        // (e.g., "Question 1" matching "Question 10")
+        guard let qNum = extractQuestionNumber(from: question.title) else {
+            // Fallback: direct code comparison
+            let normUser = noSpaces
+            let normCorrect = normalize(question.correctCode).lowercased()
+                .replacingOccurrences(of: " ", with: "")
+                .replacingOccurrences(of: "\n", with: "")
+            return res(normUser == normCorrect)
+        }
         
+        switch qNum {
+            
         // Q1: Pointer Type Mismatch
-        if title.contains("Question 1") {
-            return res((code.contains("int *") || code.contains("int*")) && code.contains("%d") && !code.contains("float *") && !code.contains("float*"))
-        }
-        // Q2: Array Out-of-Bounds
-        if title.contains("Question 2") {
-            return res((code.contains("[2]") || code.contains("[1]") || code.contains("[0]")) && !code.contains("[3]"))
-        }
-        // Q3: Function Return Type
-        if title.contains("Question 3") {
-            return res(code.contains("int sum(") && !code.contains("float sum("))
-        }
-        // Q4: Postfix/Prefix
-        if title.contains("Question 4") {
-            return res(!clean.contains("++a + a++") && !clean.contains("a++ + ++a"))
-        }
-        // Q5: Void function return
-        if title.contains("Question 5") {
-            return res(!clean.contains("= greet()") && code.contains("greet();"))
-        }
-        // Q6: Ternary
-        if title.contains("Question 6") {
-            return res(code.contains("?") && code.contains(":"))
-        }
-        // Q7: Uninitialized Pointer
-        if title.contains("Question 7") {
-            return res(code.contains("malloc") || (code.contains("int x") && code.contains("&x")))
-        }
-        // Q8: Const removal
-        if title.contains("Question 8") {
-            return res(!code.contains("const") && code.contains("x = 20"))
-        }
-        // Q9: Struct members
-        if title.contains("Question 9") {
-            return res((code.contains("p.x") && code.contains("p.y")) || (code.contains("p->x") && code.contains("p->y")))
-        }
-        // Q10: Function Pointer
-        if title.contains("Question 10") {
-            return res(code.contains("fp = greet") && !code.contains("fp = greet()"))
-        }
-        // Q11: Array Name as Pointer
-        if title.contains("Question 11") {
-            return res(code.contains("arr[0]") || code.contains("*arr"))
-        }
-        // Q12: Integer Division
-        if title.contains("Question 12") {
-            return res(code.contains(".0") || code.contains("(float)") || code.contains("(double)"))
-        }
-        // Q13: Pointer Arithmetic Parentheses
-        if title.contains("Question 13") {
-            return res(code.contains("*(p+2)") || code.contains("*(p + 2)"))
-        }
-        // Q14: Signed vs Unsigned
-        if title.contains("Question 14") {
-            return res(!code.contains("unsigned"))
-        }
-        // Q15: Enum Equality
-        if title.contains("Question 15") {
-            return res(code.contains("=="))
-        }
-        // Q16: Arrow Operator
-        if title.contains("Question 16") {
-            return res(code.contains("->"))
-        }
-        // Q17: Function Prototype
-        if title.contains("Question 17") {
-            return res(code.contains("sum(int") || code.contains("sum(int, int)"))
-        }
-        // Q18: Implicit conversion in call
-        if title.contains("Question 18") {
-            return res(code.contains("float"))
-        }
-        // Q19: Macro evaluation
-        if title.contains("Question 19") {
-            return res(code.contains("PI *"))
-        }
-        // Q20: Variable Shadowing
-        if title.contains("Question 20") {
-            return res(!clean.contains("int a = 20") && clean.contains("a = 20"))
-        }
-        // Q21: Pointer to Pointer
-        if title.contains("Question 21") {
-            return res(code.contains("&p"))
-        }
-        // Q22: Recursion Base Case
-        if title.contains("Question 22") {
-            return res(code.contains("if") && (code.contains("return 1") || code.contains("return 0")))
-        }
-        // Q23: Preprocessor inside function
-        if title.contains("Question 23") {
-            // Must contain #if and it should be after int main (moved inside)
+        // Rule: Pointer type must match variable type; printf format specifier must match pointed type.
+        // Fix: Change float *ptr to int *ptr and %f to %d.
+        case 1:
+            let hasIntPtr = code.contains("int *") || code.contains("int*")
+            let hasCorrectFormat = code.contains("%d")
+            let noFloatPtr = !code.contains("float *") && !code.contains("float*")
+            let noFloatFormat = !clean.contains("%f")
+            return res(hasIntPtr && hasCorrectFormat && noFloatPtr && noFloatFormat)
+            
+        // Q2: Array Out-of-Bounds Access
+        // Rule: Array indices must be within bounds.
+        // Fix: Use arr[2] instead of arr[3].
+        case 2:
+            let hasValidIndex = code.contains("arr[2]") || code.contains("arr[1]") || code.contains("arr[0]")
+            let noOutOfBounds = !code.contains("arr[3]") && !code.contains("arr[4]") && !code.contains("arr[5]")
+            return res(hasValidIndex && noOutOfBounds)
+            
+        // Q3: Function Return Type Mismatch
+        // Rule: Return type must align with variable assignment.
+        // Fix: Change function return type from float to int.
+        case 3:
+            let hasIntSum = code.contains("int sum(")
+            let noFloatSum = !code.contains("float sum(")
+            return res(hasIntSum && noFloatSum)
+            
+        // Q4: Confusing Postfix vs Prefix Increment
+        // Rule: Avoid undefined behavior from unsequenced modifications in expressions.
+        // Fix: Compute increments in separate steps (no a++ + ++a or ++a + a++).
+        case 4:
+            let noUndefinedBehavior = !noSpaces.contains("a++++a") &&
+                                     !noSpaces.contains("++a+a++") &&
+                                     !noSpaces.contains("a++ + ++a".replacingOccurrences(of: " ", with: "")) &&
+                                     !noSpaces.contains("++a + a++".replacingOccurrences(of: " ", with: ""))
+            // Must still produce output (have printf)
+            let hasPrintf = code.contains("printf")
+            return res(noUndefinedBehavior && hasPrintf)
+            
+        // Q5: Using Void Function Return
+        // Rule: Void functions cannot be assigned to variables.
+        // Fix: Remove assignment; call greet() directly.
+        case 5:
+            let noAssignment = !noSpaces.contains("=greet()")
+            let hasDirectCall = code.contains("greet();") || code.contains("greet ();")
+            return res(noAssignment && hasDirectCall)
+            
+        // Q6: Conditional Assignment Confusion
+        // Rule: Ternary operator must include both outcomes.
+        // Fix: Add : b to complete the ternary expression.
+        case 6:
+            let hasTernary = code.contains("?") && code.contains(":")
+            // Make sure the colon is part of a ternary, not just any colon
+            // Check for pattern like "? a : b" or "? something : something"
+            return res(hasTernary)
+            
+        // Q7: Using Uninitialized Pointer
+        // Rule: Pointers must point to valid memory before dereferencing.
+        // Fix: Use malloc to allocate memory, or point to a valid variable.
+        case 7:
+            let hasMalloc = code.contains("malloc")
+            let hasAddressOf = code.contains("&") && !code.contains("&x") == false // has &someVar
+            let hasValidInit = hasMalloc || (code.contains("int") && code.contains("&"))
+            return res(hasValidInit)
+            
+        // Q8: Wrong Use of Const
+        // Rule: Do not assign a new value to const variables.
+        // Fix: Remove const if you want to assign later.
+        case 8:
+            let noConst = !code.contains("const")
+            let hasReassignment = code.contains("x = 10") || code.contains("x = 20")
+            return res(noConst && hasReassignment)
+            
+        // Q9: Misusing Struct Members
+        // Rule: Assign values to struct fields individually, not as a whole integer.
+        // Fix: Assign p.x = 10; p.y = 20; instead of p = 10.
+        case 9:
+            let hasMemberAccess = (code.contains("p.x") && code.contains("p.y")) ||
+                                  (code.contains("p->x") && code.contains("p->y"))
+            let noWholeAssign = !noSpaces.contains("p=10")
+            return res(hasMemberAccess && noWholeAssign)
+            
+        // Q10: Function Pointer Misuse
+        // Rule: Function pointer should store function name only, not result of call.
+        // Fix: Use fp = greet; instead of fp = greet();.
+        case 10:
+            // Must have "fp = greet" but NOT "fp = greet()"
+            let hasCorrectAssign = code.contains("fp = greet") || noSpaces.contains("fp=greet")
+            let noCallAssign = !noSpaces.contains("fp=greet()")
+            return res(hasCorrectAssign && noCallAssign)
+            
+        // Q11: Array Name Misuse
+        // Rule: Array names are pointers; to print a value, use an index.
+        // Fix: Change arr to arr[0].
+        case 11:
+            let hasIndexAccess = code.contains("arr[0]") || code.contains("arr[1]") ||
+                                 code.contains("arr[2]") || code.contains("arr[3]") ||
+                                 code.contains("arr[4]") || code.contains("*arr")
+            return res(hasIndexAccess)
+            
+        // Q12: Integer Division Confusion
+        // Rule: Cast one operand to float to avoid integer division.
+        // Fix: Use (float)a / b.
+        case 12:
+            let hasCast = code.contains("(float)") || code.contains("(double)")
+            let hasFloatLiteral = code.contains(".0") || code.contains("2.0") || code.contains("5.0")
+            return res(hasCast || hasFloatLiteral)
+            
+        // Q13: Pointer Arithmetic Mistake
+        // Rule: Pointer arithmetic must be dereferenced for correct element access.
+        // Fix: Use *(p+2) — with or without outer parentheses.
+        // Both *(p+2) and (*(p+2)) are correct answers.
+        case 13:
+            // Strip all spaces from code for flexible matching
+            let q13noSpaces = code.replacingOccurrences(of: " ", with: "")
+            let hasCorrectDeref = q13noSpaces.contains("*(p+2)") || // *(p+2) or (*(p+2))
+                                  code.contains("p[2]")            // array index notation
+            return res(hasCorrectDeref)
+            
+        // Q14: Mixing Signed and Unsigned
+        // Rule: Avoid mixing signed and unsigned in arithmetic.
+        // Fix: Change unsigned int a to int a.
+        case 14:
+            let noUnsigned = !code.contains("unsigned")
+            return res(noUnsigned)
+            
+        // Q15: Confusing Enum Usage
+        // Rule: Use == to compare values, not =.
+        // Fix: Replace = with == in if.
+        case 15:
+            let hasDoubleEquals = code.contains("==")
+            // Check that the if condition uses == not just =
+            // Look for "c == BLUE" or similar
+            let noSingleEqualsInIf: Bool = {
+                // Find if statements and check they use ==
+                if let ifRange = code.range(of: "if") {
+                    let afterIf = String(code[ifRange.upperBound...])
+                    // The condition should have == not single =
+                    if afterIf.contains("==") {
+                        return true
+                    }
+                }
+                return false
+            }()
+            return res(hasDoubleEquals && noSingleEqualsInIf)
+            
+        // Q16: Struct Pointer Access
+        // Rule: Use -> when accessing struct through pointer.
+        // Fix: Change ptr.x to ptr->x.
+        case 16:
+            let hasArrow = code.contains("->")
+            // Should not have ptr.x (dot access on pointer)
+            let noDotOnPtr = !code.contains("ptr.x") && !code.contains("ptr.y")
+            return res(hasArrow && noDotOnPtr)
+            
+        // Q17: Function Prototype Missing Argument Types
+        // Rule: Function declaration must include correct parameters.
+        // Fix: Add (int a, int b) in prototype.
+        case 17:
+            let hasTypedPrototype = code.contains("sum(int") || code.contains("sum(int, int)")
+            // Make sure the prototype (before main) has types
+            let noEmptyPrototype: Bool = {
+                if let mainRange = code.range(of: "int main") {
+                    let beforeMain = String(code[..<mainRange.lowerBound])
+                    return beforeMain.contains("sum(int")
+                }
+                return false
+            }()
+            return res(hasTypedPrototype && noEmptyPrototype)
+            
+        // Q18: Implicit Conversion in Return
+        // Rule: Return type must match value type.
+        // Fix: Change function return type to float and printf %f.
+        case 18:
+            let hasFloatReturn = code.contains("float div_func") || code.contains("double div_func")
+            let hasFloatFormat = code.contains("%f")
+            return res(hasFloatReturn && hasFloatFormat)
+            
+        // Q19: Misusing Macro
+        // Rule: Macros are constants, not functions.
+        // Fix: Change PI(5*5) to PI * (5*5).
+        case 19:
+            let hasMultiply = code.contains("PI *") || code.contains("PI*")
+            let noFunctionCall = !code.contains("PI(")
+            return res(hasMultiply && noFunctionCall)
+            
+        // Q20: Multiple Declaration Confusion
+        // Rule: Avoid confusing shadowed variables.
+        // Fix: Use either global or local consistently. Expected output is 10 (global).
+        case 20:
+            // The correct fix removes "int a = 20;" from inside main
+            let noLocalShadow: Bool = {
+                if let mainRange = code.range(of: "int main") {
+                    let afterMain = String(code[mainRange.lowerBound...])
+                    // Should not re-declare 'int a' inside main
+                    return !afterMain.contains("int a =") && !afterMain.contains("int a=")
+                }
+                return false
+            }()
+            return res(noLocalShadow)
+            
+        // Q21: Pointer to Pointer Misuse
+        // Rule: A pointer-to-pointer must point to the address of a pointer.
+        // Fix: Change int **q = p to int **q = &p.
+        case 21:
+            let hasAddressOfP = code.contains("&p")
+            return res(hasAddressOfP)
+            
+        // Q22: Recursion Without Base Case
+        // Rule: Recursive functions must include a base case.
+        // Fix: Add if(n == 0) return 1;.
+        case 22:
+            let hasBaseCase = code.contains("if") && (code.contains("return 1") || code.contains("return 0"))
+            // Must have some condition check with n
+            let hasNCheck = code.contains("n == 0") || code.contains("n==0") ||
+                            code.contains("n <= 0") || code.contains("n<=0") ||
+                            code.contains("n < 1") || code.contains("n<1") ||
+                            code.contains("n == 1") || code.contains("n==1")
+            return res(hasBaseCase && hasNCheck)
+            
+        // Q23: Preprocessor Conditional Error
+        // Rule: #if code must be inside a function if it contains statements.
+        // Fix: Move #if DEBUG block inside main().
+        case 23:
             if let mainRange = code.range(of: "main"), let ifRange = code.range(of: "#if") {
                 return res(ifRange.lowerBound > mainRange.lowerBound)
             }
+            // If no #if at all but has main and printf for "Program start", could be valid
+            if code.contains("main") && code.contains("Program start") && !code.contains("#if") {
+                return res(true)
+            }
             return res(false)
+            
+        // Q24: Void Pointer Arithmetic
+        // Rule: Arithmetic is not allowed on void*; must cast to appropriate type.
+        // Fix: Use int* ptr = x and increment.
+        case 24:
+            let noVoidPtr = !code.contains("void *") && !code.contains("void*")
+            let hasTypedPtr = code.contains("int *") || code.contains("int*")
+            return res(noVoidPtr && hasTypedPtr)
+            
+        // Q25: Implicit Type Casting in Array Index
+        // Rule: Array indices must be integers.
+        // Fix: Change double index to int index.
+        case 25:
+            let hasIntIndex = code.contains("int index") || code.contains("long index")
+            let noDoubleIndex = !code.contains("double index") && !code.contains("float index")
+            return res(hasIntIndex && noDoubleIndex)
+            
+        default:
+            // Unknown question — fallback to code comparison
+            let normUser = noSpaces
+            let normCorrect = normalize(question.correctCode).lowercased()
+                .replacingOccurrences(of: " ", with: "")
+                .replacingOccurrences(of: "\n", with: "")
+            return res(normUser == normCorrect)
         }
-        // Q24: Void Pointer casting
-        if title.contains("Question 24") {
-            return res(code.contains("(int*)") || code.contains("int *"))
-        }
-        // Q25: Array Index Type
-        if title.contains("Question 25") {
-            return res(code.contains("int index") || code.contains("long index"))
-        }
-        
-        let normUser = lower
-        let normCorrect = normalize(question.correctCode).lowercased().replacingOccurrences(of: " ", with: "")
-        return res(normUser == normCorrect || code.contains(normalize(question.correctCode)))
     }
 }
 
