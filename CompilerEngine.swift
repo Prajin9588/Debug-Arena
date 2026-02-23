@@ -7,15 +7,15 @@ class CompilerEngine {
     private init() {}
     
     // LOGICAL VALIDATION ENGINE
-    func evaluate(code: String, for question: Question) -> EvaluationResult {
+    func evaluate(code: String, for question: Question, attempts: Int = 0) -> EvaluationResult {
         // Level 2 Special Handling (Runtime Error ID)
         if question.difficulty == 2 {
             return evaluateLevel2(code: code, question: question)
         }
         
         // Level 1 C Special Handling (Strict Logic Engine)
-        if question.language == .c && question.levelNumber == 1 {
-            return evaluateCLevel1(code: code, question: question)
+        if question.language == .c && (question.levelNumber == 1 || question.difficulty == 1) {
+            return evaluateCLevel1(code: code, question: question, attempts: attempts)
         }
 
         // 1. Normalize Code (Token-based approach) - kept for structural hints if needed
@@ -348,12 +348,18 @@ class CompilerEngine {
          
          switch language {
          case .c, .cpp:
-             if !code.contains("int main") {
-                 return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing 'int main()' function")
+             let lowerCode = code.lowercased()
+             if !lowerCode.contains("int main") && !lowerCode.contains("void main") {
+                 return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing 'main()' function")
              }
              // Check for semicolon
              for (index, line) in lines.enumerated() {
-                 let trimmed = line.trimmingCharacters(in: .whitespaces)
+                 var trimmed = line.trimmingCharacters(in: .whitespaces)
+                 // Remove trailing comments for semicolon check
+                 if let commentRange = trimmed.range(of: "//") {
+                     trimmed = String(trimmed[..<commentRange.lowerBound]).trimmingCharacters(in: .whitespaces)
+                 }
+                 
                  if !trimmed.isEmpty && !trimmed.hasPrefix("//") && !trimmed.hasPrefix("#") && !trimmed.hasSuffix(";") && !trimmed.hasSuffix("{") && !trimmed.hasSuffix("}") && !trimmed.hasSuffix(">") {
                      return EvaluationResult.simpleError(questionID: questionID, type: .syntax, message: "Missing semicolon ';'", line: index + 1)
                  }
@@ -388,66 +394,46 @@ class CompilerEngine {
     }
     // MARK: - Level 1 C Evaluation Engine
     
-    private func evaluateCLevel1(code: String, question: Question) -> EvaluationResult {
-        // Step 1: Logic Rule Validation (FIRST PRIORITY)
-        // Check if user code satisfies the Logic Rule.
-        // Execute hidden test cases (Simulated via Logic Check for this engine).
-        
-        // 1.1: Syntax Check
-        if !code.contains("int main") {
-            return failC(question, msg: "Logic Rule Not Satisfied: Missing 'int main()'")
+    private func evaluateCLevel1(code: String, question: Question, attempts: Int) -> EvaluationResult {
+        // STEP 1 — COMPILATION CHECK (HEURISTIC)
+        if let syntaxError = checkSyntax(code: code, language: .c, questionID: question.id) {
+            // Add attempt count to feedback
+            var result = syntaxError
+            result.feedback = "❌ Compilation Failed\n\(syntaxError.feedback)\nAttempts: \(attempts) / 5"
+            return result
         }
         
-        // 1.2: Logic & Hidden Test Validation
+        // STEP 2 — LOGIC RULE VALIDATION
         let logicResult = checkCLevel1Logic(code: code, question: question)
-        
         if !logicResult.passed {
-            return failC(question, msg: "Logic Rule Not Satisfied\nHidden Test Case Failed")
+            return EvaluationResult(
+                questionID: question.id,
+                status: .incorrect,
+                score: 0,
+                level: .failed,
+                complexity: .low,
+                edgeCaseHandling: false,
+                hardcodingDetected: false,
+                feedback: "❌ Evaluation Failed\nLogic Rule Not Satisfied\nEnsure you've fixed the specific bug mentioned in the riddle.\nAttempts: \(attempts) / 5",
+                difficulty: 1,
+                testResults: logicResult.details,
+                coinsEarned: 0,
+                xpEarned: 0
+            )
         }
         
-        // Step 2: Correct Answer Structure Match
-        // (As per instructions: If logically equivalent, proceed. Logic is primary.)
-        // Since logicResult.passed is true, we assume logical equivalence/correctness.
-        
-        // Step 3: Final Evaluation
-        // If Step 1 passed: Return PASS with 100/100
-        
-        return passC(question, testDetails: logicResult.details)
-    }
-    
-    // Helper to generate FAIL result
-    private func failC(_ q: Question, msg: String) -> EvaluationResult {
-         let feedback = "FAIL\n❌ Level 1 – C Failed\n" + msg
-         return EvaluationResult(
-            questionID: q.id,
-            status: .incorrect,
-            score: 0,
-            level: .failed,
-            complexity: .low,
-            edgeCaseHandling: false,
-            hardcodingDetected: false,
-            feedback: feedback,
-            difficulty: 1,
-            testResults: [], // Failed tests not detailed in strict fail mode req, but could be specific
-            coinsEarned: 0,
-            xpEarned: 0
-        )
-    }
-    
-    // Helper to generate PASS result
-    private func passC(_ q: Question, testDetails: [TestCaseResult]) -> EvaluationResult {
-        let feedback = "PASS\n✅ Level 1 – C Passed\nEvaluation Score: 100/100\nAll Hidden Test Cases Passed\nLogic Rule Satisfied"
+        // STEP 3 - SUCCESS
         return EvaluationResult(
-            questionID: q.id,
+            questionID: question.id,
             status: .correct,
             score: 100,
             level: .expert,
             complexity: .low,
             edgeCaseHandling: true,
             hardcodingDetected: false,
-            feedback: feedback,
+            feedback: "✅ Evaluation Complete\nScore: 100/100\nLogic Correctly Implemented\nAll Test Cases Passed",
             difficulty: 1,
-            testResults: testDetails,
+            testResults: logicResult.details,
             coinsEarned: 1,
             xpEarned: 10
         )
@@ -455,192 +441,126 @@ class CompilerEngine {
     
     // Logic Rule Checker for C Level 1 Questions (Q1-Q25)
     private func checkCLevel1Logic(code: String, question: Question) -> (passed: Bool, details: [TestCaseResult]) {
-        // Normalize for easier matching (remove multi-spaces, keep newlines for context if needed, or just standard normalize)
-        let cleanCode = code
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\t", with: " ")
-            .replacingOccurrences(of: "  ", with: " ")
-        
-        // Helper for success details
-        func success() -> [TestCaseResult] {
-            return question.hiddenTests?.map { TestCaseResult(input: $0.input, expected: $0.expectedOutput, actual: $0.expectedOutput, passed: true) } ?? []
-        }
-        
-        // Identify Question Logic Rule based on Title/Description
+        let clean = code.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "\t", with: " ")
         let title = question.title
+
+        func res(_ passed: Bool) -> (Bool, [TestCaseResult]) {
+            let details = question.hiddenTests?.map { 
+                TestCaseResult(input: $0.input, expected: $0.expectedOutput, actual: passed ? $0.expectedOutput : "Rule Violation", passed: passed)
+            } ?? [TestCaseResult(input: "Logic Rule", expected: "Satisfied", actual: passed ? "Satisfied" : "Unsatisfied", passed: passed)]
+            return (passed, details)
+        }
         
-        // Q1: Pointer Type Mismatch (float *ptr -> int *ptr)
-        if title.contains("Question 1") && title.contains("Level 1") {
-            // Must have 'int *ptr' or 'int* ptr' and not 'float *ptr'
-            if (code.contains("int *ptr") || code.contains("int* ptr")) && !code.contains("float *ptr") {
-                return (true, success())
+        let lower = code.lowercased().replacingOccurrences(of: " ", with: "")
+        
+        // Q1: Pointer Type Mismatch
+        if title.contains("Question 1") {
+            return res((code.contains("int *") || code.contains("int*")) && code.contains("%d") && !code.contains("float *") && !code.contains("float*"))
+        }
+        // Q2: Array Out-of-Bounds
+        if title.contains("Question 2") {
+            return res((code.contains("[2]") || code.contains("[1]") || code.contains("[0]")) && !code.contains("[3]"))
+        }
+        // Q3: Function Return Type
+        if title.contains("Question 3") {
+            return res(code.contains("int sum(") && !code.contains("float sum("))
+        }
+        // Q4: Postfix/Prefix
+        if title.contains("Question 4") {
+            return res(!clean.contains("++a + a++") && !clean.contains("a++ + ++a"))
+        }
+        // Q5: Void function return
+        if title.contains("Question 5") {
+            return res(!clean.contains("= greet()") && code.contains("greet();"))
+        }
+        // Q6: Ternary
+        if title.contains("Question 6") {
+            return res(code.contains("?") && code.contains(":"))
+        }
+        // Q7: Uninitialized Pointer
+        if title.contains("Question 7") {
+            return res(code.contains("malloc") || (code.contains("int x") && code.contains("&x")))
+        }
+        // Q8: Const removal
+        if title.contains("Question 8") {
+            return res(!code.contains("const") && code.contains("x = 20"))
+        }
+        // Q9: Struct members
+        if title.contains("Question 9") {
+            return res((code.contains("p.x") && code.contains("p.y")) || (code.contains("p->x") && code.contains("p->y")))
+        }
+        // Q10: Function Pointer
+        if title.contains("Question 10") {
+            return res(code.contains("fp = greet") && !code.contains("fp = greet()"))
+        }
+        // Q11: Array Name as Pointer
+        if title.contains("Question 11") {
+            return res(code.contains("arr[0]") || code.contains("*arr"))
+        }
+        // Q12: Integer Division
+        if title.contains("Question 12") {
+            return res(code.contains(".0") || code.contains("(float)") || code.contains("(double)"))
+        }
+        // Q13: Pointer Arithmetic Parentheses
+        if title.contains("Question 13") {
+            return res(code.contains("*(p+2)") || code.contains("*(p + 2)"))
+        }
+        // Q14: Signed vs Unsigned
+        if title.contains("Question 14") {
+            return res(!code.contains("unsigned"))
+        }
+        // Q15: Enum Equality
+        if title.contains("Question 15") {
+            return res(code.contains("=="))
+        }
+        // Q16: Arrow Operator
+        if title.contains("Question 16") {
+            return res(code.contains("->"))
+        }
+        // Q17: Function Prototype
+        if title.contains("Question 17") {
+            return res(code.contains("sum(int") || code.contains("sum(int, int)"))
+        }
+        // Q18: Implicit conversion in call
+        if title.contains("Question 18") {
+            return res(code.contains("float"))
+        }
+        // Q19: Macro evaluation
+        if title.contains("Question 19") {
+            return res(code.contains("PI *"))
+        }
+        // Q20: Variable Shadowing
+        if title.contains("Question 20") {
+            return res(!clean.contains("int a = 20") && clean.contains("a = 20"))
+        }
+        // Q21: Pointer to Pointer
+        if title.contains("Question 21") {
+            return res(code.contains("&p"))
+        }
+        // Q22: Recursion Base Case
+        if title.contains("Question 22") {
+            return res(code.contains("if") && (code.contains("return 1") || code.contains("return 0")))
+        }
+        // Q23: Preprocessor inside function
+        if title.contains("Question 23") {
+            // Must contain #if and it should be after int main (moved inside)
+            if let mainRange = code.range(of: "main"), let ifRange = code.range(of: "#if") {
+                return res(ifRange.lowerBound > mainRange.lowerBound)
             }
-            return (false, [])
+            return res(false)
+        }
+        // Q24: Void Pointer casting
+        if title.contains("Question 24") {
+            return res(code.contains("(int*)") || code.contains("int *"))
+        }
+        // Q25: Array Index Type
+        if title.contains("Question 25") {
+            return res(code.contains("int index") || code.contains("long index"))
         }
         
-        // Q2: Array Out-of-Bounds (arr[3] -> arr[2] or similar valid)
-        if title.contains("Question 2") && title.contains("Level 1") {
-            if code.contains("arr[2]") || code.contains("arr[1]") || code.contains("arr[0]") {
-                return (true, success())
-            }
-            return (false, [])
-        }
-        
-        // Q3: Function Return Type (float sum -> int sum)
-        if title.contains("Question 3") && title.contains("Level 1") {
-            if code.contains("int sum(") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q4: Postfix/Prefix (Sequence point) - Checks for separate lines or valid logic
-        if title.contains("Question 4") && title.contains("Level 1") {
-            // Ensure no "a++ + ++a" or "++a + a++"
-            if !cleanCode.contains("a++ + ++a") && !cleanCode.contains("++a + a++") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q5: Void Function Return (greeting = ... removed)
-        if title.contains("Question 5") && title.contains("Level 1") {
-            // Should call greet(); directly, not assign.
-            if !code.contains("int x = greet()") && code.contains("greet()") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q6: Ternary (a > b ? a : b)
-        if title.contains("Question 6") && title.contains("Level 1") {
-            if code.contains("? a : b") || code.contains("?a:b") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q7: Uninitialized Pointer (*ptr = 10 -> malloc)
-        if title.contains("Question 7") && title.contains("Level 1") {
-            if code.contains("malloc") || code.contains("&") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q8: Const (remove const)
-        if title.contains("Question 8") && title.contains("Level 1") {
-            if !code.contains("const int x") && code.contains("int x") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q9: Struct Members (p = 10 -> p.x = 10)
-        if title.contains("Question 9") && title.contains("Level 1") {
-            if (code.contains("p.x =") || code.contains("p.y =")) && !cleanCode.contains("p = 10") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q10: Func Pointer (fp = greet)
-        if title.contains("Question 10") && title.contains("Level 1") {
-            if code.contains("fp = greet;") || code.contains("fp = &greet;") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q11: Array Name (printf arr -> arr[0])
-        if title.contains("Question 11") && title.contains("Level 1") {
-            if code.contains("arr[0]") || code.contains("*arr") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q12: Integer Division (cast float)
-        if title.contains("Question 12") && title.contains("Level 1") {
-            if code.contains("(float)") || code.contains("(double)") || code.contains(".0") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q13: Pointer Arith (*p+2 -> *(p+2))
-        if title.contains("Question 13") && title.contains("Level 1") {
-            if code.contains("*(p+2)") || code.contains("*(p + 2)") || code.contains("p[2]") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q14: Signed/Unsigned (unsigned int -> int)
-        if title.contains("Question 14") && title.contains("Level 1") {
-            if !code.contains("unsigned int") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q15: Enum (c = BLUE -> c == BLUE)
-        if title.contains("Question 15") && title.contains("Level 1") {
-            if code.contains("c == BLUE") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q16: Struct Pointer (ptr.x -> ptr->x)
-        if title.contains("Question 16") && title.contains("Level 1") {
-            if code.contains("->x") || code.contains("(*ptr).x") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q17: Prototype (int sum() -> int sum(int a, int b))
-        if title.contains("Question 17") && title.contains("Level 1") {
-            if code.contains("int sum(int a, int b);") || code.contains("int sum(int, int);") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q18: Implicit Conversion (int -> float function)
-        if title.contains("Question 18") && title.contains("Level 1") {
-            if code.contains("float div_func") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q19: Macro (PI(5*5) -> PI * ...)
-        if title.contains("Question 19") && title.contains("Level 1") {
-            if code.contains("PI *") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q20: Multiple Decl (remove inner int a)
-        if title.contains("Question 20") && title.contains("Level 1") {
-            // Count "int a" occurrences? Or check if inner scope removed.
-            // Simplified: if output logic used, correct code removed 'int a = 20'.
-            // User code: 'int a = 20' replaced by 'a = 20' or removed.
-            // If code does NOT have "int a = 20", assume fixed.
-             if !code.contains("int a = 20") { return (true, success()) }
-             return (false, [])
-        }
-        
-        // Q21: Double Pointer (**q = p -> **q = &p)
-        if title.contains("Question 21") && title.contains("Level 1") {
-            if code.contains("&p") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q22: Recursion Base Case (if n==0)
-        if title.contains("Question 22") && title.contains("Level 1") {
-            if code.contains("if") && (code.contains("== 0") || code.contains("<= 0")) { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q23: Preprocessor (#if inside main)
-        if title.contains("Question 23") && title.contains("Level 1") {
-            // Check if #if is inside main
-            if let range = code.range(of: "main") {
-                let suffix = code[range.upperBound...]
-                if suffix.contains("#if DEBUG") { return (true, success()) }
-            }
-            return (false, [])
-        }
-        
-        // Q24: Void Pointer (cast to int*)
-        if title.contains("Question 24") && title.contains("Level 1") {
-            if code.contains("(int*)") || code.contains("int *") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Q25: Implicit Cast (double index -> int index)
-        if title.contains("Question 25") && title.contains("Level 1") {
-            if code.contains("int index") && !code.contains("double index") { return (true, success()) }
-            return (false, [])
-        }
-        
-        // Fallback or Unknown Question
-        let normCode = normalize(code)
-        let normCorrect = normalize(question.correctCode)
-        if normCode == normCorrect {
-            return (true, success())
-        }
-        
-        return (false, [])
+        let normUser = lower
+        let normCorrect = normalize(question.correctCode).lowercased().replacingOccurrences(of: " ", with: "")
+        return res(normUser == normCorrect || code.contains(normalize(question.correctCode)))
     }
 }
+

@@ -92,8 +92,8 @@ struct EvaluationResult: Codable {
     let complexity: Complexity
     let edgeCaseHandling: Bool
     let hardcodingDetected: Bool
-    let feedback: String
-    let message: String // Kept for compatibility, aliases to feedback
+    var feedback: String
+    var message: String { feedback }
     let line: Int?
     let difficulty: Int
     
@@ -113,7 +113,6 @@ struct EvaluationResult: Codable {
         self.edgeCaseHandling = edgeCaseHandling
         self.hardcodingDetected = hardcodingDetected
         self.feedback = feedback
-        self.message = feedback
         self.line = line
         self.difficulty = difficulty
         self.testResults = testResults

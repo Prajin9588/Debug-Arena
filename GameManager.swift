@@ -217,8 +217,6 @@ class GameManager: ObservableObject {
     func resetQuestionState(for question: Question) {
         lastEvaluationResult = nil
         executionState = .idle
-        // Reset attempts for this question as requested
-        attempts[question.title] = 0
     }
 
     // MARK: - Daily Streak Logic
@@ -293,14 +291,40 @@ class GameManager: ObservableObject {
     func runCode(userCode: String) {
         guard executionState != .running else { return }
         
+        let title = currentQuestion.title
+        let currentAttempts = attempts[title, default: 0]
+        let maxAttempts = 5
+        
+        // Check if locked
+        if currentAttempts >= maxAttempts && !completedQuestionIds.contains(title) {
+             self.lastEvaluationResult = EvaluationResult(
+                questionID: currentQuestion.id,
+                status: .incorrect,
+                score: 0,
+                level: .failed,
+                complexity: .low,
+                edgeCaseHandling: false,
+                hardcodingDetected: false,
+                feedback: "❌ Question Locked\nYou have exceeded the maximum of \(maxAttempts) attempts for this question.",
+                difficulty: currentQuestion.difficulty,
+                testResults: [TestCaseResult(input: "Status", expected: "Unlocked", actual: "Locked", passed: false)],
+                coinsEarned: 0,
+                xpEarned: 0
+            )
+            self.executionState = .error("Question Locked")
+            return
+        }
+
         // Increment attempts
-        attempts[currentQuestion.title, default: 0] += 1
+        attempts[title, default: 0] += 1
         lifetimeAttempts += 1
         executionState = .running
         
+        let newAttemptCount = attempts[title, default: 0]
+        
         // Immediate execution on next run loop to allow UI update
         DispatchQueue.main.async {
-            let result = CompilerEngine.shared.evaluate(code: userCode, for: self.currentQuestion)
+            let result = CompilerEngine.shared.evaluate(code: userCode, for: self.currentQuestion, attempts: newAttemptCount)
             self.lastEvaluationResult = result
             
             if result.isSuccess {
@@ -308,7 +332,6 @@ class GameManager: ObservableObject {
             } else {
                 let errorMessage = result.message
                 self.executionState = .error(errorMessage)
-                // self.deductLife() // Removed
                 self.streak = 0
                 
                 // Live Activity Failure
