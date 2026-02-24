@@ -48,9 +48,13 @@ struct ShiftQuestionView: View {
         gameManager.currentLevel.questions
     }
     
+    private var isAdvanced: Bool {
+        currentQuestion.difficulty >= 3 && (currentQuestion.language == .swift || currentQuestion.language == .c)
+    }
+    
     var body: some View {
         ZStack {
-            Theme.Colors.background.ignoresSafeArea()
+            Color(hex: "FAFAFA").ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header (Replacing old HStack with WorkspaceHeader)
@@ -62,11 +66,30 @@ struct ShiftQuestionView: View {
                     onBack: { dismiss() }
                 )
                 
+                // Debugger Mode Banner
+                VStack(spacing: 0) {
+                    HStack {
+                        Image(systemName: "terminal.fill")
+                            .font(.caption2)
+                        Text("DEBUGGER MODE ENABLED")
+                            .font(Theme.Typography.caption2)
+                            .fontWeight(.bold)
+                    }
+                    .foregroundColor(Color(hex: "4B5563"))
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(hex: "F3F4F6"))
+                    
+                    Divider()
+                        .background(Color(hex: "E5E5E5"))
+                }
+                
                 // Swipeable Code View
                 TabView(selection: $currentIndex) {
                     ForEach(0..<currentQuestions.count, id: \.self) { index in
                         ShiftCodeSnippetView(
                             question: currentQuestions[index],
+                            isAdvanced: false, // Force light code view
                             lineVerdicts: lineVerdicts,
                             onLineTap: { lineNum in
                                 handleLineTap(lineNum: lineNum)
@@ -94,35 +117,23 @@ struct ShiftQuestionView: View {
                             .foregroundColor(Theme.Colors.textPrimary)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Theme.Colors.babyPowder)
+                            .background(Color(hex: "F1F1F1"))
                             .cornerRadius(Theme.Layout.cornerRadius)
                             .overlay(
                                 RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                                    .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                                    .stroke(Color(hex: "E5E5E5"), lineWidth: 1)
                             )
-                            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 16)
                 }
-                
-                // Instruction Footer
-                VStack(spacing: 4) {
-                    Text("DEBUGGER MODE ENABLED")
-                        .font(Theme.Typography.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(Theme.Colors.electricCyan)
-                    Text("Tap any line to log an error hypothesis.")
-                        .font(Theme.Typography.caption2)
-                        .foregroundColor(Theme.Colors.textSecondary)
                 }
-                .padding(.bottom)
-            }
             .blur(radius: showReasoningSheet ? 5 : 0)
             
             // Reasoning Sheet Overlay
             if showReasoningSheet, let line = selectedLine {
-                Color.black.opacity(0.6)
+                Color.black.opacity(0.6) // Darker overlay to contrast with light background
                     .ignoresSafeArea()
                     .onTapGesture { closeSheet() }
                 
@@ -141,7 +152,7 @@ struct ShiftQuestionView: View {
             // Evaluation Result Overlay (Level Completion)
             if let result = evaluationResult {
                 ZStack {
-                    Color.black.opacity(0.6).ignoresSafeArea()
+                    Color.black.opacity(0.4).ignoresSafeArea()
                     VStack(spacing: 20) {
                         EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
                         
@@ -251,6 +262,23 @@ struct ShiftQuestionView: View {
     private func evaluateReasoning(line: Int, text: String, selectedOptions: [ShiftOption]) {
         guard let data = currentQuestion.shiftData else { return }
         
+        let isAdvancedLevel = currentQuestion.difficulty >= 3
+        let isSwiftOrC = currentQuestion.language == .swift || currentQuestion.language == .c
+        
+        var overrideMessage: String? = nil
+        if isAdvancedLevel && isSwiftOrC {
+            let validation = validateReasoningIntent(text: text, question: currentQuestion)
+            if !validation.isValid {
+                feedbackMessage = "🔍 \(validation.message)"
+                feedbackType = .error
+                withAnimation { showFeedback = true }
+                return
+            }
+            if validation.isOverride {
+                overrideMessage = "🔍 \(validation.message)"
+            }
+        }
+
         let isErrorLine = data.errorLines[line] != nil
         var verdict: LineVerdict = .notEvaluated
         var feedbackMsg = ""
@@ -292,31 +320,28 @@ struct ShiftQuestionView: View {
                     
                     let allMatched = matchResults.allSatisfy { $0 }
                     
-                    if isWeightedLevel {
-                        // Mark as correct immediately because categories are correct
-                        verdict = allMatched ? .correct : .weakReasoning
-                        type = .success
-                        
-                        let combinedExplanations = selectedOptions.map { "• \($0.explanation)" }.joined(separator: "\n\n")
-                        
-                        if allMatched {
-                            feedbackMsg = "✨ PERFECT: Line Clear!\nExcellent reasoning and classification.\n\n\(combinedExplanations)"
-                        } else {
-                            feedbackMsg = "✅ LINE CLEAR (80%)\nBug identified correctly! Try using more technical terms like '\(correctOptions.first?.text ?? "")' next time.\n\n\(combinedExplanations)"
-                        }
-                        
-                        // Register options as found to progress the question
-                        for opt in selectedOptions {
-                            gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
-                        }
-                        checkCompletion()
+                if isAdvancedLevel {
+                    // Advanced Levels: Correct Line + Correct Categories = Pass (80%)
+                    if allMatched {
+                        verdict = .correct
+                        feedbackMsg = overrideMessage != nil ? "🔍 Reasoning accepted for investigation." : "✨ PERFECT: Line Clear!"
                     } else {
+                        verdict = .weakReasoning
+                        feedbackMsg = "🔍 An issue exists, but the explanation does not match the behavior."
+                    }
+                    type = .success
+                    
+                    // Register options as found to progress the question
+                    for opt in selectedOptions {
+                        gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
+                    }
+                    checkCompletion()
+                } else {
                         // Level 1-2: Strict check
                         if allMatched {
                             verdict = .correct
                             type = .success
-                            let combinedExplanations = selectedOptions.map { "• \($0.explanation)" }.joined(separator: "\n\n")
-                            feedbackMsg = "✅ VERIFIED\n\n\(combinedExplanations)"
+                            feedbackMsg = "✅ VERIFIED"
                             for opt in selectedOptions {
                                 gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
                             }
@@ -336,8 +361,8 @@ struct ShiftQuestionView: View {
         } else {
             // It is NOT an error line
             verdict = .noError
-            feedbackMsg = "⚠️ NO ERROR: This line is valid. Avoid false positives."
-            type = .neutral
+            feedbackMsg = "🔍 No error occurs on this line."
+            type = .error
         }
         
         // Update State
@@ -355,6 +380,43 @@ struct ShiftQuestionView: View {
         feedbackMessage = feedbackMsg
         feedbackType = type
         withAnimation { showFeedback = true }
+    }
+    
+    private func validateReasoningIntent(text: String, question: Question) -> (isValid: Bool, message: String, isOverride: Bool) {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        // 1. Reasoning Must Exist
+        if normalized.isEmpty {
+            return (false, "Reasoning cannot be empty.", false)
+        }
+        
+        // 2. Meaningful sentenceish (Blabbering Check)
+        if normalized.components(separatedBy: .whitespaces).count < 2 || normalized.count < 5 {
+            return (false, "Please explain the behavior or issue observed on this line.", false)
+        }
+        
+        let isAdvanced = question.difficulty >= 3
+        let isSwiftOrC = question.language == .swift || question.language == .c
+        let hasError = normalized.contains("error")
+        
+        // 3. SPECIAL OVERRIDE RULE (Swift & C — Level 3 & 4 ONLY)
+        if isAdvanced && isSwiftOrC && hasError {
+            return (true, "Reasoning accepted for investigation.", true)
+        }
+        
+        // 4. Intent Indicators
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
+        
+        let allIndicators = causeEffect + behavior + technical
+        let hasIntent = allIndicators.contains { normalized.contains($0) }
+        
+        if hasIntent {
+            return (true, "Reasoning accepted.", false)
+        } else {
+            return (false, "Reasoning lacks technical intent.", false)
+        }
     }
     
     private func findMatchingOption(userText: String, options: [ShiftOption]) -> (ShiftOption?, Bool) {
@@ -444,6 +506,7 @@ struct ShiftQuestionView: View {
 
 struct ShiftCodeSnippetView: View {
     let question: Question
+    let isAdvanced: Bool
     let lineVerdicts: [Int: ShiftQuestionView.LineVerdict]
     let onLineTap: (Int) -> Void
     
@@ -459,35 +522,38 @@ struct ShiftCodeSnippetView: View {
                     let lineNum = index + 1
                     let verdict = lineVerdicts[lineNum]
                     
-                    HStack(alignment: .top, spacing: 10) {
-                        // Line Number
+                    HStack(alignment: .center, spacing: 12) {
+                        // 1. Fixed Line Number Column (Right-Aligned)
                         Text("\(lineNum)")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
-                            .frame(width: 30, alignment: .trailing)
+                            .frame(width: 35, alignment: .trailing)
                         
-                        // Code Content
+                        // 2. Flexible Code Content Column
                         Text(line)
                             .font(.system(.body, design: .monospaced))
-                            .foregroundColor(Theme.Colors.textPrimary)
+                            .foregroundColor(line.trimmingCharacters(in: .whitespaces).hasPrefix("//") ? Color(hex: "6B7280") : (isAdvanced ? .white : Color(hex: "111111")))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
                             .background(backgroundColor(for: verdict))
-                            .cornerRadius(4)
+                            .cornerRadius(6)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 4)
+                                RoundedRectangle(cornerRadius: 6)
                                     .stroke(borderColor(for: verdict), lineWidth: 1)
                             )
                         
-                        // Status Icon
-                        if let v = verdict {
-                            statusIcon(for: v)
-                        } else {
-                            Image(systemName: "hand.tap")
-                                .font(.caption2)
-                                .foregroundColor(Theme.Colors.textSecondary.opacity(0.3))
+                        // 3. Status Icon Column
+                        ZStack {
+                            if let v = verdict {
+                                statusIcon(for: v)
+                            } else {
+                                Image(systemName: "hand.tap")
+                                    .font(.caption2)
+                                    .foregroundColor(Theme.Colors.textSecondary.opacity(0.3))
+                            }
                         }
+                        .frame(width: 24)
                     }
                     .contentShape(Rectangle()) // Make full row tappable
                     .onTapGesture {
@@ -495,6 +561,10 @@ struct ShiftCodeSnippetView: View {
                     }
                 }
             }
+            .padding()
+            .background(isAdvanced ? Color(hex: "161618") : Color.white)
+            .cornerRadius(Theme.Layout.cornerRadius)
+            .shadow(color: Color.black.opacity(isAdvanced ? 0.4 : 0.08), radius: 8, x: 0, y: 4)
             .padding()
         }
     }
@@ -584,17 +654,22 @@ struct ReasoningSheet: View {
                         .foregroundColor(Theme.Colors.electricCyan)
                         .tracking(1)
                     Spacer()
+                    if isAdvancedFlow && isReasoningUnlocked {
+                        Image(systemName: "lock.open.fill")
+                            .foregroundColor(Theme.Colors.success)
+                            .font(.caption)
+                    }
                     Button(action: onClose) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundColor(.gray)
+                            .foregroundColor(isAdvancedFlow ? Color.gray : Theme.Colors.textSecondary)
                     }
                 }
                 
                 Text("Analyze this line and select ALL concepts that apply.")
                     .font(Theme.Typography.title3)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(isAdvancedFlow ? .white : Theme.Colors.textPrimary)
                 
                 // Reasoning Input
                 VStack(alignment: .leading, spacing: 10) {
@@ -606,13 +681,13 @@ struct ReasoningSheet: View {
                         .frame(height: 100)
                         .scrollContentBackground(.hidden)
                         .padding()
-                        .background(Color.black.opacity(0.3))
+                        .background(isAdvancedFlow ? Color(hex: "2C2C2E") : Theme.Colors.background)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
+                                .stroke(Theme.Colors.electricCyan.opacity(isAdvancedFlow ? 0.6 : 0.3), lineWidth: 1)
                         )
-                        .foregroundColor(.white)
+                        .foregroundColor(isAdvancedFlow ? .white : Theme.Colors.textPrimary)
                         .focused($isFocused)
                 }
                 
@@ -620,17 +695,26 @@ struct ReasoningSheet: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("SELECT HYPOTHESIS CATEGORIES (Multi-Select)")
                         .font(Theme.Typography.caption2)
-                        .foregroundColor(Theme.Colors.textSecondary)
+                        .foregroundColor(lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : Theme.Colors.textSecondary)
                     
+                    if lockCategories {
+                        Text("Finish your reasoning to unlock hypothesis categories.")
+                            .font(.system(size: 10))
+                            .foregroundColor(Theme.Colors.electricCyan.opacity(0.6))
+                            .padding(.bottom, 2)
+                    }
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             ForEach(availableOptions, id: \.id) { option in
                                 Button(action: {
-                                    withAnimation(.spring()) {
-                                        if selectedOptionIds.contains(option.id) {
-                                            selectedOptionIds.remove(option.id)
-                                        } else {
-                                            selectedOptionIds.insert(option.id)
+                                    if !lockCategories {
+                                        withAnimation(.spring()) {
+                                            if selectedOptionIds.contains(option.id) {
+                                                selectedOptionIds.remove(option.id)
+                                            } else {
+                                                selectedOptionIds.insert(option.id)
+                                            }
                                         }
                                     }
                                 }) {
@@ -642,17 +726,20 @@ struct ReasoningSheet: View {
                                     .font(Theme.Typography.caption)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 16)
-                                    .background(isSelected ? Theme.Colors.electricCyan : Color.white.opacity(0.05))
-                                    .foregroundColor(isSelected ? .black : .white)
+                                    .background(isSelected ? Theme.Colors.electricCyan : (isAdvancedFlow ? Color(hex: "2C2C2E") : Theme.Colors.background))
+                                    .foregroundColor(isSelected ? .black : (lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : (isAdvancedFlow ? .white : Theme.Colors.textPrimary)))
                                     .cornerRadius(20)
+                                    .opacity(lockCategories ? 0.4 : 1.0)
                                     .overlay(
                                         Capsule()
-                                            .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
+                                            .stroke(Theme.Colors.electricCyan.opacity(lockCategories ? 0.1 : 0.3), lineWidth: 1)
                                     )
                                 }
+                                .disabled(lockCategories)
                             }
                         }
                     }
+                    .grayscale(lockCategories ? 1.0 : 0.0)
                 }
                 
                 Button(action: {
@@ -661,19 +748,20 @@ struct ReasoningSheet: View {
                         onSubmit(reasoningText, selected)
                     }
                 }) {
-                    Text("VERIFY HYPOTHESIS")
+                    Text(buttonLabel)
                         .font(Theme.Typography.headline)
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(canSubmit ? Theme.Colors.electricCyan : Color.gray)
+                        .background(canSubmit ? Theme.Colors.electricCyan : (isAdvancedFlow ? Color(hex: "48484A") : Color.gray))
                         .cornerRadius(12)
                 }
                 .disabled(!canSubmit)
             }
             .padding(30)
-            .background(BlurView(style: .systemThinMaterialDark))
+            .background(isAdvancedFlow ? Color(hex: "1C1C1E") : Theme.Colors.secondaryBackground)
             .cornerRadius(30)
+            .shadow(color: Color.black.opacity(isAdvancedFlow ? 0.6 : 0.15), radius: 30, x: 0, y: 15)
             .padding(.bottom, 20)
         }
         .onAppear {
@@ -682,6 +770,46 @@ struct ReasoningSheet: View {
     }
     
     private var canSubmit: Bool {
-        !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty && !selectedOptionIds.isEmpty
+        if isAdvancedFlow {
+            return isReasoningUnlocked && !selectedOptionIds.isEmpty
+        }
+        return !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty && !selectedOptionIds.isEmpty
+    }
+    
+    private var isAdvancedFlow: Bool {
+        question.difficulty >= 3 && (question.language == .swift || question.language == .c)
+    }
+    
+    private var lockCategories: Bool {
+        isAdvancedFlow && !isReasoningUnlocked
+    }
+    
+    private var isReasoningUnlocked: Bool {
+        let normalized = reasoningText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        // 1. Mandatory length check
+        if normalized.components(separatedBy: .whitespaces).count < 2 || normalized.count < 5 {
+            return false
+        }
+        
+        // 2. Special Override rule
+        if normalized.contains("error") {
+            return true
+        }
+        
+        // 3. Intent indicators
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
+        
+        let allIndicators = causeEffect + behavior + technical
+        return allIndicators.contains { normalized.contains($0) }
+    }
+    
+    private var buttonLabel: String {
+        if isAdvancedFlow && !isReasoningUnlocked {
+            return "EXPLAIN BEFORE INVESTIGATING"
+        }
+        return "VERIFY HYPOTHESIS"
     }
 }

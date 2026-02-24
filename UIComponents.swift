@@ -289,82 +289,112 @@ struct CoinScatterView: View {
     }
 }
 
-struct StreakFireView: View {
-    let streak: Int
-    @State private var pulseAmount: CGFloat = 0.0
+
+struct MovingFlameStreakIcon: View {
+    let size: CGFloat
+    let isActive: Bool
     
-    // Intensity configurations
-    private var baseColor: Color {
-        if streak == 0 { return .gray.opacity(0.3) }
-        if streak >= 10 { return .orange }
-        if streak >= 5 { return Theme.Colors.gold }
-        return Theme.Colors.warning
-    }
+    @State private var flicker: Double = 0.0
+    @State private var sway: Double = 0.0
+    @State private var lift: Double = 0.0
     
-    private var glowColor: Color {
-        if streak >= 10 { return .red }
-        if streak >= 5 { return .orange }
-        return Theme.Colors.gold
-    }
-    
-    private var animationDuration: Double {
-        if streak >= 10 { return 0.5 }
-        if streak >= 5 { return 0.8 }
-        return 1.2
-    }
-    
-    private var glowRadius: CGFloat {
-        if streak == 0 { return 0 }
-        if streak >= 10 { return 10 }
-        if streak >= 5 { return 6 }
-        return 3
+    private var flameColor: LinearGradient {
+        LinearGradient(
+            colors: [.red, .orange, .yellow, .white],
+            startPoint: .bottom,
+            endPoint: .top
+        )
     }
 
     var body: some View {
         ZStack {
-            if streak > 0 {
-                // Outer Glow
-                Image(systemName: "flame.fill")
-                    .foregroundColor(glowColor)
-                    .blur(radius: glowRadius)
-                    .opacity(0.3 + (pulseAmount * 0.4))
-                    .scaleEffect(1.0 + (pulseAmount * 0.15))
+            if isActive {
+                // Background Glow
+                Circle()
+                    .fill(RadialGradient(
+                        colors: [.orange.opacity(0.4), .clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: size * 0.8
+                    ))
+                    .frame(width: size * 2, height: size * 2)
+                    .scaleEffect(0.8 + flicker * 0.2)
                 
-                // Secondary core glow for high streaks
-                if streak >= 5 {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(streak >= 10 ? .yellow : .white)
-                        .blur(radius: 2)
-                        .opacity(0.1 + (pulseAmount * 0.2))
-                }
+                // Outer Heat Layer (Red/Orange)
+                flameLayer(color: .red, offset: -2, scale: 1.1, speed: 0.6)
+                    .opacity(0.4)
+                    .blur(radius: 2)
+                
+                // Mid Fire Layer (Orange)
+                flameLayer(color: .orange, offset: -1, scale: 1.0, speed: 0.45)
+                    .opacity(0.8)
+                
+                // Core Flame (Yellow/White)
+                flameLayer(color: .yellow, offset: 0, scale: 0.8, speed: 0.3)
+                    .overlay(
+                        Image(systemName: "flame.fill")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .foregroundStyle(.white)
+                            .scaleEffect(0.5 + flicker * 0.1)
+                            .offset(y: size * 0.1)
+                            .blur(radius: 1)
+                    )
+            } else {
+                Image(systemName: "flame.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .foregroundColor(.gray.opacity(0.3))
             }
-            
-            // Main Flame Icon
-            Image(systemName: "flame.fill")
-                .foregroundColor(baseColor)
-                .scaleEffect(1.0 + (pulseAmount * (streak >= 10 ? 0.12 : (streak >= 5 ? 0.08 : 0.04))))
-                .offset(y: streak >= 5 ? -pulseAmount * 2 : 0)
-                .shadow(color: glowColor.opacity(streak > 0 ? 0.5 : 0), radius: streak >= 5 ? 4 : 2)
         }
+        .frame(width: size, height: size)
         .onAppear {
-            updateAnimation()
+            if isActive {
+                startAnimations()
+            }
         }
-        .onChange(of: streak) { _, _ in
-            updateAnimation()
+        .onChange(of: isActive) { _, newValue in
+            if newValue {
+                startAnimations()
+            }
         }
     }
     
-    private func updateAnimation() {
-        if streak > 0 {
-            // Reset and restart animation to sync with new intensity
-            pulseAmount = 0.0
-            withAnimation(.easeInOut(duration: animationDuration).repeatForever(autoreverses: true)) {
-                pulseAmount = 1.0
-            }
-        } else {
-            withAnimation(.easeOut(duration: 0.3)) {
-                pulseAmount = 0.0
-            }
+    private func flameLayer(color: Color, offset: CGFloat, scale: CGFloat, speed: Double) -> some View {
+        Image(systemName: "flame.fill")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: size * scale, height: size * scale)
+            .foregroundStyle(color)
+            .scaleEffect(x: 1.0 + (sway * 0.05), y: 1.0 + (flicker * 0.15), anchor: .bottom)
+            .rotationEffect(.degrees(sway * 5), anchor: .bottom)
+            .offset(x: sway * 2, y: offset + (lift * -3))
+            .animation(.easeInOut(duration: speed).repeatForever(autoreverses: true), value: flicker)
+            .animation(.easeInOut(duration: speed * 1.5).repeatForever(autoreverses: true), value: sway)
+    }
+    
+    private func startAnimations() {
+        withAnimation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true)) {
+            flicker = 1.0
         }
+        withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+            sway = 1.0
+        }
+        withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) {
+            lift = 1.0
+        }
+    }
+}
+
+struct StreakFireView: View {
+    let streak: Int
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    var body: some View {
+        MovingFlameStreakIcon(
+            size: horizontalSizeClass == .compact ? 16 : 22,
+            isActive: streak > 0
+        )
     }
 }
