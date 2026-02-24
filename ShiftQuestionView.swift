@@ -27,6 +27,7 @@ struct ShiftQuestionView: View {
     @State private var feedbackMessage: String? = nil
     @State private var showFeedback = false
     @State private var feedbackType: FeedbackType = .neutral
+    @State private var hasTriggeredAppearAnimation = false
     
     enum FeedbackType {
         case success, error, neutral
@@ -80,6 +81,30 @@ struct ShiftQuestionView: View {
                     resetStateForNewQuestion()
                 }
                 
+                // Expected Output Section
+                if let output = displayOutput {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("EXPECTED OUTPUT")
+                            .font(Theme.Typography.caption2)
+                            .foregroundColor(Theme.Colors.textSecondary)
+                            .padding(.leading)
+                        
+                        Text(output)
+                            .font(Theme.Typography.codeFont)
+                            .foregroundColor(Theme.Colors.textPrimary)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.Colors.babyPowder)
+                            .cornerRadius(Theme.Layout.cornerRadius)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                                    .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                            )
+                            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
+                }
                 
                 // Instruction Footer
                 VStack(spacing: 4) {
@@ -163,12 +188,23 @@ struct ShiftQuestionView: View {
         .onAppear {
             // Ensure state is clean on load
             resetStateForNewQuestion()
+            
+            if !hasTriggeredAppearAnimation {
+                gameManager.triggerScatter()
+                hasTriggeredAppearAnimation = true
+            }
         }
     }
     
     // MARK: - Logic
     
-    
+    private var displayOutput: String? {
+        if let firstTest = currentQuestion.hiddenTests?.first, !firstTest.expectedOutput.isEmpty {
+            return firstTest.expectedOutput
+        }
+        return nil
+    }
+
     private func resetStateForNewQuestion() {
         lineVerdicts = [:]
         selectedLine = nil

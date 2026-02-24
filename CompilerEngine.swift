@@ -42,7 +42,8 @@ class CompilerEngine {
                         feedback: "❌ Level 1 – Swift Failed\nYour code is missing the required structure or fix.\nCheck the riddle for a hint!",
                         difficulty: 1,
                         coinsEarned: 0,
-                        xpEarned: 0
+                        xpEarned: 0,
+                        userSelectedCategory: question.category.rawValue
                     )
                 }
             }
@@ -193,16 +194,12 @@ class CompilerEngine {
         let complexityScore = analyzeComplexity(code: code, language: question.language)
         
         // 7. Dynamic Scoring Logic
-        let logicScore = (Double(passedTestCount) / Double(totalTests)) * 70.0
-        score = Int(logicScore) + 20 // Base 20 for compiling
-        
-        if passedHiddenTests && !hardcodingDetected {
-             score = max(score, 90) 
-        }
-        
-        if complexityScore.optimizedFuncs {
-            score += 10
-            feedbackItems.append("✨ Optimized Approach")
+        if question.difficulty <= 2 {
+            score = passedHiddenTests && !hardcodingDetected ? 100 : 0
+        } else {
+            let percentage = (Double(passedTestCount) / Double(totalTests)) * 100
+            // Snap to 0, 20, 40, 60, 80, 100
+            score = Int((percentage / 20.0).rounded()) * 20
         }
         
         score = max(0, min(100, score))
@@ -218,7 +215,7 @@ class CompilerEngine {
         }
         
         let finalFeedback = feedbackItems.joined(separator: "\n")
-        let status: EvaluationStatus = (userLevel == .failed) ? .incorrect : .correct
+        let status: EvaluationStatus = (score == 100) ? .correct : .incorrect
         
         return EvaluationResult(
             questionID: question.id,
@@ -231,8 +228,9 @@ class CompilerEngine {
             feedback: finalFeedback,
             difficulty: question.difficulty,
             testResults: testResults,
-            coinsEarned: status == .correct ? 1 : 0,
-            xpEarned: status == .correct ? 10 : 0
+            coinsEarned: score == 100 ? 1 : 0,
+            xpEarned: score == 100 ? 10 : 0,
+            userSelectedCategory: question.category.rawValue
         )
     }
     
@@ -309,11 +307,13 @@ class CompilerEngine {
             complexity: .medium,
             edgeCaseHandling: isCorrect,
             hardcodingDetected: false,
-            feedback: isCorrect ? "Correct! You identified the error: \(expectedErrorFragment)" : "Incorrect diagnosis. Try again.",
+            feedback: isCorrect ? "Correct Diagnosis: \(expectedErrorFragment)" : "Incorrect Diagnosis: \(userChoice)",
             difficulty: question.difficulty,
             testResults: [testResult],
             coinsEarned: isCorrect ? 1 : 0,
-            xpEarned: isCorrect ? 10 : 0
+            xpEarned: isCorrect ? 10 : 0,
+            userSelectedOptionIndex: selectedOpt,
+            userSelectedCategory: userChoice
         )
     }
 
@@ -497,7 +497,8 @@ class CompilerEngine {
                 difficulty: 1,
                 testResults: logicResult.details,
                 coinsEarned: 0,
-                xpEarned: 0
+                xpEarned: 0,
+                userSelectedCategory: question.category.rawValue
             )
         }
         
@@ -518,7 +519,8 @@ class CompilerEngine {
             difficulty: 1,
             testResults: logicResult.details,
             coinsEarned: 1,
-            xpEarned: 10
+            xpEarned: 10,
+            userSelectedCategory: question.category.rawValue
         )
     }
     

@@ -10,6 +10,8 @@ struct QuestionWorkspaceView: View {
     @State private var showingExplanation: Int? = nil
     @State private var showSelectionWarning = false // For handling Run without selection
     @State private var showDetailedResult = false
+    @State private var animateContent = false
+    @State private var hasTriggeredAppearAnimation = false
     
     @Environment(\.dismiss) var dismiss
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
@@ -99,6 +101,15 @@ struct QuestionWorkspaceView: View {
                 userCode = question.initialCode
                 selectedOption = nil
                 showSelectionWarning = false
+                
+                // Trigger entrance animation
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    animateContent = true
+                    if !hasTriggeredAppearAnimation {
+                        gameManager.triggerScatter()
+                        hasTriggeredAppearAnimation = true
+                    }
+                }
             }
             .onChange(of: gameManager.executionState) { _, newState in
                 if newState == .correct || (caseError(newState) != nil) {
@@ -148,7 +159,7 @@ struct QuestionWorkspaceView: View {
             }
             
             if question.difficulty == 2 {
-                // Level 2 HIT Section: Always Visible
+                // Level 2 HIT Section: Already Always Visible
                 Text(question.riddle)
                     .font(Theme.Typography.body)
                     .fontWeight(.medium)
@@ -161,27 +172,12 @@ struct QuestionWorkspaceView: View {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Theme.Colors.electricCyan.opacity(0.2), lineWidth: 1)
                     )
-            } else if gameManager.unlockedHints.contains(question.title) {
+            } else {
+                // All other levels: Show riddle automatically without lock
                 Text(question.riddle)
                     .font(Theme.Typography.body)
                     .italic()
                     .foregroundColor(Theme.Colors.textPrimary)
-            } else {
-                Button(action: {
-                    showConceptQuestion = true
-                }) {
-                    HStack {
-                        Text("Unlock Clue")
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(Theme.Colors.textSecondary)
-                        Image(systemName: "lock.fill")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Theme.Colors.background)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .cornerRadius(12)
-                }
             }
         }
         .padding(Theme.Layout.padding)
@@ -189,6 +185,7 @@ struct QuestionWorkspaceView: View {
         .cornerRadius(Theme.Layout.cornerRadius)
         .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         .padding(.horizontal)
+        .entranceAnimation(delay: 0.1, isVisible: animateContent, isEnabled: question.levelNumber <= 2)
     }
     
     private var codeEditorView: some View {
@@ -212,8 +209,35 @@ struct QuestionWorkspaceView: View {
             )
             .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
             .padding(.horizontal)
+            .entranceAnimation(delay: 0.2, isVisible: animateContent, isEnabled: question.levelNumber <= 2)
             
-            Spacer()
+            // Expected Output Section
+            if let output = displayOutput {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("EXPECTED OUTPUT")
+                        .font(Theme.Typography.caption2)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                        .padding(.leading)
+                    
+                    Text(output)
+                        .font(Theme.Typography.codeFont)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.Colors.babyPowder) // Using the new theme color
+                        .cornerRadius(Theme.Layout.cornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                                .stroke(Color.gray.opacity(0.1), lineWidth: 1)
+                        )
+                        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+                }
+                .padding(.horizontal)
+                .padding(.top, 16)
+                .entranceAnimation(delay: 0.3, isVisible: animateContent, isEnabled: question.levelNumber <= 2)
+            }
+            
+            Spacer().frame(height: 100)
         }
     }
     
@@ -403,11 +427,11 @@ struct QuestionWorkspaceView: View {
         }
     }
     
-    private var displayOutput: String {
-        if let firstTest = question.hiddenTests?.first {
-            return firstTest.expectedOutput.isEmpty ? "No Output" : firstTest.expectedOutput
+    private var displayOutput: String? {
+        if let firstTest = question.hiddenTests?.first, !firstTest.expectedOutput.isEmpty {
+            return firstTest.expectedOutput
         }
-        return "No Output"
+        return nil
     }
 
     private var executionButton: some View {
@@ -446,6 +470,7 @@ struct QuestionWorkspaceView: View {
                 .shadow(color: Theme.Colors.electricCyan.opacity(0.4), radius: 10, x: 0, y: 5)
                 .scaleEffect(gameManager.executionState == .running ? 0.95 : 1.0)
                 .animation(.spring(), value: gameManager.executionState)
+                .entranceAnimation(delay: 0.4, isVisible: animateContent, isEnabled: question.levelNumber <= 2)
             }
             .disabled(gameManager.executionState == .running)
             

@@ -52,6 +52,26 @@ class GameManager: ObservableObject {
     @Published var shiftThoughts: [String: String] = [:]
     @Published var shiftFoundOptionIds: [String: Set<UUID>] = [:] // QuestionTitle -> Set<OptionID>
     
+    // Adaptive Tracking
+    @Published var mistakePatterns: [QuestionCategory: Int] = [:]
+    
+    // Decorative Triggers
+    @Published var scatterTrigger: UUID = UUID()
+    @Published var hasTriggeredLaunchAnimation = false
+    
+    // Developer Storage
+    @Published var savedCorrectCode: [String: String] = [:]
+    
+    func triggerScatter() {
+        scatterTrigger = UUID()
+    }
+    
+    // Specifically for pass reward to ensure strict logic
+    func triggerPassReward() {
+        // Trigger sound and animation specifically for reward
+        triggerScatter()
+    }
+    
     private let shiftThoughtsKey = "debug_lab_shift_thoughts"
     private let shiftFoundKey = "debug_lab_shift_found"
     
@@ -92,6 +112,22 @@ class GameManager: ObservableObject {
         checkDailyHintReset()
         debugUnlockAllLevels() // Enabled for testing
         // enforceStrictLevelLocks()
+        auditExpectedOutputs()
+    }
+    
+    private func auditExpectedOutputs() {
+        print("--- MISSING EXPECTED OUTPUTS ---")
+        for language in [Language.swift, Language.c] {
+            print("Language: \(language.rawValue)")
+            for level in Question.levels(for: language) {
+                for (index, question) in level.questions.enumerated() {
+                    if question.isMissingExpectedOutput {
+                        print("Level \(level.number) – Question \(index + 1)")
+                    }
+                }
+            }
+        }
+        print("--------------------------------")
     }
     
     private func populateQuestionMetadata() {
@@ -328,8 +364,25 @@ class GameManager: ObservableObject {
             self.lastEvaluationResult = result
             
             if result.isSuccess {
-                self.handleCorrectSubmission()
+                self.handleCorrectSubmission(code: userCode)
             } else {
+                // Adaptive Tracking: Log the mistake
+                if let selectedCategory = result.userSelectedCategory {
+                    // Level 2 direct selection mapping
+                    for category in QuestionCategory.allCases {
+                        if selectedCategory.lowercased().contains(category.rawValue.lowercased()) {
+                            self.mistakePatterns[category, default: 0] += 1
+                            break
+                        }
+                    }
+                } else {
+                    // Generic question category tracking
+                    self.mistakePatterns[self.currentQuestion.category, default: 0] += 1
+                }
+                
+                // Trigger reordering immediately on failure detection
+                self.applyAdaptiveReordering()
+                
                 let errorMessage = result.message
                 self.executionState = .error(errorMessage)
                 self.streak = 0
@@ -344,7 +397,15 @@ class GameManager: ObservableObject {
         }
     }
     
-    private func handleCorrectSubmission() {
+    private func handleCorrectSubmission(code: String) {
+        // Save the correct code for developer history
+        savedCorrectCode[currentQuestion.title] = code
+        
+        // Clear pattern on success to allow progression
+        if let weakness = getWeakness(), currentQuestion.category == weakness {
+            mistakePatterns[weakness] = 0
+        }
+        
         // Only reward if not already completed
         if !completedQuestionIds.contains(currentQuestion.title) {
             completedQuestionIds.insert(currentQuestion.title)
@@ -354,9 +415,6 @@ class GameManager: ObservableObject {
             captureHistorySnapshot() // Capture progress for graph
             totalXP += 10 // Fixed XP per question
             
-            // Contract: "Attempts reset only after correct solution"
-            // We'll keep the history but maybe reset for display if re-entering? 
-            // The requirement says "Reset Attempts". I will set it to 0.
             attempts[currentQuestion.title] = 0
             
             // Live Activity Success
@@ -365,10 +423,42 @@ class GameManager: ObservableObject {
             }
             
             checkLevelUnlock()
+            
+            // Adaptive Injection
+            applyAdaptiveReordering()
+            
+            // Decorative Success Feedback - Trigger ONCE when coins are earned
+            triggerPassReward()
         }
         
         executionState = .correct
         saveProgress()
+    }
+    
+    private func getWeakness() -> QuestionCategory? {
+        let sorted = mistakePatterns.sorted { $0.value > $1.value }
+        if let top = sorted.first, top.value >= 2 { // Pattern detected after 2 mistakes
+            return top.key
+        }
+        return nil
+    }
+    
+    private func applyAdaptiveReordering() {
+        guard let weakness = getWeakness() else { return }
+        
+        let nextIdx = currentQuestionIndex + 1
+        guard nextIdx < levels[currentLevelIndex].questions.count else { return }
+        
+        // Find a future question that matches the weakness
+        for i in (nextIdx + 1)..<levels[currentLevelIndex].questions.count {
+            if levels[currentLevelIndex].questions[i].category == weakness {
+                // Swap but maintain same difficulty tier (metadata check would go here)
+                let temp = levels[currentLevelIndex].questions[nextIdx]
+                levels[currentLevelIndex].questions[nextIdx] = levels[currentLevelIndex].questions[i]
+                levels[currentLevelIndex].questions[i] = temp
+                break
+            }
+        }
     }
     
     private func captureHistorySnapshot() {
@@ -538,6 +628,9 @@ class GameManager: ObservableObject {
             Task { @MainActor in
                 LiveActivityManager.shared.endWithSuccess(xp: 50, coins: 5, streak: self.streak)
             }
+
+            // Decorative Success Feedback
+            triggerPassReward()
         }
     }
     

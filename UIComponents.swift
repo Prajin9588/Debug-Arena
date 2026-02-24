@@ -142,6 +142,7 @@ struct WorkspaceHeader: View {
     let coins: Int
     let onBack: () -> Void
     
+    @EnvironmentObject var gameManager: GameManager
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -201,8 +202,90 @@ struct WorkspaceHeader: View {
             .background(Theme.Colors.babyPowder)
             .clipShape(Capsule())
             .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
+            .overlay(
+                CoinScatterView(trigger: gameManager.scatterTrigger)
+            )
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+    }
+}
+
+// MARK: - Entrance Animation
+struct EntranceAnimation: ViewModifier {
+    let delay: Double
+    let isVisible: Bool
+    let isEnabled: Bool
+    
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .opacity(isVisible ? 1 : 0)
+                .offset(y: isVisible ? 0 : 35)
+                .animation(.easeOut(duration: 0.6).delay(delay), value: isVisible)
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    func entranceAnimation(delay: Double, isVisible: Bool, isEnabled: Bool) -> some View {
+        self.modifier(EntranceAnimation(delay: delay, isVisible: isVisible, isEnabled: isEnabled))
+    }
+}
+
+// MARK: - Decorative Animations
+struct CoinScatterView: View {
+    let trigger: UUID
+    @State private var coins: [CoinParticle] = []
+    
+    struct CoinParticle: Identifiable {
+        let id = UUID()
+        var offset: CGSize
+        var opacity: Double
+        var scale: CGFloat
+    }
+    
+    var body: some View {
+        ZStack {
+            ForEach(coins) { coin in
+                BugCoin(size: 16)
+                    .scaleEffect(coin.scale)
+                    .offset(coin.offset)
+                    .opacity(coin.opacity)
+            }
+        }
+        .onChange(of: trigger) { _, _ in
+            spawnCoins()
+        }
+    }
+    
+    private func spawnCoins() {
+        let newCoins = (0..<10).map { _ in
+            CoinParticle(offset: .zero, opacity: 0, scale: 0.4)
+        }
+        self.coins = newCoins
+        
+        SoundManager.shared.playCoinScatter()
+        
+        for i in 0..<newCoins.count {
+            withAnimation(.easeOut(duration: Double.random(in: 0.8...1.2))) {
+                coins[i].offset = CGSize(
+                    width: CGFloat.random(in: -70...70),
+                    height: CGFloat.random(in: 50...120)
+                )
+                coins[i].opacity = 1.0
+                coins[i].scale = 1.0
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                withAnimation(.easeIn(duration: 0.4)) {
+                    if coins.indices.contains(i) {
+                        coins[i].opacity = 0
+                    }
+                }
+            }
+        }
     }
 }

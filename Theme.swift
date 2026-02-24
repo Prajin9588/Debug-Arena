@@ -20,6 +20,8 @@ struct Theme {
         // Status
         static let success = Color(hex: "34C759") // Soft Green
         static let error = Color(hex: "FF3B30") // Soft Red
+        static let softGreen = Color(red: 0.20, green: 0.78, blue: 0.35, opacity: 0.8) // Desaturated Professional Green
+        static let mutedRed = Color(red: 0.92, green: 0.34, blue: 0.34, opacity: 0.8) // Muted Informative Red
         static let warning = Color(hex: "FF9500") // Orange
         static let gold = Color(hex: "FFCC00") // Gold
         

@@ -82,6 +82,16 @@ struct ShiftData: Codable, Equatable {
     let errorLines: [Int: ShiftLineDetail] // Line Number -> Detail
 }
 
+enum QuestionCategory: String, Codable, CaseIterable {
+    case type = "Type System"
+    case pointer = "Memory Reference"
+    case memory = "Memory Safety"
+    case logic = "Logical Condition"
+    case boundary = "Boundary Logic"
+    case structure = "Code Structure"
+    case unknown = "General"
+}
+
 struct Question: Identifiable, Equatable {
     let id: UUID
     let title: String // e.g., "Level 1 – Question 18"
@@ -91,6 +101,7 @@ struct Question: Identifiable, Equatable {
     let difficulty: Int
     var levelNumber: Int
     var questionNumber: Int
+    let category: QuestionCategory
     
     // Hint System
     let riddle: String // "Riddle must hint toward the fix"
@@ -139,7 +150,8 @@ struct Question: Identifiable, Equatable {
          expectedErrorType: ErrorType? = nil,
          hiddenTests: [HiddenTestCase]? = nil,
          brokenCode: String? = nil,
-         shiftData: ShiftData? = nil) {
+         shiftData: ShiftData? = nil,
+         category: QuestionCategory = .unknown) {
         self.id = id
         self.title = title
         self.description = description
@@ -150,6 +162,7 @@ struct Question: Identifiable, Equatable {
         self.conceptExplanation = conceptExplanation
         self.levelNumber = levelNumber
         self.questionNumber = questionNumber
+        self.category = category
         
         // Default values if not provided (to avoid breaking existing data)
         self.conceptQuestion = conceptQuestion ?? "What is the primary concept involved in this bug?"
@@ -170,6 +183,12 @@ struct Question: Identifiable, Equatable {
     
     func validate(userCode: String) -> Bool {
         return userCode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == correctCode.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+    
+    // Audit check for missing expected output
+    var isMissingExpectedOutput: Bool {
+        guard let tests = hiddenTests, !tests.isEmpty else { return true }
+        return tests.first?.expectedOutput.isEmpty ?? true
     }
 }
 
@@ -237,7 +256,7 @@ extension Question {
             initialCode: "func add(_ a: Int, _ b: Int) -> Int {\n    let result = a + b\n    return result\n}",
             correctCode: "",
             difficulty: 3,
-            riddle: "A simple sum, but is it the right outcome?",
+            riddle: "Review the logic carefully.",
             conceptExplanation: "Shift the focus to the correct logic.",
             language: .swift,
             shiftData: ShiftData(
@@ -1259,7 +1278,7 @@ extension Question {
             initialCode: "var maxSum = Int.min\nfunc maxPathSum(_ root: TreeNode?) -> Int {\n    guard let root = root else { return 0 }\n    let left = maxPathSum(root.left)\n    let right = maxPathSum(root.right)\n    let price = root.val + left + right\n    maxSum = max(maxSum, price)\n    return price\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "You can only pick one path to go back.",
+            riddle: "Finding the best route.",
             conceptExplanation: "Path vs Subtree sum.",
             language: .swift,
             shiftData: ShiftData(
@@ -1294,7 +1313,7 @@ extension Question {
             initialCode: "func longestValidParentheses(_ s: String) -> Int {\n    var stack = [-1]\n    var maxLen = 0\n    for (i, char) in s.enumerated() {\n        if char == \"(\" { stack.append(i) }\n        else {\n            stack.removeLast()\n            if stack.isEmpty { stack.append(i) }\n            else { maxLen = max(maxLen, i - stack.last!) }\n        }\n    }\n    return maxLen\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "I keep track of where the balance broke.",
+            riddle: "Matching pairs.",
             conceptExplanation: "Stack tracks indices.",
             language: .swift,
             shiftData: ShiftData(
@@ -1329,7 +1348,7 @@ extension Question {
             initialCode: "func findMedian(_ nums1: [Int], _ nums2: [Int]) -> Double {\n    let merged = (nums1 + nums2).sorted()\n    let mid = merged.count / 2\n    if merged.count % 2 == 0 {\n        return Double(merged[mid] + merged[mid - 1]) / 2 // Integer division?\n    } else {\n        return Double(merged[mid])\n    }\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "I look for the center of two worlds.",
+            riddle: "Middle ground.",
             conceptExplanation: "Integer division truncation.",
             language: .swift,
             shiftData: ShiftData(
@@ -1358,7 +1377,7 @@ extension Question {
             initialCode: "func minDistance(_ word1: String, _ word2: String) -> Int {\n    let m = word1.count, n = word2.count\n    var dp = [[Int]](repeating: [Int](repeating: 0, count: n), count: m)\n    for i in 0...m { dp[i][0] = i }\n    for j in 0...n { dp[0][j] = j }\n    // ... loops ...\n    return dp[m][n]\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "How many steps to become someone else?",
+            riddle: "Transformations.",
             conceptExplanation: "DP Table Initialization.",
             language: .swift,
             shiftData: ShiftData(
@@ -1454,7 +1473,7 @@ extension Question {
                 initialCode: "void cleanup(int* ptr) {\n    free(ptr);\n    free(ptr);\n}",
                 correctCode: "",
                 difficulty: 4,
-                riddle: "I free what is already gone.",
+                riddle: "Reviewing history.",
                 conceptExplanation: "Memory management rules.",
                 language: .c,
                 shiftData: ShiftData(

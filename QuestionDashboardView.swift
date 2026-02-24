@@ -5,6 +5,7 @@ struct QuestionDashboardView: View {
     @Environment(\.dismiss) var dismiss
     
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @State private var hasTriggeredAppearAnimation = false
     
     var columns: [GridItem] {
         let count = horizontalSizeClass == .regular ? 8 : 4
@@ -101,6 +102,12 @@ struct QuestionDashboardView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            if !hasTriggeredAppearAnimation {
+                gameManager.triggerScatter()
+                hasTriggeredAppearAnimation = true
+            }
+        }
     }
 }
 
@@ -141,6 +148,9 @@ struct DashboardHeader: View {
                         .font(Theme.Typography.title3) // Larger font
                         .foregroundColor(Theme.Colors.textPrimary) // Black on White
                 }
+                .overlay(
+                    CoinScatterView(trigger: gameManager.scatterTrigger)
+                )
             }
             
             VStack(alignment: .leading, spacing: 10) {

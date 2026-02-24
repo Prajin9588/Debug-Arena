@@ -130,6 +130,8 @@ struct HomeHeader: View {
     let coins: Int
     @Binding var selectedTab: Int // NEW: Binding to switch tabs
     
+    @EnvironmentObject var gameManager: GameManager
+    
     var body: some View {
         HStack {
             // Left: Profile (Interactive)
@@ -198,10 +200,19 @@ struct HomeHeader: View {
                 .background(Theme.Colors.babyPowder)
                 .clipShape(Capsule())
                 .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
+                .overlay(
+                    CoinScatterView(trigger: gameManager.scatterTrigger)
+                )
             }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
+        .onAppear {
+            if !gameManager.hasTriggeredLaunchAnimation {
+                gameManager.triggerScatter()
+                gameManager.hasTriggeredLaunchAnimation = true
+            }
+        }
     }
 }
 
