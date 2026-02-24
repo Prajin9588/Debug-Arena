@@ -142,16 +142,35 @@ struct ShiftQuestionView: View {
             if let result = evaluationResult {
                 ZStack {
                     Color.black.opacity(0.6).ignoresSafeArea()
-                    EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
-                        .padding()
-                        .onTapGesture {
-                            // If passed, dismiss or move on
-                            if result.status == .correct {
-                                dismiss()
-                            } else {
-                                evaluationResult = nil
+                    VStack(spacing: 20) {
+                        EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
+                        
+                        if result.status == .correct {
+                            Button(action: { dismiss() }) {
+                                HStack {
+                                    Image(systemName: "terminal.fill")
+                                    Text("COMMIT FIX")
+                                }
+                                .font(Theme.Typography.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Theme.Colors.primaryGradient)
+                                .cornerRadius(12)
+                            }
+                        } else {
+                            Button(action: { evaluationResult = nil }) {
+                                Text("TRY AGAIN")
+                                    .font(Theme.Typography.headline)
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Theme.Colors.action)
+                                    .cornerRadius(12)
                             }
                         }
+                    }
+                    .padding()
                 }
                 .zIndex(20)
             }

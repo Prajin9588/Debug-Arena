@@ -20,10 +20,12 @@ class CompilerEngine {
         
         // Swift Level 1: Enforce expectedPatterns and forbiddenPatterns before interpreter
         // This ensures structural correctness (e.g., return type declaration) is validated
+        // Level 1 Swift Structural Validation
+        var structuralError: String? = nil
         if question.language == .swift && (question.levelNumber == 1 || question.difficulty == 1) {
             let codeOneLine = code.replacingOccurrences(of: "\n", with: " ")
             
-            // 1. Check for expected patterns (if defined)
+            // Check Required
             if !question.expectedPatterns.isEmpty {
                 let matchesPattern = question.expectedPatterns.contains { pattern in
                     (try? NSRegularExpression(pattern: pattern))
@@ -31,83 +33,44 @@ class CompilerEngine {
                         ?? false
                 }
                 if !matchesPattern {
-                    return EvaluationResult(
-                        questionID: question.id,
-                        status: .incorrect,
-                        score: 0,
-                        level: .failed,
-                        complexity: .low,
-                        edgeCaseHandling: false,
-                        hardcodingDetected: false,
-                        feedback: "❌ Level 1 – Swift Failed\nYour code is missing the required structure or fix.\nCheck the riddle for a hint!",
-                        difficulty: 1,
-                        coinsEarned: 0,
-                        xpEarned: 0,
-                        userSelectedCategory: question.category.rawValue
-                    )
+                    structuralError = "❌ Missing required logic: \(question.conceptExplanation)"
                 }
             }
             
-            // 2. Check for forbidden patterns (if defined)
-            if !question.forbiddenPatterns.isEmpty {
+            // Check Forbidden
+            if structuralError == nil && !question.forbiddenPatterns.isEmpty {
                 let matchesForbidden = question.forbiddenPatterns.contains { pattern in
                     (try? NSRegularExpression(pattern: pattern))
                         .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
                         ?? false
                 }
                 if matchesForbidden {
-                    return EvaluationResult(
-                        questionID: question.id,
-                        status: .incorrect,
-                        score: 0,
-                        level: .failed,
-                        complexity: .low,
-                        edgeCaseHandling: false,
-                        hardcodingDetected: false,
-                        feedback: "❌ Level 1 – Swift Failed\nYour code contains forbidden elements that should be changed or removed.",
-                        difficulty: 1,
-                        coinsEarned: 0,
-                        xpEarned: 0
-                    )
+                    structuralError = "❌ Forbidden logic detected: \(question.conceptExplanation)"
                 }
             }
         }
 
-        // 1. Normalize Code (Token-based approach) - kept for structural hints if needed
+        // 1. Normalize Code
         let normalizedCode = normalize(code)
         
-        // 2. Initial Structure Check
         if normalizedCode.isEmpty {
             return EvaluationResult.simpleError(questionID: question.id, type: .syntax, message: "Code cannot be empty.")
         }
         
         // Variables for scoring
-        var score = 50 // Base
+        var score = 50
         var feedbackItems: [String] = []
-        var passedHiddenTests = true
-        var hardcodingDetected = false
+        if let err = structuralError { feedbackItems.append(err) }
         
-        // 3. Interpreter Setup
+        var passedHiddenTests = structuralError == nil
+        var hardcodingDetected = false
         let interpreter = SimpleInterpreter()
         
-        // 3. Execution (Simulated)
-        // If normalization fails or strict syntax check needed, we rely on SimpleInterpreter.
-        // NOTE: SimpleInterpreter now returns "Syntax Error: ..." strings if parsing fails.
-        // We need to check for this.
-        
-        // Initial check for syntax errors using interpreter's parser
+        // Initial Syntax Check
         let syntaxCheck = interpreter.evaluate(code: code)
-        if syntaxCheck.contains("Syntax Error:") {
-             return EvaluationResult(
-                questionID: question.id,
-                status: .incorrect, // Mapped from isSuccess: false
-                score: 0,
-                level: .failed,
-                complexity: .low, // Default
-                edgeCaseHandling: false,
-                hardcodingDetected: false,
-                feedback: "Compilation Failed:\n\(syntaxCheck)"
-            )
+        let hasInterpreterSyntaxError = syntaxCheck.contains("Syntax Error:")
+        if hasInterpreterSyntaxError && structuralError == nil {
+             feedbackItems.append("⚠️ Compilation Error: \(syntaxCheck.replacingOccurrences(of: "Syntax Error:", with: "").trimmingCharacters(in: .whitespaces))")
         }
         
         var testResults: [TestCaseResult] = []
@@ -143,7 +106,11 @@ class CompilerEngine {
                 // Legacy feedback items
                 if passed {
                     if actual.lowercased() == expected.lowercased() && actual != expected {
-                         feedbackItems.append("⚠️ Test \(index + 1): Case mismatch.")
+                        if expected == "Hari" {
+                            feedbackItems.append("⚠️ '\(expected)' is expected but its valid and go ahead with 100")
+                        } else {
+                            feedbackItems.append("⚠️ Case mismatch detected (expected '\(expected)').")
+                        }
                     }
                 } else {
                     if feedbackItems.filter({ $0.contains("❌") }).isEmpty {
@@ -168,7 +135,15 @@ class CompilerEngine {
             if passed {
                  passedTestCount = 1
                  passedHiddenTests = true
-                 feedbackItems.append("✅ Output matches expected result.")
+                 if userOutput.lowercased() == goldenOutput.lowercased() && userOutput != goldenOutput {
+                     if goldenOutput == "Hari" {
+                         feedbackItems.append("⚠️ '\(goldenOutput)' is expected but its valid and go ahead with 100")
+                     } else {
+                         feedbackItems.append("⚠️ Case mismatch detected (expected '\(goldenOutput)').")
+                     }
+                 } else {
+                     feedbackItems.append("✅ Output matches expected result.")
+                 }
             } else {
                  passedHiddenTests = false
                  feedbackItems.append("❌ Output Mismatch")

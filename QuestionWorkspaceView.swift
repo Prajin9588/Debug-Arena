@@ -682,14 +682,34 @@ struct DetailedEvaluationScreen: View {
                 VStack(spacing: 20) {
                     EvaluationResultView(result: result, difficulty: difficulty)
                     
+                    if result.status == .correct {
+                        Button(action: action) {
+                            HStack {
+                                Image(systemName: "terminal.fill")
+                                Text("COMMIT FIX")
+                            }
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.primaryGradient)
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        }
+                    }
+                    
                     Button(action: action) {
                         Text(result.status == .correct ? "CONTINUE" : "TRY AGAIN")
                         .font(Theme.Typography.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(result.status == .correct ? Theme.Colors.textSecondary : .white)
                         .padding()
                         .frame(maxWidth: .infinity)
-                        .background(result.status == .correct ? Theme.Colors.success : Theme.Colors.action)
+                        .background(result.status == .correct ? Color.clear : Theme.Colors.action)
                         .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(result.status == .correct ? Theme.Colors.textSecondary.opacity(0.3) : Color.clear, lineWidth: 1)
+                        )
                         .padding(.horizontal)
                     }
                     .padding(.bottom, 40)

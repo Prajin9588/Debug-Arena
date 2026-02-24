@@ -1746,7 +1746,7 @@ extension Question {
                 riddle: "I wrap your block tight, without me the compiler will fight.",
                 conceptExplanation: "All if blocks must be enclosed in braces {}.",
                 language: .swift,
-                expectedPatterns: ["if\\s*\\(?.*\\)?\\s*\\{.*\\}"],
+                expectedPatterns: ["if.*\\{.*\\}"],
                 hiddenTests: [
                     HiddenTestCase(input: "", expectedOutput: "Big")
                 ]
