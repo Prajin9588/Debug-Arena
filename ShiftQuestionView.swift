@@ -359,10 +359,36 @@ struct ShiftQuestionView: View {
                 type = .error
             }
         } else {
-            // It is NOT an error line
-            verdict = .noError
-            feedbackMsg = "🔍 No error occurs on this line."
-            type = .error
+            // It is NOT an error line (Correct Line)
+            let normalized = text.lowercased()
+            let hasErrorKeyword = normalized.contains("error")
+            let hasSelection = !selectedOptions.isEmpty
+            
+            // Check for "Not Applicable" or No Error signaling
+            let signalingNoError = normalized.contains("not an error") || 
+                                  normalized.contains("correct") || 
+                                  normalized.contains("valid") || 
+                                  normalized.contains("no issue") ||
+                                  normalized.contains("fine")
+            
+            if hasSelection || (isAdvancedLevel && isSwiftOrC && hasErrorKeyword) {
+                // User is claiming an error on a correct line
+                if signalingNoError {
+                    // Claimed error but reasoning claims it's fine (Conflicting)
+                    verdict = .weakReasoning
+                    feedbackMsg = "🔍 Investigation recorded. You selected categories but mentioned the line is fine."
+                    type = .neutral
+                } else {
+                    verdict = .wrongCategory
+                    feedbackMsg = "❌ FALSE POSITIVE: No error occurs on this line. Your diagnosis is incorrect."
+                    type = .error
+                }
+            } else {
+                // User correctly identified the line has no error
+                verdict = .noError
+                feedbackMsg = "✅ LINE CLEAR: You correctly identified this line is functional."
+                type = .success
+            }
         }
         
         // Update State
@@ -397,17 +423,17 @@ struct ShiftQuestionView: View {
         
         let isAdvanced = question.difficulty >= 3
         let isSwiftOrC = question.language == .swift || question.language == .c
-        let hasError = normalized.contains("error")
+        let hasErrorKeyword = normalized.contains("error")
         
         // 3. SPECIAL OVERRIDE RULE (Swift & C — Level 3 & 4 ONLY)
-        if isAdvanced && isSwiftOrC && hasError {
+        if isAdvanced && isSwiftOrC && hasErrorKeyword {
             return (true, "Reasoning accepted for investigation.", true)
         }
         
         // 4. Intent Indicators
-        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
-        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
-        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes", "since", "so"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate", "logic", "flow", "behavior"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output", "operation", "parameter", "return"]
         
         let allIndicators = causeEffect + behavior + technical
         let hasIntent = allIndicators.contains { normalized.contains($0) }
@@ -415,7 +441,7 @@ struct ShiftQuestionView: View {
         if hasIntent {
             return (true, "Reasoning accepted.", false)
         } else {
-            return (false, "Reasoning lacks technical intent.", false)
+            return (false, "Reasoning lacks technical intent. Explain 'how' or 'why'.", false)
         }
     }
     
@@ -636,10 +662,22 @@ struct ReasoningSheet: View {
     ]
     
     var availableOptions: [ShiftOption] {
-        if let detail = question.shiftData?.errorLines[lineNumber] {
-            return detail.options
+        var names = Set<String>()
+        
+        // 1. Start with standard reference concepts
+        referenceConcepts.forEach { names.insert($0) }
+        
+        // 2. Add all unique options defined for this entire question
+        if let data = question.shiftData {
+            for detail in data.errorLines.values {
+                for opt in detail.options {
+                    names.insert(opt.text)
+                }
+            }
         }
-        return referenceConcepts.map { ShiftOption(text: $0, explanation: "", isCorrect: false) }
+        
+        // 3. Sort alphabetically for a consistent, professional UI on every line tap
+        return names.sorted().map { ShiftOption(text: $0, explanation: "", isCorrect: false) }
     }
     
     var body: some View {
@@ -771,9 +809,10 @@ struct ReasoningSheet: View {
     
     private var canSubmit: Bool {
         if isAdvancedFlow {
-            return isReasoningUnlocked && !selectedOptionIds.isEmpty
+            // Can submit if reasoning is unlocked, even if nothing selected (to mark as No Error)
+            return isReasoningUnlocked
         }
-        return !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty && !selectedOptionIds.isEmpty
+        return !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty
     }
     
     private var isAdvancedFlow: Bool {
@@ -792,15 +831,18 @@ struct ReasoningSheet: View {
             return false
         }
         
-        // 2. Special Override rule
-        if normalized.contains("error") {
+        let isAdvanced = question.difficulty >= 3
+        let isSwiftOrC = question.language == .swift || question.language == .c
+        
+        // 2. Special Override rule (Level 3 & 4 Swift/C ONLY)
+        if isAdvanced && isSwiftOrC && normalized.contains("error") {
             return true
         }
         
         // 3. Intent indicators
-        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
-        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
-        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes", "since", "so"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate", "logic", "flow", "behavior"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output", "operation", "parameter", "return"]
         
         let allIndicators = causeEffect + behavior + technical
         return allIndicators.contains { normalized.contains($0) }
@@ -809,6 +851,9 @@ struct ReasoningSheet: View {
     private var buttonLabel: String {
         if isAdvancedFlow && !isReasoningUnlocked {
             return "EXPLAIN BEFORE INVESTIGATING"
+        }
+        if selectedOptionIds.isEmpty {
+            return "VERIFY AS CORRECT"
         }
         return "VERIFY HYPOTHESIS"
     }
