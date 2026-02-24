@@ -171,8 +171,7 @@ struct HomeHeader: View {
             HStack(spacing: 12) {
                 // Streak Capsule
                 HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(Theme.Colors.warning)
+                    StreakFireView(streak: streak)
                         .font(.caption)
                     Text("\(streak)")
                         .font(Theme.Typography.subheadline)

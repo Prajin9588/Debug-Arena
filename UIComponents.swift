@@ -182,8 +182,7 @@ struct WorkspaceHeader: View {
             // Stats Pill
             HStack(spacing: horizontalSizeClass == .compact ? 8 : 16) {
                 HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .foregroundColor(.orange)
+                    StreakFireView(streak: streak)
                         .font(horizontalSizeClass == .compact ? .caption : .body)
                     Text("\(streak)")
                         .font(horizontalSizeClass == .compact ? Theme.Typography.caption : Theme.Typography.statsFont)
@@ -285,6 +284,86 @@ struct CoinScatterView: View {
                         coins[i].opacity = 0
                     }
                 }
+            }
+        }
+    }
+}
+
+struct StreakFireView: View {
+    let streak: Int
+    @State private var pulseAmount: CGFloat = 0.0
+    
+    // Intensity configurations
+    private var baseColor: Color {
+        if streak == 0 { return .gray.opacity(0.3) }
+        if streak >= 10 { return .orange }
+        if streak >= 5 { return Theme.Colors.gold }
+        return Theme.Colors.warning
+    }
+    
+    private var glowColor: Color {
+        if streak >= 10 { return .red }
+        if streak >= 5 { return .orange }
+        return Theme.Colors.gold
+    }
+    
+    private var animationDuration: Double {
+        if streak >= 10 { return 0.5 }
+        if streak >= 5 { return 0.8 }
+        return 1.2
+    }
+    
+    private var glowRadius: CGFloat {
+        if streak == 0 { return 0 }
+        if streak >= 10 { return 10 }
+        if streak >= 5 { return 6 }
+        return 3
+    }
+
+    var body: some View {
+        ZStack {
+            if streak > 0 {
+                // Outer Glow
+                Image(systemName: "flame.fill")
+                    .foregroundColor(glowColor)
+                    .blur(radius: glowRadius)
+                    .opacity(0.3 + (pulseAmount * 0.4))
+                    .scaleEffect(1.0 + (pulseAmount * 0.15))
+                
+                // Secondary core glow for high streaks
+                if streak >= 5 {
+                    Image(systemName: "flame.fill")
+                        .foregroundColor(streak >= 10 ? .yellow : .white)
+                        .blur(radius: 2)
+                        .opacity(0.1 + (pulseAmount * 0.2))
+                }
+            }
+            
+            // Main Flame Icon
+            Image(systemName: "flame.fill")
+                .foregroundColor(baseColor)
+                .scaleEffect(1.0 + (pulseAmount * (streak >= 10 ? 0.12 : (streak >= 5 ? 0.08 : 0.04))))
+                .offset(y: streak >= 5 ? -pulseAmount * 2 : 0)
+                .shadow(color: glowColor.opacity(streak > 0 ? 0.5 : 0), radius: streak >= 5 ? 4 : 2)
+        }
+        .onAppear {
+            updateAnimation()
+        }
+        .onChange(of: streak) { _, _ in
+            updateAnimation()
+        }
+    }
+    
+    private func updateAnimation() {
+        if streak > 0 {
+            // Reset and restart animation to sync with new intensity
+            pulseAmount = 0.0
+            withAnimation(.easeInOut(duration: animationDuration).repeatForever(autoreverses: true)) {
+                pulseAmount = 1.0
+            }
+        } else {
+            withAnimation(.easeOut(duration: 0.3)) {
+                pulseAmount = 0.0
             }
         }
     }

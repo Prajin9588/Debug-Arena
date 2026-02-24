@@ -129,14 +129,14 @@ struct ReportView: View {
                  MetricSingleCard(
                     title: "Total XP Earned",
                     value: "\(gameManager.progressData["Swift"]?.totalXP ?? 0 + (gameManager.progressData["C"]?.totalXP ?? 0))",
-                    icon: "star.fill",
+                    icon: AnyView(Image(systemName: "star.fill")),
                     color: .yellow
                  )
                  
                  MetricSingleCard(
                     title: "Current Streak",
                     value: "\(gameManager.dailyStreak) Days",
-                    icon: "flame.fill",
+                    icon: AnyView(StreakFireView(streak: gameManager.dailyStreak)),
                     color: .orange
                  )
             }
@@ -326,13 +326,13 @@ struct MetricCard: View {
 struct MetricSingleCard: View {
     let title: String
     let value: String
-    let icon: String
+    let icon: AnyView
     let color: Color
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: icon)
+                icon
                     .foregroundColor(color)
                 Text(title)
                     .font(Theme.Typography.caption2)

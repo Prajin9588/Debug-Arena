@@ -179,28 +179,28 @@ struct ProfileView: View {
             StatRow(
                 title: "Total Attempts",
                 value: "\(gameManager.attempts.values.reduce(0, +))",
-                icon: "hammer.fill",
+                icon: AnyView(Image(systemName: "hammer.fill")),
                 color: Theme.Colors.action
             )
             
             StatRow(
                 title: "Challenges Solved",
                 value: "\(gameManager.completedQuestionIds.count)",
-                icon: "checkmark.seal.fill",
+                icon: AnyView(Image(systemName: "checkmark.seal.fill")),
                 color: Theme.Colors.success
             )
             
             StatRow(
                 title: "Current Streak",
                 value: "\(gameManager.streak) Days",
-                icon: "flame.fill",
+                icon: AnyView(StreakFireView(streak: gameManager.streak)),
                 color: .orange
             )
             
             StatRow(
                 title: "Accuracy Rate",
                 value: "\(accuracyValue)%",
-                icon: "target",
+                icon: AnyView(Image(systemName: "target")),
                 color: Theme.Colors.accent
             )
         }
@@ -258,7 +258,7 @@ struct ProfileView: View {
 struct StatRow: View {
     let title: String
     let value: String
-    let icon: String
+    let icon: AnyView
     let color: Color
     
     var body: some View {
@@ -268,7 +268,7 @@ struct StatRow: View {
                     .fill(color.opacity(0.1))
                     .frame(width: 50, height: 50)
                 
-                Image(systemName: icon)
+                icon
                     .font(.system(size: 24))
                     .foregroundColor(color)
             }
