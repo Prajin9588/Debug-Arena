@@ -2,10 +2,11 @@ import SwiftUI
 
 struct Theme {
     struct Colors {
-        // LIGHT MODE PALETTE
-        static let background = Color(uiColor: .systemGroupedBackground) // Light Gray for visual hierarchy
-        static let secondaryBackground = Color.white // Cards
-        static let codeBackground = Color.white // Editor background
+        // LIGHT MODE PALETTE - Baby Powder (#FEFEFA)
+        static let babyPowder = Color(hex: "FEFEFA")
+        static let background = Color(hex: "F8F8F7") // Slightly off-white to contrast Baby Powder
+        static let secondaryBackground = babyPowder // Cards
+        static let codeBackground = babyPowder // Editor background
         static let terminalBackground = Color(hex: "F2F2F7") // Light Gray for Terminal/Console
         
         static let textPrimary = Color.black

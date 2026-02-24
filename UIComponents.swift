@@ -142,62 +142,67 @@ struct WorkspaceHeader: View {
     let coins: Int
     let onBack: () -> Void
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
     var body: some View {
-        HStack {
+        HStack(spacing: horizontalSizeClass == .compact ? 8 : 16) {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.Colors.primaryGradient)
                     .padding(10)
-                    .background(Color.white)
+                    .background(Theme.Colors.babyPowder)
                     .clipShape(Circle())
                     .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
             }
             
-            Spacer()
+            Spacer(minLength: 0)
             
             // Level Goal Pill
-            HStack(spacing: 12) {
+            HStack(spacing: horizontalSizeClass == .compact ? 6 : 12) {
                 Image(systemName: "target")
                     .font(.caption)
                     .foregroundColor(Theme.Colors.electricCyan)
                 
-                Text("LEVEL \(levelNumber) : Question \(questionNumber)")
+                Text(horizontalSizeClass == .compact ? "L\(levelNumber) : Q\(questionNumber)" : "LEVEL \(levelNumber) : Question \(questionNumber)")
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.textPrimary)
                     .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, horizontalSizeClass == .compact ? 12 : 16)
             .padding(.vertical, 8)
-            .background(Color.white)
+            .background(Theme.Colors.babyPowder)
             .clipShape(Capsule())
             .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
             
-            Spacer()
+            Spacer(minLength: 0)
             
             // Stats Pill
-            HStack(spacing: 16) {
+            HStack(spacing: horizontalSizeClass == .compact ? 8 : 16) {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
                         .foregroundColor(.orange)
+                        .font(horizontalSizeClass == .compact ? .caption : .body)
                     Text("\(streak)")
-                        .font(Theme.Typography.statsFont)
+                        .font(horizontalSizeClass == .compact ? Theme.Typography.caption : Theme.Typography.statsFont)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
                 
                 HStack(spacing: 4) {
-                    BugCoin(size: 20)
+                    BugCoin(size: horizontalSizeClass == .compact ? 16 : 20)
                     Text("\(coins)")
-                        .font(Theme.Typography.statsFont)
+                        .font(horizontalSizeClass == .compact ? Theme.Typography.caption : Theme.Typography.statsFont)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, horizontalSizeClass == .compact ? 10 : 16)
             .padding(.vertical, 8)
-            .background(Color.white)
+            .background(Theme.Colors.babyPowder)
             .clipShape(Capsule())
             .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 8)
     }
 }

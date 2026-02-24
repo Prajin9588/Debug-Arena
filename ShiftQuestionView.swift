@@ -80,6 +80,7 @@ struct ShiftQuestionView: View {
                     resetStateForNewQuestion()
                 }
                 
+                
                 // Instruction Footer
                 VStack(spacing: 4) {
                     Text("DEBUGGER MODE ENABLED")
@@ -166,6 +167,7 @@ struct ShiftQuestionView: View {
     }
     
     // MARK: - Logic
+    
     
     private func resetStateForNewQuestion() {
         lineVerdicts = [:]

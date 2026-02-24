@@ -177,7 +177,7 @@ struct DashboardHeader: View {
             }
         }
         .padding(20)
-        .background(Color.white)
+        .background(Theme.Colors.babyPowder)
         .cornerRadius(24)
         .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: 5) // Soft, premium shadow
         .padding(.horizontal)
@@ -187,6 +187,7 @@ struct DashboardHeader: View {
 struct QuestionTile: View {
     @EnvironmentObject var gameManager: GameManager
     let index: Int
+    @State private var isAnimate = false
     
     var question: Question {
         if gameManager.currentLevel.questions.indices.contains(index) {
@@ -244,6 +245,16 @@ struct QuestionTile: View {
                 }
             }
             .frame(width: 65, height: 65) // FORCE fixed size to prevent grid shifting
+            .opacity(isAnimate ? 1 : 0)
+            .scaleEffect(isAnimate ? 1 : 0.7)
+            .animation(
+                .spring(response: 0.45, dampingFraction: 0.75)
+                .delay(Double(index % 25) * 0.04),
+                value: isAnimate
+            )
+            .onAppear {
+                isAnimate = true
+            }
         }
         .buttonStyle(PlainButtonStyle())
     }

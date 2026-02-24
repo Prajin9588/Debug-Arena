@@ -237,7 +237,7 @@ extension Question {
             initialCode: "func add(_ a: Int, _ b: Int) -> Int {\n    let result = a + b\n    return result\n}",
             correctCode: "",
             difficulty: 3,
-            riddle: "Review the logic carefully.",
+            riddle: "A simple sum, but is it the right outcome?",
             conceptExplanation: "Shift the focus to the correct logic.",
             language: .swift,
             shiftData: ShiftData(
@@ -1259,7 +1259,7 @@ extension Question {
             initialCode: "var maxSum = Int.min\nfunc maxPathSum(_ root: TreeNode?) -> Int {\n    guard let root = root else { return 0 }\n    let left = maxPathSum(root.left)\n    let right = maxPathSum(root.right)\n    let price = root.val + left + right\n    maxSum = max(maxSum, price)\n    return price\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "Finding the best route.",
+            riddle: "You can only pick one path to go back.",
             conceptExplanation: "Path vs Subtree sum.",
             language: .swift,
             shiftData: ShiftData(
@@ -1294,7 +1294,7 @@ extension Question {
             initialCode: "func longestValidParentheses(_ s: String) -> Int {\n    var stack = [-1]\n    var maxLen = 0\n    for (i, char) in s.enumerated() {\n        if char == \"(\" { stack.append(i) }\n        else {\n            stack.removeLast()\n            if stack.isEmpty { stack.append(i) }\n            else { maxLen = max(maxLen, i - stack.last!) }\n        }\n    }\n    return maxLen\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "Matching pairs.",
+            riddle: "I keep track of where the balance broke.",
             conceptExplanation: "Stack tracks indices.",
             language: .swift,
             shiftData: ShiftData(
@@ -1329,7 +1329,7 @@ extension Question {
             initialCode: "func findMedian(_ nums1: [Int], _ nums2: [Int]) -> Double {\n    let merged = (nums1 + nums2).sorted()\n    let mid = merged.count / 2\n    if merged.count % 2 == 0 {\n        return Double(merged[mid] + merged[mid - 1]) / 2 // Integer division?\n    } else {\n        return Double(merged[mid])\n    }\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "Middle ground.",
+            riddle: "I look for the center of two worlds.",
             conceptExplanation: "Integer division truncation.",
             language: .swift,
             shiftData: ShiftData(
@@ -1358,7 +1358,7 @@ extension Question {
             initialCode: "func minDistance(_ word1: String, _ word2: String) -> Int {\n    let m = word1.count, n = word2.count\n    var dp = [[Int]](repeating: [Int](repeating: 0, count: n), count: m)\n    for i in 0...m { dp[i][0] = i }\n    for j in 0...n { dp[0][j] = j }\n    // ... loops ...\n    return dp[m][n]\n}",
             correctCode: "",
             difficulty: 4,
-            riddle: "Transformations.",
+            riddle: "How many steps to become someone else?",
             conceptExplanation: "DP Table Initialization.",
             language: .swift,
             shiftData: ShiftData(
@@ -1454,7 +1454,7 @@ extension Question {
                 initialCode: "void cleanup(int* ptr) {\n    free(ptr);\n    free(ptr);\n}",
                 correctCode: "",
                 difficulty: 4,
-                riddle: "Reviewing history.",
+                riddle: "I free what is already gone.",
                 conceptExplanation: "Memory management rules.",
                 language: .c,
                 shiftData: ShiftData(

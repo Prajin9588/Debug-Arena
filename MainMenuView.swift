@@ -139,7 +139,7 @@ struct HomeHeader: View {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
-                            .fill(Color.white)
+                            .fill(Theme.Colors.babyPowder)
                             .frame(width: 44, height: 44)
                             .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
                         
@@ -179,7 +179,7 @@ struct HomeHeader: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.white)
+                .background(Theme.Colors.babyPowder)
                 .clipShape(Capsule())
                 .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
                 
@@ -195,7 +195,7 @@ struct HomeHeader: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.white)
+                .background(Theme.Colors.babyPowder)
                 .clipShape(Capsule())
                 .shadow(color: Theme.Layout.cardShadow, radius: 4, x: 0, y: 2)
             }
@@ -270,7 +270,7 @@ struct ProgressOverviewCard: View {
             Spacer()
         }
         .padding(20)
-        .background(Color.white)
+        .background(Theme.Colors.babyPowder)
         .cornerRadius(Theme.Layout.cornerRadius)
         .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         .padding(.horizontal)
@@ -306,7 +306,7 @@ struct LanguageGridCard: View {
                     .foregroundColor(Theme.Colors.textPrimary)
             }
             .padding(16)
-            .background(Color.white)
+            .background(Theme.Colors.babyPowder)
             .cornerRadius(Theme.Layout.cornerRadius)
             .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         }
@@ -361,7 +361,7 @@ struct LevelListCard: View {
             }
         }
         .padding(16)
-        .background(Color.white)
+        .background(Theme.Colors.babyPowder)
         .cornerRadius(Theme.Layout.cornerRadius)
         .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         .opacity(isLocked ? 0.6 : 1.0)

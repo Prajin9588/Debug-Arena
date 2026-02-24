@@ -213,8 +213,7 @@ struct QuestionWorkspaceView: View {
             .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
             .padding(.horizontal)
             
-            
-            Spacer().frame(height: 80)
+            Spacer()
         }
     }
     
@@ -404,6 +403,13 @@ struct QuestionWorkspaceView: View {
         }
     }
     
+    private var displayOutput: String {
+        if let firstTest = question.hiddenTests?.first {
+            return firstTest.expectedOutput.isEmpty ? "No Output" : firstTest.expectedOutput
+        }
+        return "No Output"
+    }
+
     private var executionButton: some View {
         VStack {
             Spacer()

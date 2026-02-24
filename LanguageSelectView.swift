@@ -44,6 +44,7 @@ struct LanguageSelectView: View {
                 LazyVGrid(columns: columns, spacing: 25) {
                     ForEach(Language.allCases) { language in
                         Button(action: {
+                            UISelectionFeedbackGenerator().selectionChanged()
                             gameManager.selectLanguage(language)
                             navigateToLevels = true
                         }) {
