@@ -104,42 +104,12 @@ struct MissionCard<Content: View>: View {
     }
 }
 
-struct BugCoin: View {
-    var size: CGFloat = 24
-    
-    var body: some View {
-        ZStack {
-            // Coin Base with Gradient
-            Circle()
-                .fill(LinearGradient(
-                    colors: [Theme.Colors.gold, Color(hex: "FFD700")],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ))
-                .frame(width: size, height: size)
-                .shadow(color: Theme.Colors.gold.opacity(0.3), radius: size * 0.1)
-            
-            // Inner Detailed Ring
-            Circle()
-                .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                .frame(width: size * 0.85, height: size * 0.85)
-            
-            // Bug Symbol
-            Image(systemName: "ladybug.fill")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size * 0.55, height: size * 0.55)
-                .foregroundColor(Theme.Colors.background.opacity(0.8))
-        }
-    }
-}
 
 // MARK: - Shared Workspace Header
 struct WorkspaceHeader: View {
     let levelNumber: Int
     let questionNumber: Int
     let streak: Int
-    let coins: Int
     let onBack: () -> Void
     
     @EnvironmentObject var gameManager: GameManager
@@ -152,7 +122,7 @@ struct WorkspaceHeader: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.Colors.primaryGradient)
                     .padding(10)
-                    .background(Theme.Colors.babyPowder)
+                    .background(Theme.Colors.secondaryBackground)
                     .clipShape(Circle())
                     .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
             }
@@ -173,7 +143,7 @@ struct WorkspaceHeader: View {
             }
             .padding(.horizontal, horizontalSizeClass == .compact ? 12 : 16)
             .padding(.vertical, 8)
-            .background(Theme.Colors.babyPowder)
+            .background(Theme.Colors.secondaryBackground)
             .clipShape(Capsule())
             .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
             
@@ -188,22 +158,12 @@ struct WorkspaceHeader: View {
                         .font(horizontalSizeClass == .compact ? Theme.Typography.caption : Theme.Typography.statsFont)
                         .foregroundColor(Theme.Colors.textPrimary)
                 }
-                
-                HStack(spacing: 4) {
-                    BugCoin(size: horizontalSizeClass == .compact ? 16 : 20)
-                    Text("\(coins)")
-                        .font(horizontalSizeClass == .compact ? Theme.Typography.caption : Theme.Typography.statsFont)
-                        .foregroundColor(Theme.Colors.textPrimary)
-                }
             }
             .padding(.horizontal, horizontalSizeClass == .compact ? 10 : 16)
             .padding(.vertical, 8)
-            .background(Theme.Colors.babyPowder)
+            .background(Theme.Colors.secondaryBackground)
             .clipShape(Capsule())
             .shadow(color: Theme.Layout.cardShadow, radius: 5, x: 0, y: 2)
-            .overlay(
-                CoinScatterView(trigger: gameManager.scatterTrigger)
-            )
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -235,59 +195,6 @@ extension View {
 }
 
 // MARK: - Decorative Animations
-struct CoinScatterView: View {
-    let trigger: UUID
-    @State private var coins: [CoinParticle] = []
-    
-    struct CoinParticle: Identifiable {
-        let id = UUID()
-        var offset: CGSize
-        var opacity: Double
-        var scale: CGFloat
-    }
-    
-    var body: some View {
-        ZStack {
-            ForEach(coins) { coin in
-                BugCoin(size: 16)
-                    .scaleEffect(coin.scale)
-                    .offset(coin.offset)
-                    .opacity(coin.opacity)
-            }
-        }
-        .onChange(of: trigger) { _, _ in
-            spawnCoins()
-        }
-    }
-    
-    private func spawnCoins() {
-        let newCoins = (0..<10).map { _ in
-            CoinParticle(offset: .zero, opacity: 0, scale: 0.4)
-        }
-        self.coins = newCoins
-        
-        SoundManager.shared.playCoinScatter()
-        
-        for i in 0..<newCoins.count {
-            withAnimation(.easeOut(duration: Double.random(in: 0.8...1.2))) {
-                coins[i].offset = CGSize(
-                    width: CGFloat.random(in: -70...70),
-                    height: CGFloat.random(in: 50...120)
-                )
-                coins[i].opacity = 1.0
-                coins[i].scale = 1.0
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                withAnimation(.easeIn(duration: 0.4)) {
-                    if coins.indices.contains(i) {
-                        coins[i].opacity = 0
-                    }
-                }
-            }
-        }
-    }
-}
 
 
 struct MovingFlameStreakIcon: View {

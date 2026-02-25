@@ -203,7 +203,6 @@ class CompilerEngine {
             feedback: finalFeedback,
             difficulty: question.difficulty,
             testResults: testResults,
-            coinsEarned: score == 100 ? 1 : 0,
             xpEarned: score == 100 ? 10 : 0,
             userSelectedCategory: question.category.rawValue
         )
@@ -285,7 +284,6 @@ class CompilerEngine {
             feedback: isCorrect ? "Correct Diagnosis: \(expectedErrorFragment)" : "Incorrect Diagnosis: \(userChoice)",
             difficulty: question.difficulty,
             testResults: [testResult],
-            coinsEarned: isCorrect ? 1 : 0,
             xpEarned: isCorrect ? 10 : 0,
             userSelectedOptionIndex: selectedOpt,
             userSelectedCategory: userChoice
@@ -471,7 +469,6 @@ class CompilerEngine {
                 feedback: "❌ Level 1 – C Failed\nLogic Rule Not Satisfied",
                 difficulty: 1,
                 testResults: logicResult.details,
-                coinsEarned: 0,
                 xpEarned: 0,
                 userSelectedCategory: question.category.rawValue
             )
@@ -493,7 +490,6 @@ class CompilerEngine {
             feedback: "✅ Level 1 – C Passed\nEvaluation: 100/100\nAll Hidden Test Cases Passed\nLogic Rule Satisfied",
             difficulty: 1,
             testResults: logicResult.details,
-            coinsEarned: 1,
             xpEarned: 10,
             userSelectedCategory: question.category.rawValue
         )
@@ -611,7 +607,6 @@ class CompilerEngine {
         // Fix: Use malloc to allocate memory, or point to a valid variable.
         case 7:
             let hasMalloc = code.contains("malloc")
-            let hasAddressOf = code.contains("&") && !code.contains("&x") == false // has &someVar
             let hasValidInit = hasMalloc || (code.contains("int") && code.contains("&"))
             return res(hasValidInit)
             

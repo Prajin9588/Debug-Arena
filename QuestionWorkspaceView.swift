@@ -41,7 +41,6 @@ struct QuestionWorkspaceView: View {
                             levelNumber: question.levelNumber,
                             questionNumber: question.questionNumber,
                             streak: gameManager.streak,
-                            coins: gameManager.coinBalance,
                             onBack: { dismiss() }
                         )
                         
@@ -106,7 +105,6 @@ struct QuestionWorkspaceView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     animateContent = true
                     if !hasTriggeredAppearAnimation {
-                        gameManager.triggerScatter()
                         hasTriggeredAppearAnimation = true
                     }
                 }
@@ -224,7 +222,7 @@ struct QuestionWorkspaceView: View {
                         .foregroundColor(Theme.Colors.textPrimary)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.Colors.babyPowder) // Using the new theme color
+                        .background(Theme.Colors.secondaryBackground)
                         .cornerRadius(Theme.Layout.cornerRadius)
                         .overlay(
                             RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
@@ -339,7 +337,7 @@ struct QuestionWorkspaceView: View {
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .background(selectedOption == index ? Theme.Colors.electricCyan.opacity(0.15) : Color.white)
+        .background(selectedOption == index ? Theme.Colors.electricCyan.opacity(0.15) : Theme.Colors.secondaryBackground)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -578,7 +576,6 @@ struct SuccessOverlay: View {
                 .tracking(2)
                 
                 HStack(spacing: 20) {
-                    achievementBadge(icon: AnyView(BugCoin(size: 16)), label: "+1 COIN")
                     achievementBadge(icon: AnyView(Text("⚡️")), label: "+10 XP")
                 }
                 
@@ -612,7 +609,7 @@ struct SuccessOverlay: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.05))
+        .background(Theme.Colors.secondaryBackground.opacity(0.5))
         .cornerRadius(10)
     }
 }
@@ -686,7 +683,7 @@ struct DetailedEvaluationScreen: View {
                         Button(action: action) {
                             HStack {
                                 Image(systemName: "terminal.fill")
-                                Text(difficulty == 1 ? "COMMIT FIX" : "SAVE")
+                                Text("COMMIT FIX")
                             }
                             .font(Theme.Typography.headline)
                             .foregroundColor(.white)

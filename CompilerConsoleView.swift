@@ -45,7 +45,7 @@ struct CompilerConsoleView: View {
                 }
             }
             .padding(12)
-            .background(Theme.Colors.babyPowder)
+            .background(Theme.Colors.secondaryBackground)
             
             Divider()
             
@@ -135,7 +135,7 @@ struct CompilerConsoleView: View {
             }
             .frame(maxHeight: 250)
         }
-        .background(Theme.Colors.babyPowder)
+        .background(Theme.Colors.secondaryBackground)
         .cornerRadius(Theme.Layout.cornerRadius)
         .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
         .overlay(

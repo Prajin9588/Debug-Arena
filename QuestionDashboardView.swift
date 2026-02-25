@@ -14,7 +14,7 @@ struct QuestionDashboardView: View {
     
     var body: some View {
         ZStack {
-            Theme.Colors.background.ignoresSafeArea()
+            Theme.Colors.background(isDark: gameManager.isDarkMode).ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Custom Navigation Header
@@ -24,7 +24,7 @@ struct QuestionDashboardView: View {
                             .font(.title3.bold())
                             .foregroundColor(Theme.Colors.accent)
                             .padding(12)
-                            .background(Circle().fill(Color.white.opacity(0.05)))
+                            .background(Circle().fill(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode)))
                     }
                     
                     Text(gameManager.currentLevel.title.uppercased())
@@ -104,7 +104,6 @@ struct QuestionDashboardView: View {
         .navigationBarHidden(true)
         .onAppear {
             if !hasTriggeredAppearAnimation {
-                gameManager.triggerScatter()
                 hasTriggeredAppearAnimation = true
             }
         }
@@ -141,16 +140,6 @@ struct DashboardHeader: View {
                 
                 Spacer()
                 
-                // Coins
-                HStack(spacing: 6) {
-                    BugCoin(size: 22) // Slightly larger
-                    Text("\(gameManager.coinBalance)")
-                        .font(Theme.Typography.title3) // Larger font
-                        .foregroundColor(Theme.Colors.textPrimary) // Black on White
-                }
-                .overlay(
-                    CoinScatterView(trigger: gameManager.scatterTrigger)
-                )
             }
             
             VStack(alignment: .leading, spacing: 10) {
@@ -172,7 +161,7 @@ struct DashboardHeader: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.black.opacity(0.08)) // Distinct light grey track
+                            .fill(Theme.Colors.textSecondary.opacity(0.1)) // More neutral track
                             .frame(height: 10) // Slightly thicker
                         
                         let fillWidth = geo.size.width * CGFloat(Double(progress) / Double(max(1, gameManager.currentLevel.questions.count)))
@@ -187,9 +176,9 @@ struct DashboardHeader: View {
             }
         }
         .padding(20)
-        .background(Theme.Colors.babyPowder)
+        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
         .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: 5) // Soft, premium shadow
+        .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: 15, x: 0, y: 5)
         .padding(.horizontal)
     }
 }

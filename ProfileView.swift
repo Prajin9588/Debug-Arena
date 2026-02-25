@@ -13,12 +13,33 @@ struct ProfileView: View {
     
     // Derived Stats
     private var rankTitle: String {
-        switch gameManager.totalXP {
-        case 0..<100: return "Novice Debugger"
-        case 100..<500: return "Code Detective"
-        case 500..<1000: return "Bug Hunter"
-        case 1000..<2500: return "System Architect"
-        default: return "Grandmaster"
+        // High priority rule for Swift and C
+        if gameManager.selectedLanguage == .swift || gameManager.selectedLanguage == .c {
+            // Level-based titles (Strictly after full successful completion)
+            for levelIndex in (0..<gameManager.levels.count).reversed() {
+                let solved = gameManager.levelProgress(for: levelIndex)
+                let total = gameManager.levels[levelIndex].totalQuestions
+                
+                if solved >= total && total > 0 {
+                    switch levelIndex + 1 {
+                    case 4: return "Debug Master"
+                    case 3: return "Code Fixer"
+                    case 2: return "Logic Breaker"
+                    case 1: return "Bug Hunter"
+                    default: break
+                    }
+                }
+            }
+            return "Novice Debugger"
+        } else {
+            // Legacy / Other languages logic
+            switch gameManager.totalXP {
+            case 0..<100: return "Novice Debugger"
+            case 100..<500: return "Code Detective"
+            case 500..<1000: return "Bug Hunter"
+            case 1000..<2500: return "System Architect"
+            default: return "Grandmaster"
+            }
         }
     }
     
@@ -69,13 +90,16 @@ struct ProfileView: View {
                 // 4. Performance Summary
                 performanceSummarySection
                 
+                // 5. Settings Section
+                settingsSection
+                
                 Spacer(minLength: 50)
             }
             .padding(Theme.Layout.padding)
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             .frame(maxWidth: .infinity)
         }
-        .background(Theme.Colors.background.ignoresSafeArea())
+        .background(Theme.Colors.background(isDark: gameManager.isDarkMode).ignoresSafeArea())
         .alert("Change Username", isPresented: $showingNameEditor) {
             TextField("Username", text: $newUsername)
                 .autocorrectionDisabled()
@@ -101,7 +125,7 @@ struct ProfileView: View {
                 Circle()
                     .fill(Theme.Colors.secondaryBackground)
                     .frame(width: 110, height: 110)
-                    .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius, y: 5)
+                    .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 5)
                 
                 Image(systemName: "person.fill")
                     .resizable()
@@ -169,9 +193,9 @@ struct ProfileView: View {
             .frame(height: 16)
         }
         .padding(20)
-        .background(Theme.Colors.secondaryBackground)
+        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
         .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius, y: 2)
+        .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
     }
     
     private var statsStackSection: some View {
@@ -233,9 +257,9 @@ struct ProfileView: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.Colors.secondaryBackground)
+            .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
             .cornerRadius(Theme.Layout.cornerRadius)
-            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius, y: 2)
+            .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
         }
     }
     
@@ -251,11 +275,88 @@ struct ProfileView: View {
         if accuracyValue < 70 { return "You're getting there! Try to double-check your logic before running the code." }
         return "You're crushing it! Your debugging skills are becoming sharp and efficient."
     }
+    
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SETTINGS")
+                .font(Theme.Typography.caption2)
+                .foregroundColor(Theme.Colors.textSecondary)
+                .tracking(1)
+                .padding(.leading, 5)
+            
+            HStack {
+                Image(systemName: gameManager.isDarkMode ? "moon.stars.fill" : "sun.max.fill")
+                    .font(.title2)
+                    .foregroundColor(Theme.Colors.accent)
+                
+                Text(gameManager.isDarkMode ? "Dark Mode" : "Light Mode")
+                    .font(Theme.Typography.headline)
+                    .foregroundColor(Theme.Colors.textPrimary)
+                
+                Spacer()
+                
+                Toggle("", isOn: Binding(
+                    get: { gameManager.isDarkMode },
+                    set: { newValue in
+                        gameManager.isDarkMode = newValue
+                        Theme.isDarkMode = newValue
+                        gameManager.saveProgress()
+                    }
+                ))
+                .labelsHidden()
+                .tint(Theme.Colors.accent)
+            }
+            .padding(20)
+            .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
+            .cornerRadius(Theme.Layout.cornerRadius)
+            .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
+            
+            Button(action: {
+                gameManager.onboardingStep = 0
+                gameManager.replayOnboarding()
+            }) {
+                HStack {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title2)
+                    Text("Replay Career Path Intro")
+                        .font(Theme.Typography.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                }
+                .foregroundColor(Theme.Colors.textPrimary.opacity(0.8))
+                .padding(20)
+                .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
+                .cornerRadius(Theme.Layout.cornerRadius)
+                .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
+            }
+            
+            Button(action: {
+                gameManager.replayLevelOnboarding()
+            }) {
+                HStack {
+                    Image(systemName: "map.fill")
+                        .font(.title2)
+                    Text("Replay Level Progression Intro")
+                        .font(Theme.Typography.headline)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                }
+                .foregroundColor(Theme.Colors.textPrimary.opacity(0.8))
+                .padding(20)
+                .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
+                .cornerRadius(Theme.Layout.cornerRadius)
+                .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
+            }
+        }
+    }
 }
 
 // MARK: - Reusable Components
 
 struct StatRow: View {
+    @EnvironmentObject var gameManager: GameManager
     let title: String
     let value: String
     let icon: AnyView
@@ -287,8 +388,8 @@ struct StatRow: View {
             Spacer()
         }
         .padding(Theme.Layout.padding)
-        .background(Theme.Colors.secondaryBackground)
+        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
         .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius, y: 2)
+        .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius, y: 2)
     }
 }

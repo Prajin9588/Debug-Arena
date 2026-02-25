@@ -17,7 +17,6 @@ class LiveActivityManager: ObservableObject {
             currentLog: "Initializing Analyzer...",
             healthSegments: Array(repeating: true, count: 12),
             xpEarned: 0,
-            coinsEarned: 0,
             streak: 0
         )
         
@@ -50,7 +49,6 @@ class LiveActivityManager: ObservableObject {
                 currentLog: "Compiling Source...",
                 healthSegments: Array(repeating: true, count: 12),
                 xpEarned: 0,
-                coinsEarned: 0,
                 streak: 0
             )
             
@@ -90,7 +88,6 @@ class LiveActivityManager: ObservableObject {
                 currentLog: "Analyzing Line \(Int(progress * 100))...",
                 healthSegments: segments,
                 xpEarned: 0,
-                coinsEarned: 0,
                 streak: 0
             )
             
@@ -99,7 +96,7 @@ class LiveActivityManager: ObservableObject {
         }
     }
     
-    func endWithSuccess(xp: Int, coins: Int, streak: Int) {
+    func endWithSuccess(xp: Int, streak: Int) {
         simulationTask?.cancel()
         
         let finalState = ExecutionAttributes.ContentState(
@@ -109,7 +106,6 @@ class LiveActivityManager: ObservableObject {
             currentLog: "Optimization Complete",
             healthSegments: Array(repeating: true, count: 12),
             xpEarned: xp,
-            coinsEarned: coins,
             streak: streak
         )
         
@@ -133,7 +129,6 @@ class LiveActivityManager: ObservableObject {
             currentLog: error,
             healthSegments: Array(repeating: false, count: 12), // All red
             xpEarned: 0,
-            coinsEarned: 0,
             streak: 0
         )
         
@@ -148,7 +143,7 @@ class LiveActivityManager: ObservableObject {
     
     func endActivity() async {
         let contentState = currentActivity?.content.state ?? ExecutionAttributes.ContentState(
-             status: .cleaning, phase: .failed, progress: 0, currentLog: "", healthSegments: [], xpEarned: 0, coinsEarned: 0, streak: 0
+             status: .cleaning, phase: .failed, progress: 0, currentLog: "", healthSegments: [], xpEarned: 0, streak: 0
         )
         let content = ActivityContent(state: contentState, staleDate: nil)
         

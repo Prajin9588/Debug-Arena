@@ -98,9 +98,9 @@ struct ReportView: View {
             )
             .frame(height: 180)
             .padding()
-            .background(Theme.Colors.secondaryBackground)
+            .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
             .cornerRadius(Theme.Layout.cornerRadius)
-            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+            .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius)
         }
     }
     
@@ -172,9 +172,9 @@ struct ReportView: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.Colors.secondaryBackground)
+            .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
             .cornerRadius(Theme.Layout.cornerRadius)
-            .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+            .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius)
         }
     }
     
@@ -283,6 +283,7 @@ struct DualLineGraph: View {
 }
 
 struct MetricCard: View {
+    @EnvironmentObject var gameManager: GameManager
     let title: String
     let swiftValue: String
     let cValue: String
@@ -316,14 +317,15 @@ struct MetricCard: View {
             }
         }
         .padding()
-        .background(Theme.Colors.secondaryBackground)
+        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
         .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+        .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius)
         .frame(maxWidth: .infinity)
     }
 }
 
 struct MetricSingleCard: View {
+    @EnvironmentObject var gameManager: GameManager
     let title: String
     let value: String
     let icon: AnyView
@@ -345,9 +347,9 @@ struct MetricSingleCard: View {
                 .foregroundColor(Theme.Colors.textPrimary)
         }
         .padding()
-        .background(Theme.Colors.secondaryBackground)
+        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
         .cornerRadius(Theme.Layout.cornerRadius)
-        .shadow(color: Theme.Layout.cardShadow, radius: Theme.Layout.cardShadowRadius)
+        .shadow(color: Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), radius: Theme.Layout.cardShadowRadius)
         .frame(maxWidth: .infinity)
     }
 }

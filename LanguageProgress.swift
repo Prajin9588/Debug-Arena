@@ -10,8 +10,6 @@ struct LanguageProgress: Codable {
     var lastActiveDate: Date?
     var totalXP: Int = 0
     
-    // Economics
-    var coinBalance: Int = 10
     
     // Hints & Solutions
     var unlockedHints: Set<String> = []
@@ -27,6 +25,7 @@ struct LanguageProgress: Codable {
     var attempts: [String: Int] = [:]
     var lifetimeAttempts: Int = 0
     var unlockedLevels: Set<Int> = [1]
+    var isDarkMode: Bool = false
     
     // History Tracking
     var history: [HistoryEntry] = []

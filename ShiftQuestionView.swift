@@ -55,7 +55,7 @@ struct ShiftQuestionView: View {
     
     var body: some View {
         ZStack {
-            (isAdvanced ? Color(hex: "0F0F11") : Color(hex: "FAFAFA")).ignoresSafeArea()
+            Color(hex: "FAFAFA").ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header (Replacing old HStack with WorkspaceHeader)
@@ -63,7 +63,6 @@ struct ShiftQuestionView: View {
                     levelNumber: currentQuestion.levelNumber,
                     questionNumber: currentQuestion.questionNumber,
                     streak: gameManager.streak,
-                    coins: gameManager.coinBalance,
                     onBack: { dismiss() }
                 )
                 
@@ -76,13 +75,13 @@ struct ShiftQuestionView: View {
                             .font(Theme.Typography.caption2)
                             .fontWeight(.bold)
                     }
-                    .foregroundColor(isAdvanced ? Color.white.opacity(0.7) : Color(hex: "4B5563"))
+                    .foregroundColor(Color(hex: "4B5563"))
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
-                    .background(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "F3F4F6"))
+                    .background(Color(hex: "F3F4F6"))
                     
                     Divider()
-                        .background(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "E5E5E5"))
+                        .background(Color(hex: "E5E5E5"))
                 }
                 
                 // Swipeable Code View
@@ -115,10 +114,10 @@ struct ShiftQuestionView: View {
                         
                         Text(output)
                             .font(Theme.Typography.codeFont)
-                            .foregroundColor(isAdvanced ? .white : Theme.Colors.textPrimary)
+                            .foregroundColor(Theme.Colors.textPrimary)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(isAdvanced ? Color(hex: "1C1C1E") : Color(hex: "F1F1F1"))
+                            .background(Theme.Colors.secondaryBackground)
                             .cornerRadius(Theme.Layout.cornerRadius)
                             .overlay(
                                 RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
@@ -164,7 +163,7 @@ struct ShiftQuestionView: View {
                             Button(action: { dismiss() }) {
                                 HStack {
                                     Image(systemName: "terminal.fill")
-                                    Text(currentQuestion.levelNumber == 1 ? "COMMIT FIX" : "SAVE")
+                                    Text("COMMIT FIX")
                                 }
                                 .font(Theme.Typography.headline)
                                 .foregroundColor(.white)
@@ -224,7 +223,6 @@ struct ShiftQuestionView: View {
         .onAppear {
             resetStateForNewQuestion()
             if !hasTriggeredAppearAnimation {
-                gameManager.triggerScatter()
                 hasTriggeredAppearAnimation = true
             }
         }
@@ -311,7 +309,6 @@ struct ShiftQuestionView: View {
                 } else {
                     // CATERGORIES ARE 100% CORRECT (Selected all of them, no distractors)
                     // This is enough to PASS the line investigation in Level 3/4 (80% weight)
-                    let isWeightedLevel = currentQuestion.difficulty >= 3
                     
                     let normalizedText = text.lowercased()
                     // Check for semantic match or keywords for EACH correct option
@@ -499,7 +496,11 @@ struct ShiftQuestionView: View {
                     complexity: .medium,
                     edgeCaseHandling: true,
                     hardcodingDetected: false,
-                    feedback: "✅ All errors identified and explained correctly."
+                    feedback: "✅ All logical errors identified.",
+                    testResults: [
+                        TestCaseResult(input: "(Standard Execution)", expected: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", actual: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", passed: true)
+                    ],
+                    xpEarned: 10
                 )
             }
         }
@@ -527,16 +528,16 @@ struct ShiftCodeSnippetView: View {
                     let verdict = lineVerdicts[lineNum]
                     
                     HStack(alignment: .center, spacing: 12) {
-                        // 1. Fixed Line Number Column (Right-Aligned)
+                        // 1. Line Number Column
                         Text("\(lineNum)")
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
+                            .foregroundColor(isAdvanced ? Color.white.opacity(0.6) : Theme.Colors.textSecondary)
                             .frame(width: 35, alignment: .trailing)
                         
                         // 2. Flexible Code Content Column
                         Text(line)
                             .font(.system(.body, design: .monospaced))
-                            .foregroundColor(line.trimmingCharacters(in: .whitespaces).hasPrefix("//") ? Color(hex: "6B7280") : (isAdvanced ? .white : Color(hex: "111111")))
+                            .foregroundColor(line.trimmingCharacters(in: .whitespaces).hasPrefix("//") ? Color(hex: "6B7280") : Theme.Colors.textPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 6)
                             .padding(.horizontal, 10)
@@ -554,7 +555,7 @@ struct ShiftCodeSnippetView: View {
                             } else {
                                 Image(systemName: "hand.tap")
                                     .font(.caption2)
-                                    .foregroundColor(Theme.Colors.textSecondary.opacity(0.3))
+                                    .foregroundColor(isAdvanced ? Color.white.opacity(0.4) : Theme.Colors.textSecondary.opacity(0.6))
                             }
                         }
                         .frame(width: 24)
@@ -566,7 +567,7 @@ struct ShiftCodeSnippetView: View {
                 }
             }
             .padding()
-            .background(isAdvanced ? Color(hex: "161618") : Color.white)
+            .background(Theme.Colors.secondaryBackground)
             .cornerRadius(Theme.Layout.cornerRadius)
             .shadow(color: Color.black.opacity(isAdvanced ? 0.4 : 0.08), radius: 8, x: 0, y: 4)
             .padding()
@@ -667,14 +668,14 @@ struct ReasoningSheet: View {
                     Button(action: onClose) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
-                            .foregroundColor(isAdvancedFlow ? Color.gray : Theme.Colors.textSecondary)
+                            .foregroundColor(Theme.Colors.textSecondary)
                     }
                 }
                 
-                Text("Analyze this line and select ALL concepts that apply.")
+                Text("Defend your decision, Debugger.")
                     .font(Theme.Typography.title3)
                     .fontWeight(.bold)
-                    .foregroundColor(isAdvancedFlow ? .white : Theme.Colors.textPrimary)
+                    .foregroundColor(Theme.Colors.textPrimary)
                 
                 // Reasoning Input
                 VStack(alignment: .leading, spacing: 10) {
@@ -686,13 +687,13 @@ struct ReasoningSheet: View {
                         .frame(height: 100)
                         .scrollContentBackground(.hidden)
                         .padding()
-                        .background(isAdvancedFlow ? Color(hex: "2C2C2E") : Theme.Colors.background)
+                        .background(Theme.Colors.background)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Theme.Colors.electricCyan.opacity(isAdvancedFlow ? 0.6 : 0.3), lineWidth: 1)
+                                .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
                         )
-                        .foregroundColor(isAdvancedFlow ? .white : Theme.Colors.textPrimary)
+                        .foregroundColor(Theme.Colors.textPrimary)
                         .focused($isFocused)
                 }
                 
@@ -703,9 +704,9 @@ struct ReasoningSheet: View {
                         .foregroundColor(lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : Theme.Colors.textSecondary)
                     
                     if lockCategories {
-                        Text("Finish your reasoning to unlock hypothesis categories.")
+                        Text("Explain in at least 13 words to unlock hypothesis categories.")
                             .font(.system(size: 10))
-                            .foregroundColor(Theme.Colors.electricCyan.opacity(0.6))
+                            .foregroundColor(Theme.Colors.electricCyan.opacity(0.8))
                             .padding(.bottom, 2)
                     }
 
@@ -731,8 +732,8 @@ struct ReasoningSheet: View {
                                     .font(Theme.Typography.caption)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 16)
-                                    .background(isSelected ? Theme.Colors.electricCyan : (isAdvancedFlow ? Color(hex: "2C2C2E") : Theme.Colors.background))
-                                    .foregroundColor(isSelected ? .black : (lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : (isAdvancedFlow ? .white : Theme.Colors.textPrimary)))
+                                    .background(isSelected ? Theme.Colors.electricCyan : Theme.Colors.background)
+                                    .foregroundColor(isSelected ? .black : (lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : Theme.Colors.textPrimary))
                                     .cornerRadius(20)
                                     .opacity(lockCategories ? 0.4 : 1.0)
                                     .overlay(
@@ -758,15 +759,15 @@ struct ReasoningSheet: View {
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(canSubmit ? Theme.Colors.electricCyan : (isAdvancedFlow ? Color(hex: "48484A") : Color.gray))
+                        .background(canSubmit ? Theme.Colors.electricCyan : Color.gray)
                         .cornerRadius(12)
                 }
                 .disabled(!canSubmit)
             }
             .padding(horizontalSizeClass == .regular ? 50 : 30)
-            .background(isAdvancedFlow ? Color(hex: "1C1C1E") : Theme.Colors.secondaryBackground)
+            .background(Theme.Colors.secondaryBackground)
             .cornerRadius(30)
-            .shadow(color: Color.black.opacity(isAdvancedFlow ? 0.6 : 0.15), radius: 30, x: 0, y: 15)
+            .shadow(color: Color.black.opacity(0.15), radius: 30, x: 0, y: 15)
             .padding(horizontalSizeClass == .regular ? 40 : 20)
         }
         .onAppear {
@@ -790,25 +791,9 @@ struct ReasoningSheet: View {
     }
     
     private var isReasoningUnlocked: Bool {
-        let normalized = reasoningText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        
-        // 1. Mandatory length check
-        if normalized.components(separatedBy: .whitespaces).count < 2 || normalized.count < 5 {
-            return false
-        }
-        
-        // 2. Special Override rule
-        if normalized.contains("error") {
-            return true
-        }
-        
-        // 3. Intent indicators
-        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
-        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
-        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
-        
-        let allIndicators = causeEffect + behavior + technical
-        return allIndicators.contains { normalized.contains($0) }
+        let normalized = reasoningText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let words = normalized.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        return words.count >= 13
     }
     
     private var buttonLabel: String {

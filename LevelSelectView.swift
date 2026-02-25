@@ -24,7 +24,7 @@ struct LevelSelectView: View {
                                 .font(.title3.bold())
                                 .foregroundColor(Theme.Colors.accent)
                                 .padding(12)
-                                .background(Circle().fill(Color.white.opacity(0.05)))
+                                .background(Circle().fill(Theme.Colors.secondaryBackground))
                         }
                         
                         Text("MISSION SELECT")
@@ -131,7 +131,7 @@ struct LevelNode: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 30)
-                .stroke(level.unlocked ? Theme.Colors.accent.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(level.unlocked ? Theme.Colors.accent.opacity(0.2) : Theme.Colors.textSecondary.opacity(0.1), lineWidth: 1)
         )
         .opacity(level.unlocked ? 1.0 : 0.6)
     }

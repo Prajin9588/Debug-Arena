@@ -5,7 +5,8 @@ import Foundation
 
 struct FuncDeclNode: ASTNode {
     let name: String
-    let parameters: [(String, String?)] // (InternalName, ExternalName?) - Simplified to just names for now
+    let parameters: [(String, String?)] // (InternalName, ExternalName?) - Simplified to just name/Users/student/Desktop/swift student challenge/Debug Arena.swiftpm/ProfileView.swift:303:37 'saveProgress' is inaccessible due to 'private' protection level
+    s for now
     let body: BlockNode
     let returnType: String?
 }

@@ -105,10 +105,9 @@ struct EvaluationResult: Codable {
     var userSelectedCategory: String? = nil
     
     // Rewards
-    var coinsEarned: Int = 0
     var xpEarned: Int = 0
     
-    init(questionID: UUID, status: EvaluationStatus, score: Int, level: UserLevel, complexity: Complexity, edgeCaseHandling: Bool, hardcodingDetected: Bool, feedback: String, line: Int? = nil, difficulty: Int = 1, testResults: [TestCaseResult] = [], coinsEarned: Int = 0, xpEarned: Int = 0, userSelectedOptionIndex: Int? = nil, userSelectedCategory: String? = nil) {
+    init(questionID: UUID, status: EvaluationStatus, score: Int, level: UserLevel, complexity: Complexity, edgeCaseHandling: Bool, hardcodingDetected: Bool, feedback: String, line: Int? = nil, difficulty: Int = 1, testResults: [TestCaseResult] = [], xpEarned: Int = 0, userSelectedOptionIndex: Int? = nil, userSelectedCategory: String? = nil) {
         self.questionID = questionID
         self.status = status
         self.score = score
@@ -120,7 +119,6 @@ struct EvaluationResult: Codable {
         self.line = line
         self.difficulty = difficulty
         self.testResults = testResults
-        self.coinsEarned = coinsEarned
         self.xpEarned = xpEarned
         self.userSelectedOptionIndex = userSelectedOptionIndex
         self.userSelectedCategory = userSelectedCategory

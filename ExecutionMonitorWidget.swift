@@ -41,9 +41,6 @@ struct ExecutionMonitorWidget: Widget {
                             Text("+\(context.state.xpEarned) XP")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundColor(Theme.Colors.accent)
-                            Text("+\(context.state.coinsEarned) COINS")
-                                .font(.system(.caption, design: .monospaced))
-                                .foregroundColor(Theme.Colors.gold)
                         }
                     } else if context.state.phase == .failed {
                         Text("FAILED")

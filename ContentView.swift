@@ -14,7 +14,7 @@ struct ContentView: View {
                 }
                 .tag(0)
                 .toolbarBackground(.visible, for: .tabBar)
-                .toolbarColorScheme(.light, for: .tabBar)
+                .toolbarColorScheme(gameManager.isDarkMode ? .dark : .light, for: .tabBar)
             
             // Tab 1: Reports (Dashboard)
             ReportView(result: gameManager.lastEvaluationResult, onDismiss: {
@@ -25,18 +25,18 @@ struct ContentView: View {
             }
             .tag(1)
             .toolbarBackground(.visible, for: .tabBar)
-            .toolbarColorScheme(.light, for: .tabBar)
+            .toolbarColorScheme(gameManager.isDarkMode ? .dark : .light, for: .tabBar)
             
             // Tab 2: Profile
             ProfileView(gameManager: gameManager)
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
-                .tag(2)
-                .toolbarBackground(.visible, for: .tabBar)
-                .toolbarColorScheme(.light, for: .tabBar)
+            .tag(2)
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarColorScheme(gameManager.isDarkMode ? .dark : .light, for: .tabBar)
         }
         .environmentObject(gameManager)
-        .accentColor(.blue) // Global Tint
+        .accentColor(gameManager.isDarkMode ? Theme.Colors.electricCyan : .blue) // Global Tint
     }
 }

@@ -24,7 +24,6 @@ struct ExecutionAttributes: ActivityAttributes {
         
         // Rewards
         var xpEarned: Int
-        var coinsEarned: Int
         var streak: Int
     }
     

@@ -46,7 +46,6 @@ class GameManager: ObservableObject {
     @Published var isTestingMode: Bool = true
     
     // Premium Features
-    @Published var coinBalance: Int = 10 // Starting bonus
     @Published var unlockedHints: Set<String> = []
     @Published var revealedSolutions: Set<String> = []
     @Published var shiftThoughts: [String: String] = [:]
@@ -56,22 +55,25 @@ class GameManager: ObservableObject {
     @Published var mistakePatterns: [QuestionCategory: Int] = [:]
     
     // Decorative Triggers
-    @Published var scatterTrigger: UUID = UUID()
     @Published var hasTriggeredLaunchAnimation = false
+    @Published var onboardingCompleted: Bool = false
+    @Published var showOnboarding: Bool = false
+    @Published var onboardingStep: Int = 0
+    @Published var levelOnboardingCompleted: Bool = false
+    @Published var showLevelOnboarding: Bool = false
+    @Published var levelOnboardingStep: Int = 0
     
     // Developer Storage
     @Published var savedCorrectCode: [String: String] = [:]
     
-    func triggerScatter() {
-        scatterTrigger = UUID()
-    }
-    
-    // Specifically for pass reward to ensure strict logic
     func triggerPassReward() {
-        // Trigger sound and animation specifically for reward
-        triggerScatter()
+        // Trigger sound specifically for reward
+        SoundManager.shared.playSuccess()
     }
     
+    @Published var isDarkMode: Bool = false
+    
+    private let isDarkModeKey = "debug_lab_is_dark_mode"
     private let shiftThoughtsKey = "debug_lab_shift_thoughts"
     private let shiftFoundKey = "debug_lab_shift_found"
     
@@ -84,7 +86,6 @@ class GameManager: ObservableObject {
     private let attemptsKey = "debug_lab_attempts"
     private let completionKey = "debug_lab_completion"
     private let currentLevelKey = "debug_lab_current_level"
-    private let coinsKey = "debug_lab_coins"
     private let hintsKey = "debug_lab_hints"
     private let solutionsKey = "debug_lab_solutions"
     private let unlockedLevelsKey = "debug_lab_unlocked_levels"
@@ -95,6 +96,8 @@ class GameManager: ObservableObject {
     private let lastLifeRegenKey = "debug_lab_last_life_regen"
     private let dailyHintsKey = "debug_lab_daily_hints_used"
     private let lastDailyResetKey = "debug_lab_last_daily_reset"
+    private let onboardingCompletedKey = "debug_lab_onboarding_completed"
+    private let levelOnboardingCompletedKey = "debug_lab_level_onboarding_completed"
     private let usernameKey = "debug_lab_username"
     private let progressDataKey = "debug_lab_progress_data"
     
@@ -105,6 +108,16 @@ class GameManager: ObservableObject {
         self.levels = Question.levels
         populateQuestionMetadata()
         loadProgress()
+        Theme.isDarkMode = self.isDarkMode
+        
+        // Onboarding logic
+        self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
+        if !onboardingCompleted {
+            self.showOnboarding = true
+        }
+        
+        self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
+        
         setupInitialState()
         // Check streak on launch to see if it was broken
         // Check streak on launch to see if it was broken
@@ -219,6 +232,12 @@ class GameManager: ObservableObject {
         
         // 5. Persist the switch
         saveProgress()
+        
+        // 6. Trigger level onboarding if not completed
+        if onboardingCompleted && !levelOnboardingCompleted {
+            showLevelOnboarding = true
+            levelOnboardingStep = 0
+        }
     }
     
     private func refreshQuestions() {
@@ -344,7 +363,6 @@ class GameManager: ObservableObject {
                 feedback: "❌ Question Locked\nYou have exceeded the maximum of \(maxAttempts) attempts for this question.",
                 difficulty: currentQuestion.difficulty,
                 testResults: [TestCaseResult(input: "Status", expected: "Unlocked", actual: "Locked", passed: false)],
-                coinsEarned: 0,
                 xpEarned: 0
             )
             self.executionState = .error("Question Locked")
@@ -409,7 +427,6 @@ class GameManager: ObservableObject {
         // Only reward if not already completed
         if !completedQuestionIds.contains(currentQuestion.title) {
             completedQuestionIds.insert(currentQuestion.title)
-            earnCoins(1)
             streak += 1
             registerActivity() // Update Daily Streak
             captureHistorySnapshot() // Capture progress for graph
@@ -419,7 +436,7 @@ class GameManager: ObservableObject {
             
             // Live Activity Success
             Task { @MainActor in
-                LiveActivityManager.shared.endWithSuccess(xp: 50, coins: 5, streak: self.streak)
+                LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.streak)
             }
             
             checkLevelUnlock()
@@ -427,7 +444,7 @@ class GameManager: ObservableObject {
             // Adaptive Injection
             applyAdaptiveReordering()
             
-            // Decorative Success Feedback - Trigger ONCE when coins are earned
+            // Decorative Success Feedback
             triggerPassReward()
         }
         
@@ -498,7 +515,6 @@ class GameManager: ObservableObject {
         }
     }
     
-    // MARK: - Coin System
     
     func levelProgress(for index: Int) -> Int {
         guard index < levels.count else { return 0 }
@@ -513,45 +529,21 @@ class GameManager: ObservableObject {
         return levels[levelIndex].totalQuestions
     }
     
-    func earnCoins(_ amount: Int) {
-        coinBalance += amount
-        saveProgress()
-    }
-    
-    func spendCoins(_ amount: Int) -> Bool {
-        if coinBalance >= amount {
-            coinBalance -= amount
-            saveProgress()
-            return true
-        }
-        return false
-    }
     
     func unlockHint() {
         guard !unlockedHints.contains(currentQuestion.title) else { return }
         
-        // Logic: 2 Free hints per day, then cost 5 coins
-        if dailyFreeHintsUsed < 2 {
-            dailyFreeHintsUsed += 1
-            unlockedHints.insert(currentQuestion.title)
-            saveProgress()
-        } else {
-            if spendCoins(5) {
-                unlockedHints.insert(currentQuestion.title)
-                saveProgress()
-            }
-        }
+        unlockedHints.insert(currentQuestion.title)
+        saveProgress()
     }
     
     func revealSolution() {
         guard !revealedSolutions.contains(currentQuestion.title) else { return }
         
-        if spendCoins(5) {
-            revealedSolutions.insert(currentQuestion.title)
-            // Also unlock the hint (Decrypted Concept) so the user understands the answer
-            unlockedHints.insert(currentQuestion.title)
-            saveProgress()
-        }
+        revealedSolutions.insert(currentQuestion.title)
+        // Also unlock the hint (Decrypted Concept) so the user understands the answer
+        unlockedHints.insert(currentQuestion.title)
+        saveProgress()
     }
     
     func getGenreQuestions(for genre: Genre) -> [GenreQuestion] {
@@ -598,25 +590,27 @@ class GameManager: ObservableObject {
     func getShiftProgress(for question: Question) -> Double {
         guard let data = question.shiftData else { return 0 }
         
-        var totalCorrect = 0
-        for (_, detail) in data.errorLines {
-            totalCorrect += detail.options.filter { $0.isCorrect }.count
+        let errorLines = data.errorLines
+        guard !errorLines.isEmpty else { return 0 }
+        
+        // Count how many of the "Real Errors" (error lines) are successfully cleared.
+        // A line is cleared if ALL its correct options are found.
+        let foundIds = shiftFoundOptionIds[question.title] ?? []
+        
+        var clearedLinesCount = 0
+        for (_, detail) in errorLines {
+            let correctOptionIds = detail.options.filter { $0.isCorrect }.map { $0.id }
+            if !correctOptionIds.isEmpty && correctOptionIds.allSatisfy({ foundIds.contains($0) }) {
+                clearedLinesCount += 1
+            }
         }
         
-        guard totalCorrect > 0 else { return 0 }
-        
-        let foundIds = shiftFoundOptionIds[question.title] ?? []
-        // We only store found CORRECT option IDs, so count is enough
-        // But to be safe, filter against the question's actual correct IDs
-        let foundCount = foundIds.count 
-        
-        return Double(foundCount) / Double(totalCorrect)
+        return Double(clearedLinesCount) / Double(errorLines.count)
     }
     
     func handleShiftCompletion(for question: Question) {
         if !completedQuestionIds.contains(question.title) {
             completedQuestionIds.insert(question.title)
-            earnCoins(1)
             streak += 1
             registerActivity()
             totalXP += 10
@@ -626,7 +620,7 @@ class GameManager: ObservableObject {
             
             // Live Activity Success
             Task { @MainActor in
-                LiveActivityManager.shared.endWithSuccess(xp: 50, coins: 5, streak: self.streak)
+                LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.streak)
             }
 
             // Decorative Success Feedback
@@ -644,7 +638,6 @@ class GameManager: ObservableObject {
         progress.completedQuestionIds = completedQuestionIds
         progress.streak = streak
         progress.totalXP = totalXP
-        progress.coinBalance = coinBalance
         progress.unlockedHints = unlockedHints
         progress.revealedSolutions = revealedSolutions
         progress.dailyFreeHintsUsed = dailyFreeHintsUsed
@@ -654,6 +647,7 @@ class GameManager: ObservableObject {
         progress.attempts = attempts
         progress.lifetimeAttempts = lifetimeAttempts
         progress.history = history
+        progress.isDarkMode = isDarkMode
         
         // Unlocked Levels
         let unlockedSet = Set(levels.filter { $0.unlocked }.map { $0.number })
@@ -666,14 +660,6 @@ class GameManager: ObservableObject {
         let currentKey = selectedLanguage.rawValue
         let progress = progressData[currentKey] ?? LanguageProgress()
         
-        // If it's a fresh language (empty progress), maybe give default coins?
-        // LanguageProgress init already gives 10 coins.
-        
-        currentLevelIndex = progress.currentLevelIndex
-        completedQuestionIds = progress.completedQuestionIds
-        streak = progress.streak
-        totalXP = progress.totalXP
-        coinBalance = progress.coinBalance
         unlockedHints = progress.unlockedHints
         revealedSolutions = progress.revealedSolutions
         dailyFreeHintsUsed = progress.dailyFreeHintsUsed
@@ -683,6 +669,8 @@ class GameManager: ObservableObject {
         attempts = progress.attempts
         lifetimeAttempts = progress.lifetimeAttempts
         history = progress.history
+        isDarkMode = progress.isDarkMode
+        Theme.isDarkMode = isDarkMode
         
         // Restore Level Unlock State
         // First lock all except level 1 (unless strict mode logic overrides)
@@ -700,7 +688,7 @@ class GameManager: ObservableObject {
     
     // MARK: - Persistence
     
-    private func saveProgress() {
+    func saveProgress() {
         // 1. Snapshot current state into the dictionary
         saveCurrentToProgressData()
         
@@ -718,6 +706,8 @@ class GameManager: ObservableObject {
         if let lastDate = lastActiveDate {
             UserDefaults.standard.set(lastDate.timeIntervalSince1970, forKey: lastActiveDateKey)
         }
+        UserDefaults.standard.set(onboardingCompleted, forKey: onboardingCompletedKey)
+        UserDefaults.standard.set(levelOnboardingCompleted, forKey: levelOnboardingCompletedKey)
     }
     private func loadProgress() {
         // 1. Shared Data
@@ -744,6 +734,8 @@ class GameManager: ObservableObject {
         if let t = UserDefaults.standard.object(forKey: lastActiveDateKey) as? TimeInterval {
             self.lastActiveDate = Date(timeIntervalSince1970: t)
         }
+        self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
+        self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
         
         // 3. Apply to Published Properties
         loadFromProgressData()
@@ -761,8 +753,6 @@ class GameManager: ObservableObject {
         if let t = UserDefaults.standard.object(forKey: lastDailyResetKey) as? TimeInterval { legacy.lastDailyReset = Date(timeIntervalSince1970: t) }
         if let ids = UserDefaults.standard.stringArray(forKey: completionKey) { legacy.completedQuestionIds = Set(ids) }
         legacy.currentLevelIndex = UserDefaults.standard.integer(forKey: currentLevelKey)
-        legacy.coinBalance = UserDefaults.standard.integer(forKey: coinsKey)
-        if legacy.coinBalance == 0 && UserDefaults.standard.object(forKey: coinsKey) == nil { legacy.coinBalance = 10 }
         
         if let h = UserDefaults.standard.stringArray(forKey: hintsKey) { legacy.unlockedHints = Set(h) }
         if let s = UserDefaults.standard.stringArray(forKey: solutionsKey) { legacy.revealedSolutions = Set(s) }
@@ -786,10 +776,37 @@ class GameManager: ObservableObject {
         // Store into current language slot
         progressData[selectedLanguage.rawValue] = legacy
     }
-    
     private func setupInitialState() {
         if !levels.isEmpty {
             levels[0].unlocked = true
         }
+    }
+    
+    func completeOnboarding() {
+        onboardingCompleted = true
+        showOnboarding = false
+        saveProgress()
+        
+        // Trigger level onboarding immediately after if language is already selected
+        if !levelOnboardingCompleted {
+            showLevelOnboarding = true
+            levelOnboardingStep = 0
+        }
+    }
+    
+    func completeLevelOnboarding() {
+        levelOnboardingCompleted = true
+        showLevelOnboarding = false
+        saveProgress()
+    }
+    
+    func replayLevelOnboarding() {
+        levelOnboardingStep = 0
+        showLevelOnboarding = true
+    }
+    
+    func replayOnboarding() {
+        showOnboarding = true
+        // We don't necessarily reset onboardingCompleted until they finish it again or we can just leave it true
     }
 }

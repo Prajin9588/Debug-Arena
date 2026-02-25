@@ -8,7 +8,7 @@ struct EvaluationResultView: View {
     var body: some View {
         renderDetailedEvaluation()
             .padding(.vertical)
-            .background(Theme.Colors.background)
+            .background(Theme.Colors.background(isDark: result.status == .correct ? Theme.isDarkMode : Theme.isDarkMode)) 
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             .frame(maxWidth: .infinity)
     }
@@ -148,7 +148,6 @@ struct EvaluationResultView: View {
             // Inline Rewards
             if result.status == .correct {
                 HStack(spacing: 20) {
-                    rewardItem(icon: AnyView(BugCoin(size: 16)), label: "+\(result.coinsEarned) Coin")
                     rewardItem(icon: AnyView(Text("⚡️").font(.system(size: 14))), label: "+\(result.xpEarned) XP")
                 }
                 .padding(.vertical, 10)
@@ -180,7 +179,7 @@ struct EvaluationResultView: View {
                 .foregroundColor(Theme.Colors.textPrimary)
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.black.opacity(0.05))
+                .background(Theme.Colors.background.opacity(Theme.isDarkMode ? 0.3 : 0.05))
                 .cornerRadius(8)
         }
         .padding(.top, 4)
@@ -219,7 +218,7 @@ struct EvaluationResultView: View {
             }
         }
         .padding(16)
-        .background(result.status == .correct ? Color.gray.opacity(0.03) : Theme.Colors.mutedRed.opacity(0.05))
+        .background(result.status == .correct ? Theme.Colors.success.opacity(0.05) : Theme.Colors.mutedRed.opacity(0.1))
         .cornerRadius(12)
     }
     

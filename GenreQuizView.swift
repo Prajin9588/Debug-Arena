@@ -117,7 +117,7 @@ struct GenreQuizView: View {
                         .font(Theme.Typography.title2)
                         .bold()
                     
-                    Text(isCorrect ? "Hint unlocked! Spend 2 coins to see the explanation." : "Try again or choose another genre.")
+                    Text(isCorrect ? "Hint unlocked! Click close to see the explanation." : "Try again or choose another genre.")
                         .font(Theme.Typography.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
