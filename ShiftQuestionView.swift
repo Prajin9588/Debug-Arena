@@ -3,6 +3,7 @@ import SwiftUI
 struct ShiftQuestionView: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.dismiss) var dismiss
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     @State private var currentIndex: Int
     
@@ -54,7 +55,7 @@ struct ShiftQuestionView: View {
     
     var body: some View {
         ZStack {
-            Color(hex: "FAFAFA").ignoresSafeArea()
+            (isAdvanced ? Color(hex: "0F0F11") : Color(hex: "FAFAFA")).ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header (Replacing old HStack with WorkspaceHeader)
@@ -75,13 +76,13 @@ struct ShiftQuestionView: View {
                             .font(Theme.Typography.caption2)
                             .fontWeight(.bold)
                     }
-                    .foregroundColor(Color(hex: "4B5563"))
+                    .foregroundColor(isAdvanced ? Color.white.opacity(0.7) : Color(hex: "4B5563"))
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
-                    .background(Color(hex: "F3F4F6"))
+                    .background(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "F3F4F6"))
                     
                     Divider()
-                        .background(Color(hex: "E5E5E5"))
+                        .background(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "E5E5E5"))
                 }
                 
                 // Swipeable Code View
@@ -89,7 +90,7 @@ struct ShiftQuestionView: View {
                     ForEach(0..<currentQuestions.count, id: \.self) { index in
                         ShiftCodeSnippetView(
                             question: currentQuestions[index],
-                            isAdvanced: false, // Force light code view
+                            isAdvanced: isAdvanced,
                             lineVerdicts: lineVerdicts,
                             onLineTap: { lineNum in
                                 handleLineTap(lineNum: lineNum)
@@ -114,26 +115,28 @@ struct ShiftQuestionView: View {
                         
                         Text(output)
                             .font(Theme.Typography.codeFont)
-                            .foregroundColor(Theme.Colors.textPrimary)
+                            .foregroundColor(isAdvanced ? .white : Theme.Colors.textPrimary)
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(hex: "F1F1F1"))
+                            .background(isAdvanced ? Color(hex: "1C1C1E") : Color(hex: "F1F1F1"))
                             .cornerRadius(Theme.Layout.cornerRadius)
                             .overlay(
                                 RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                                    .stroke(Color(hex: "E5E5E5"), lineWidth: 1)
+                                    .stroke(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "E5E5E5"), lineWidth: 1)
                             )
                             .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 16)
                 }
-                }
+            }
+            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+            .frame(maxWidth: .infinity)
             .blur(radius: showReasoningSheet ? 5 : 0)
             
             // Reasoning Sheet Overlay
             if showReasoningSheet, let line = selectedLine {
-                Color.black.opacity(0.6) // Darker overlay to contrast with light background
+                Color.black.opacity(0.6)
                     .ignoresSafeArea()
                     .onTapGesture { closeSheet() }
                 
@@ -145,7 +148,8 @@ struct ShiftQuestionView: View {
                     },
                     onClose: closeSheet
                 )
-                .transition(.move(edge: .bottom))
+                .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(10)
             }
             
@@ -160,7 +164,7 @@ struct ShiftQuestionView: View {
                             Button(action: { dismiss() }) {
                                 HStack {
                                     Image(systemName: "terminal.fill")
-                                    Text("COMMIT FIX")
+                                    Text(currentQuestion.levelNumber == 1 ? "COMMIT FIX" : "SAVE")
                                 }
                                 .font(Theme.Typography.headline)
                                 .foregroundColor(.white)
@@ -181,7 +185,9 @@ struct ShiftQuestionView: View {
                             }
                         }
                     }
-                    .padding()
+                    .padding(horizontalSizeClass == .regular ? 40 : 20)
+                    .frame(maxWidth: horizontalSizeClass == .regular ? 500 : .infinity)
+                    .padding(.horizontal)
                 }
                 .zIndex(20)
             }
@@ -216,9 +222,7 @@ struct ShiftQuestionView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            // Ensure state is clean on load
             resetStateForNewQuestion()
-            
             if !hasTriggeredAppearAnimation {
                 gameManager.triggerScatter()
                 hasTriggeredAppearAnimation = true
@@ -359,36 +363,10 @@ struct ShiftQuestionView: View {
                 type = .error
             }
         } else {
-            // It is NOT an error line (Correct Line)
-            let normalized = text.lowercased()
-            let hasErrorKeyword = normalized.contains("error")
-            let hasSelection = !selectedOptions.isEmpty
-            
-            // Check for "Not Applicable" or No Error signaling
-            let signalingNoError = normalized.contains("not an error") || 
-                                  normalized.contains("correct") || 
-                                  normalized.contains("valid") || 
-                                  normalized.contains("no issue") ||
-                                  normalized.contains("fine")
-            
-            if hasSelection || (isAdvancedLevel && isSwiftOrC && hasErrorKeyword) {
-                // User is claiming an error on a correct line
-                if signalingNoError {
-                    // Claimed error but reasoning claims it's fine (Conflicting)
-                    verdict = .weakReasoning
-                    feedbackMsg = "🔍 Investigation recorded. You selected categories but mentioned the line is fine."
-                    type = .neutral
-                } else {
-                    verdict = .wrongCategory
-                    feedbackMsg = "❌ FALSE POSITIVE: No error occurs on this line. Your diagnosis is incorrect."
-                    type = .error
-                }
-            } else {
-                // User correctly identified the line has no error
-                verdict = .noError
-                feedbackMsg = "✅ LINE CLEAR: You correctly identified this line is functional."
-                type = .success
-            }
+            // It is NOT an error line
+            verdict = .noError
+            feedbackMsg = "🔍 No error occurs on this line."
+            type = .error
         }
         
         // Update State
@@ -423,17 +401,17 @@ struct ShiftQuestionView: View {
         
         let isAdvanced = question.difficulty >= 3
         let isSwiftOrC = question.language == .swift || question.language == .c
-        let hasErrorKeyword = normalized.contains("error")
+        let hasError = normalized.contains("error")
         
         // 3. SPECIAL OVERRIDE RULE (Swift & C — Level 3 & 4 ONLY)
-        if isAdvanced && isSwiftOrC && hasErrorKeyword {
+        if isAdvanced && isSwiftOrC && hasError {
             return (true, "Reasoning accepted for investigation.", true)
         }
         
         // 4. Intent Indicators
-        let causeEffect = ["because", "due to", "leads to", "results in", "causes", "since", "so"]
-        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate", "logic", "flow", "behavior"]
-        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output", "operation", "parameter", "return"]
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
         
         let allIndicators = causeEffect + behavior + technical
         let hasIntent = allIndicators.contains { normalized.contains($0) }
@@ -441,7 +419,7 @@ struct ShiftQuestionView: View {
         if hasIntent {
             return (true, "Reasoning accepted.", false)
         } else {
-            return (false, "Reasoning lacks technical intent. Explain 'how' or 'why'.", false)
+            return (false, "Reasoning lacks technical intent.", false)
         }
     }
     
@@ -527,7 +505,6 @@ struct ShiftQuestionView: View {
         }
     }
 }
-
 // MARK: - Components
 
 struct ShiftCodeSnippetView: View {
@@ -535,6 +512,7 @@ struct ShiftCodeSnippetView: View {
     let isAdvanced: Bool
     let lineVerdicts: [Int: ShiftQuestionView.LineVerdict]
     let onLineTap: (Int) -> Void
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var lines: [String] {
         guard let code = question.shiftData?.code else { return ["// No code available"] }
@@ -648,6 +626,7 @@ struct ReasoningSheet: View {
     @State private var reasoningText: String = ""
     @State private var selectedOptionIds: Set<UUID> = []
     @FocusState private var isFocused: Bool
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var isErrorLine: Bool {
         question.shiftData?.errorLines[lineNumber] != nil
@@ -662,29 +641,17 @@ struct ReasoningSheet: View {
     ]
     
     var availableOptions: [ShiftOption] {
-        var names = Set<String>()
-        
-        // 1. Start with standard reference concepts
-        referenceConcepts.forEach { names.insert($0) }
-        
-        // 2. Add all unique options defined for this entire question
-        if let data = question.shiftData {
-            for detail in data.errorLines.values {
-                for opt in detail.options {
-                    names.insert(opt.text)
-                }
-            }
+        if let detail = question.shiftData?.errorLines[lineNumber] {
+            return detail.options
         }
-        
-        // 3. Sort alphabetically for a consistent, professional UI on every line tap
-        return names.sorted().map { ShiftOption(text: $0, explanation: "", isCorrect: false) }
+        return referenceConcepts.map { ShiftOption(text: $0, explanation: "", isCorrect: false) }
     }
     
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
             
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 30 : 20) {
                 // Header
                 HStack {
                     Text("LINE \(lineNumber) INVESTIGATION")
@@ -796,11 +763,11 @@ struct ReasoningSheet: View {
                 }
                 .disabled(!canSubmit)
             }
-            .padding(30)
+            .padding(horizontalSizeClass == .regular ? 50 : 30)
             .background(isAdvancedFlow ? Color(hex: "1C1C1E") : Theme.Colors.secondaryBackground)
             .cornerRadius(30)
             .shadow(color: Color.black.opacity(isAdvancedFlow ? 0.6 : 0.15), radius: 30, x: 0, y: 15)
-            .padding(.bottom, 20)
+            .padding(horizontalSizeClass == .regular ? 40 : 20)
         }
         .onAppear {
             isFocused = true
@@ -809,10 +776,9 @@ struct ReasoningSheet: View {
     
     private var canSubmit: Bool {
         if isAdvancedFlow {
-            // Can submit if reasoning is unlocked, even if nothing selected (to mark as No Error)
-            return isReasoningUnlocked
+            return isReasoningUnlocked && !selectedOptionIds.isEmpty
         }
-        return !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty
+        return !reasoningText.trimmingCharacters(in: .whitespaces).isEmpty && !selectedOptionIds.isEmpty
     }
     
     private var isAdvancedFlow: Bool {
@@ -831,18 +797,15 @@ struct ReasoningSheet: View {
             return false
         }
         
-        let isAdvanced = question.difficulty >= 3
-        let isSwiftOrC = question.language == .swift || question.language == .c
-        
-        // 2. Special Override rule (Level 3 & 4 Swift/C ONLY)
-        if isAdvanced && isSwiftOrC && normalized.contains("error") {
+        // 2. Special Override rule
+        if normalized.contains("error") {
             return true
         }
         
         // 3. Intent indicators
-        let causeEffect = ["because", "due to", "leads to", "results in", "causes", "since", "so"]
-        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate", "logic", "flow", "behavior"]
-        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output", "operation", "parameter", "return"]
+        let causeEffect = ["because", "due to", "leads to", "results in", "causes"]
+        let behavior = ["execution", "runtime", "compile", "assign", "compare", "mutate"]
+        let technical = ["variable", "value", "reference", "function", "memory", "condition", "loop", "output"]
         
         let allIndicators = causeEffect + behavior + technical
         return allIndicators.contains { normalized.contains($0) }
@@ -851,9 +814,6 @@ struct ReasoningSheet: View {
     private var buttonLabel: String {
         if isAdvancedFlow && !isReasoningUnlocked {
             return "EXPLAIN BEFORE INVESTIGATING"
-        }
-        if selectedOptionIds.isEmpty {
-            return "VERIFY AS CORRECT"
         }
         return "VERIFY HYPOTHESIS"
     }

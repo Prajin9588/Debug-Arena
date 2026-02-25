@@ -309,37 +309,40 @@ struct MovingFlameStreakIcon: View {
     var body: some View {
         ZStack {
             if isActive {
-                // Background Glow
+                // Soft Ambient Glow
                 Circle()
                     .fill(RadialGradient(
-                        colors: [.orange.opacity(0.4), .clear],
+                        colors: [Color.orange.opacity(0.3), Color.clear],
                         center: .center,
                         startRadius: 0,
                         endRadius: size * 0.8
                     ))
                     .frame(width: size * 2, height: size * 2)
-                    .scaleEffect(0.8 + flicker * 0.2)
+                    .scaleEffect(0.9 + flicker * 0.1)
                 
-                // Outer Heat Layer (Red/Orange)
-                flameLayer(color: .red, offset: -2, scale: 1.1, speed: 0.6)
-                    .opacity(0.4)
-                    .blur(radius: 2)
-                
-                // Mid Fire Layer (Orange)
-                flameLayer(color: .orange, offset: -1, scale: 1.0, speed: 0.45)
-                    .opacity(0.8)
-                
-                // Core Flame (Yellow/White)
-                flameLayer(color: .yellow, offset: 0, scale: 0.8, speed: 0.3)
-                    .overlay(
-                        Image(systemName: "flame.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .foregroundStyle(.white)
-                            .scaleEffect(0.5 + flicker * 0.1)
-                            .offset(y: size * 0.1)
-                            .blur(radius: 1)
+                // Main Flame Body
+                Image(systemName: "flame.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size, height: size)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color(hex: "FF6B00"), .orange, .yellow],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
                     )
+                    .scaleEffect(x: 1.0 + (sway * 0.03), y: 1.0 + (flicker * 0.08), anchor: .bottom)
+                    .rotationEffect(.degrees(sway * 2), anchor: .bottom)
+                
+                // Subtle Soft Core
+                Image(systemName: "flame.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: size * 0.4, height: size * 0.4)
+                    .foregroundStyle(.white.opacity(0.8))
+                    .blur(radius: 0.5)
+                    .offset(y: size * 0.15)
             } else {
                 Image(systemName: "flame.fill")
                     .resizable()
@@ -361,28 +364,12 @@ struct MovingFlameStreakIcon: View {
         }
     }
     
-    private func flameLayer(color: Color, offset: CGFloat, scale: CGFloat, speed: Double) -> some View {
-        Image(systemName: "flame.fill")
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .frame(width: size * scale, height: size * scale)
-            .foregroundStyle(color)
-            .scaleEffect(x: 1.0 + (sway * 0.05), y: 1.0 + (flicker * 0.15), anchor: .bottom)
-            .rotationEffect(.degrees(sway * 5), anchor: .bottom)
-            .offset(x: sway * 2, y: offset + (lift * -3))
-            .animation(.easeInOut(duration: speed).repeatForever(autoreverses: true), value: flicker)
-            .animation(.easeInOut(duration: speed * 1.5).repeatForever(autoreverses: true), value: sway)
-    }
-    
     private func startAnimations() {
-        withAnimation(.easeInOut(duration: 0.4).repeatForever(autoreverses: true)) {
+        withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
             flicker = 1.0
         }
-        withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
             sway = 1.0
-        }
-        withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) {
-            lift = 1.0
         }
     }
 }
