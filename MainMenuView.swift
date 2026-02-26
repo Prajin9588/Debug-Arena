@@ -35,7 +35,7 @@ struct MainMenuView: View {
                         HomeHeader(
                             username: gameManager.username,
                             level: (gameManager.totalXP / 1000) + 1,
-                            streak: gameManager.dailyStreak,
+                            streak: gameManager.currentStreak,
                             selectedTab: $selectedTab
                         )
                         
@@ -64,7 +64,7 @@ struct MainMenuView: View {
                                 LanguageGridCard(
                                     language: "Swift",
                                     icon: "swift",
-                                    tag: "MASTER",
+                                    tag: "Rapid Track",
                                     color: Color(hex: "FF9100"),
                                     action: { gameManager.selectLanguage(.swift) },
                                     isSpotlighted: gameManager.showOnboarding && gameManager.onboardingStep == 1,
@@ -74,7 +74,7 @@ struct MainMenuView: View {
                                 LanguageGridCard(
                                     language: "C",
                                     icon: "c.circle.fill",
-                                    tag: "FOUNDATION",
+                                    tag: "The Architect",
                                     color: .blue,
                                     action: { gameManager.selectLanguage(.c) },
                                     isSpotlighted: gameManager.showOnboarding && gameManager.onboardingStep == 2,
@@ -133,6 +133,31 @@ struct MainMenuView: View {
                     LevelOnboardingOverlayView()
                         .transition(.opacity)
                         .zIndex(101)
+                }
+                
+                // Streak Reset Notification (Toast)
+                if gameManager.showStreakResetNotification {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 12) {
+                            Image(systemName: "clock.badge.exclamationmark.fill")
+                                .symbolRenderingMode(.multicolor)
+                                .font(.title3)
+                            
+                            Text(gameManager.streakResetMessage ?? "New day. New streak.")
+                                .font(Theme.Typography.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(Theme.Colors.textPrimary)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.2), radius: 15, x: 0, y: 10)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    .zIndex(200)
                 }
             }
         }

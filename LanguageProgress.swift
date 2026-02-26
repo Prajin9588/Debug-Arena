@@ -6,8 +6,8 @@ struct LanguageProgress: Codable {
     
     // Gamification
     var streak: Int = 0
-    var dailyStreak: Int = 0
-    var lastActiveDate: Date?
+    var currentStreak: Int = 0
+    var lastCompletionDate: String?
     var totalXP: Int = 0
     
     

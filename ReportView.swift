@@ -135,8 +135,8 @@ struct ReportView: View {
                  
                  MetricSingleCard(
                     title: "Current Streak",
-                    value: "\(gameManager.dailyStreak) Days",
-                    icon: AnyView(StreakFireView(streak: gameManager.dailyStreak)),
+                    value: "\(gameManager.currentStreak) Days",
+                    icon: AnyView(StreakFireView(streak: gameManager.currentStreak)),
                     color: Theme.swiftAccent
                  )
             }

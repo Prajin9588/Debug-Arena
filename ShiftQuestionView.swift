@@ -62,7 +62,7 @@ struct ShiftQuestionView: View {
                 WorkspaceHeader(
                     levelNumber: currentQuestion.levelNumber,
                     questionNumber: currentQuestion.questionNumber,
-                    streak: gameManager.streak,
+                    streak: gameManager.currentStreak,
                     onBack: { dismiss() }
                 )
                 

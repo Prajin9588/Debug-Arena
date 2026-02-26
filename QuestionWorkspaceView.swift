@@ -40,7 +40,7 @@ struct QuestionWorkspaceView: View {
                         WorkspaceHeader(
                             levelNumber: question.levelNumber,
                             questionNumber: question.questionNumber,
-                            streak: gameManager.streak,
+                            streak: gameManager.currentStreak,
                             onBack: { dismiss() }
                         )
                         

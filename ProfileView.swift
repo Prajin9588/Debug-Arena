@@ -216,8 +216,8 @@ struct ProfileView: View {
             
             StatRow(
                 title: "Current Streak",
-                value: "\(gameManager.streak) Days",
-                icon: AnyView(StreakFireView(streak: gameManager.streak)),
+                value: "\(gameManager.currentStreak) Days",
+                icon: AnyView(StreakFireView(streak: gameManager.currentStreak)),
                 color: .orange
             )
             

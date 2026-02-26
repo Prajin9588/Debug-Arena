@@ -36,8 +36,11 @@ class GameManager: ObservableObject {
     
     // Gamification
     @Published var streak: Int = 0
-    @Published var dailyStreak: Int = 0
-    @Published var lastActiveDate: Date?
+    @Published var currentStreak: Int = 0
+    @Published var lastCompletionDate: String? // YYYY-MM-DD
+    @Published var showStreakResetNotification: Bool = false
+    @Published var streakResetMessage: String?
+    
     @Published var totalXP: Int = 0
     @Published var lifetimeAttempts: Int = 0
     @Published var history: [HistoryEntry] = []
@@ -90,8 +93,8 @@ class GameManager: ObservableObject {
     private let solutionsKey = "debug_lab_solutions"
     private let unlockedLevelsKey = "debug_lab_unlocked_levels"
     private let languageKey = "debug_lab_language"
-    private let dailyStreakKey = "debug_lab_daily_streak"
-    private let lastActiveDateKey = "debug_lab_last_active_date"
+    private let currentStreakKey = "debug_lab_daily_streak"
+    private let lastCompletionDateKey = "debug_lab_last_completion_date"
     private let livesKey = "debug_lab_lives"
     private let lastLifeRegenKey = "debug_lab_last_life_regen"
     private let dailyHintsKey = "debug_lab_daily_hints_used"
@@ -120,9 +123,6 @@ class GameManager: ObservableObject {
         self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
         
         setupInitialState()
-        // Check streak on launch to see if it was broken
-        // Check streak on launch to see if it was broken
-        checkDailyStreakOnLaunch()
         checkDailyHintReset()
         debugUnlockAllLevels() // Enabled for testing
         // enforceStrictLevelLocks()
@@ -284,21 +284,6 @@ class GameManager: ObservableObject {
         return calendar.date(from: components) ?? date
     }
     
-    private func checkDailyStreakOnLaunch() {
-        guard let lastDate = lastActiveDate else { return }
-        
-        let today = normalizeDate(Date())
-        let last = normalizeDate(lastDate)
-        
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.day], from: last, to: today)
-        
-        if let days = components.day, days > 1 {
-            // Missed at least one full calendar day (e.g., solved Mon, today is Wed)
-            dailyStreak = 0
-            saveProgress()
-        }
-    }
 
     private func checkDailyHintReset() {
         let now = Date()
@@ -314,33 +299,63 @@ class GameManager: ObservableObject {
 
     
     func registerActivity() {
-        let today = normalizeDate(Date())
+        let calendar = Calendar.current
+        let today = Date()
         
-        if let lastDate = lastActiveDate {
-            let last = normalizeDate(lastDate)
-            
-            if today == last {
-                // Case B: Same Day Activity - Do nothing
-                return
-            }
-            
-            let calendar = Calendar.current
-            let components = calendar.dateComponents([.day], from: last, to: today)
-            
-            if components.day == 1 {
-                // Case C: Consecutive Day
-                dailyStreak += 1
-            } else {
-                // Case D: Missed One Or More Days (or clock went backwards)
-                dailyStreak = 1
-            }
-        } else {
-            // Case A: First Ever Activity
-            dailyStreak = 1
+        // Use device local date, normalized to YYYY-MM-DD
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = .current
+        
+        let todayString = formatter.string(from: today)
+        
+        guard let lastDateString = lastCompletionDate else {
+            // 1. If no previous completion exists
+            currentStreak = 1
+            lastCompletionDate = todayString
+            saveProgress()
+            return
         }
         
-        lastActiveDate = today
+        if lastDateString == todayString {
+            // 2. If lastCompletionDate == today -> Do NOTHING
+            return
+        }
+        
+        // Calculate yesterday's date string for comparison
+        guard let todayDate = formatter.date(from: todayString),
+              let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: todayDate) else {
+            return
+        }
+        let yesterdayString = formatter.string(from: yesterdayDate)
+        
+        if lastDateString == yesterdayString {
+            // 3. If lastCompletionDate == yesterday
+            currentStreak += 1
+            lastCompletionDate = todayString
+        } else {
+            // 4. If lastCompletionDate < yesterday (missed day)
+            currentStreak = 1
+            lastCompletionDate = todayString
+            
+            // Trigger streak reset message
+            streakResetMessage = "Daily streak reset. Let's start fresh."
+            showStreakResetNotification = true
+            
+            // Auto-hide notification after 3 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run {
+                    self.showStreakResetNotification = false
+                }
+            }
+        }
+        
         saveProgress()
+    }
+    
+    func updateStreak() {
+        registerActivity()
     }
     
     // MARK: - Gameplay Logic
@@ -430,25 +445,26 @@ class GameManager: ObservableObject {
         if !completedQuestionIds.contains(currentQuestion.title) {
             completedQuestionIds.insert(currentQuestion.title)
             streak += 1
-            registerActivity() // Update Daily Streak
             captureHistorySnapshot() // Capture progress for graph
             totalXP += 10 // Fixed XP per question
-            
             attempts[currentQuestion.title] = 0
-            
-            // Live Activity Success
-            Task { @MainActor in
-                LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.streak)
-            }
-            
-            checkLevelUnlock()
-            
-            // Adaptive Injection
-            applyAdaptiveReordering()
-            
-            // Decorative Success Feedback
-            triggerPassReward()
         }
+        
+        // GLOBAL STREAK: Always update on any successful completion today
+        registerActivity()
+        
+        // Live Activity Success
+        Task { @MainActor in
+            LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.currentStreak)
+        }
+        
+        checkLevelUnlock()
+        
+        // Adaptive Injection
+        applyAdaptiveReordering()
+        
+        // Decorative Success Feedback
+        triggerPassReward()
         
         executionState = .correct
         saveProgress()
@@ -614,19 +630,20 @@ class GameManager: ObservableObject {
         if !completedQuestionIds.contains(question.title) {
             completedQuestionIds.insert(question.title)
             streak += 1
-            registerActivity()
             totalXP += 10
-            
             checkLevelUnlock()
             saveProgress()
             
-            // Live Activity Success
-            Task { @MainActor in
-                LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.streak)
-            }
-
             // Decorative Success Feedback
             triggerPassReward()
+        }
+        
+        // GLOBAL STREAK: Always update on any successful completion today
+        registerActivity()
+
+        // Live Activity Success
+        Task { @MainActor in
+            LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.currentStreak)
         }
     }
     
@@ -704,9 +721,9 @@ class GameManager: ObservableObject {
         UserDefaults.standard.set(username, forKey: usernameKey)
         
         // Persist Daily Streak (Global)
-        UserDefaults.standard.set(dailyStreak, forKey: dailyStreakKey)
-        if let lastDate = lastActiveDate {
-            UserDefaults.standard.set(lastDate.timeIntervalSince1970, forKey: lastActiveDateKey)
+        UserDefaults.standard.set(currentStreak, forKey: currentStreakKey)
+        if let lastDate = lastCompletionDate {
+            UserDefaults.standard.set(lastDate, forKey: lastCompletionDateKey)
         }
         UserDefaults.standard.set(onboardingCompleted, forKey: onboardingCompletedKey)
         UserDefaults.standard.set(levelOnboardingCompleted, forKey: levelOnboardingCompletedKey)
@@ -732,10 +749,8 @@ class GameManager: ObservableObject {
         }
         
         // 3. Load Global Streak Data (Overrides per-language if any existed)
-        self.dailyStreak = UserDefaults.standard.integer(forKey: dailyStreakKey)
-        if let t = UserDefaults.standard.object(forKey: lastActiveDateKey) as? TimeInterval {
-            self.lastActiveDate = Date(timeIntervalSince1970: t)
-        }
+        self.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
+        self.lastCompletionDate = UserDefaults.standard.string(forKey: lastCompletionDateKey)
         self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
         self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
         
@@ -763,8 +778,8 @@ class GameManager: ObservableObject {
         if let u = UserDefaults.standard.array(forKey: unlockedLevelsKey) as? [Int] { legacy.unlockedLevels = Set(u) }
         
         legacy.streak = UserDefaults.standard.integer(forKey: "debug_lab_streak")
-        legacy.dailyStreak = UserDefaults.standard.integer(forKey: dailyStreakKey)
-        if let t = UserDefaults.standard.object(forKey: lastActiveDateKey) as? TimeInterval { legacy.lastActiveDate = Date(timeIntervalSince1970: t) }
+        legacy.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
+        legacy.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
         legacy.totalXP = UserDefaults.standard.integer(forKey: "debug_lab_total_xp")
         
         if let d = UserDefaults.standard.dictionary(forKey: shiftThoughtsKey) as? [String: String] { legacy.shiftThoughts = d }
