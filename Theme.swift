@@ -3,12 +3,17 @@ import SwiftUI
 struct Theme {
     // Global theme state
     static var isDarkMode: Bool = false
+    static var selectedLanguage: Language = .python
+    
+    static var swiftAccent: Color {
+        Theme.selectedLanguage == .swift ? Color(hex: "FF9100") : Color.orange
+    }
     
     struct Colors {
         // Core Palette
         static let babyPowder = Color(hex: "FEFEFA")
-        static let midnightIndigo = Color(hex: "0F1117")
-        static let deepSlate = Color(hex: "1A1C23")
+        static let midnightIndigo = Color(hex: "0A0C10") // Refined Deep Indigo
+        static let deepSlate = Color(hex: "161A22")      // Refined Slate surface
         static let slateWhite = Color(hex: "F8FAFC")
         static let coolGray = Color(hex: "94A3B8")
         
@@ -30,11 +35,11 @@ struct Theme {
         }
         
         static var codeBackground: Color {
-            Theme.isDarkMode ? Color(hex: "1E2028") : Color(hex: "F3F4F6")
+            Theme.isDarkMode ? Color(hex: "0F1115") : Color(hex: "F3F4F6")
         }
         
         static func codeBackground(isDark: Bool) -> Color {
-            return isDark ? Color(hex: "1E2028") : Color(hex: "F3F4F6")
+            return isDark ? Color(hex: "0F1115") : Color(hex: "F3F4F6")
         }
         
         static var terminalBackground: Color {
@@ -59,15 +64,24 @@ struct Theme {
         
         // Accents (Indigo / Cyan)
         static var accent: Color {
-            Theme.isDarkMode ? Color(hex: "818CF8") : Color(hex: "5856D6")
+            if Theme.selectedLanguage == .swift {
+                return Theme.swiftAccent
+            }
+            return Theme.isDarkMode ? Color(hex: "818CF8") : Color(hex: "5856D6")
         }
         
         static var electricCyan: Color {
-            Theme.isDarkMode ? Color(hex: "38BDF8") : Color(hex: "007AFF")
+            if Theme.selectedLanguage == .swift {
+                return Theme.swiftAccent
+            }
+            return Theme.isDarkMode ? Color(hex: "38BDF8") : Color(hex: "007AFF")
         }
         
         static var action: Color {
-            Theme.isDarkMode ? Color(hex: "38BDF8") : Color(hex: "007AFF")
+            if Theme.selectedLanguage == .swift {
+                return Theme.swiftAccent
+            }
+            return Theme.isDarkMode ? Color(hex: "38BDF8") : Color(hex: "007AFF")
         }
         
         // Status Colors
@@ -81,9 +95,24 @@ struct Theme {
         
         // Gradients
         static var primaryGradient: LinearGradient {
-            Theme.isDarkMode ? 
+            if Theme.selectedLanguage == .swift {
+                return LinearGradient(
+                    colors: [Color(hex: "E65100"), Color(hex: "FF9100"), Color(hex: "FFD600")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            return Theme.isDarkMode ? 
                 LinearGradient(colors: [Color(hex: "6366F1"), Color(hex: "8B5CF6")], startPoint: .topLeading, endPoint: .bottomTrailing) :
                 LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        
+        static var logoGradient: LinearGradient {
+            LinearGradient(
+                colors: [Color(hex: "4A7DFF"), Color(hex: "8B5CF6"), Color(hex: "C048FF")],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
     }
     

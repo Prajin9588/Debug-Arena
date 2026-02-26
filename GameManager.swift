@@ -109,6 +109,7 @@ class GameManager: ObservableObject {
         populateQuestionMetadata()
         loadProgress()
         Theme.isDarkMode = self.isDarkMode
+        Theme.selectedLanguage = self.selectedLanguage
         
         // Onboarding logic
         self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
@@ -223,6 +224,7 @@ class GameManager: ObservableObject {
         
         // 2. Switch language
         selectedLanguage = language
+        Theme.selectedLanguage = language
         
         // 3. Load new language state
         loadFromProgressData()
@@ -742,6 +744,7 @@ class GameManager: ObservableObject {
         
         // 4. Ensure Content Matches Language
         refreshQuestions()
+        Theme.selectedLanguage = self.selectedLanguage
     }
     
     private func migrateLegacyData() {

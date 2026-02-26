@@ -85,7 +85,7 @@ struct ReportView: View {
                 
                 // Legend
                 HStack(spacing: 12) {
-                    LegendItem(color: .orange, label: "Swift")
+                    LegendItem(color: Theme.swiftAccent, label: "Swift")
                     LegendItem(color: .blue, label: "C Language")
                 }
             }
@@ -137,7 +137,7 @@ struct ReportView: View {
                     title: "Current Streak",
                     value: "\(gameManager.dailyStreak) Days",
                     icon: AnyView(StreakFireView(streak: gameManager.dailyStreak)),
-                    color: .orange
+                    color: Theme.swiftAccent
                  )
             }
         }
@@ -250,11 +250,30 @@ struct DualLineGraph: View {
                 }
                 .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                 
-                // Swift Line (Orange)
+                // Swift Line (Custom)
                 Path { path in
                     drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local))
                 }
-                .stroke(Color.orange, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                .stroke(Theme.swiftAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                
+                // Swift Fill
+                Path { path in
+                    drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local), closed: true)
+                }
+                .fill(LinearGradient(colors: [Theme.swiftAccent.opacity(0.2), Theme.swiftAccent.opacity(0.0)], startPoint: .top, endPoint: .bottom))
+                
+                // Swift Markers
+                if swiftData.count > 0 {
+                    ForEach(0..<swiftData.count, id: \.self) { index in
+                        let stepX = proxy.size.width / CGFloat(max(swiftData.count - 1, 1))
+                        let x = CGFloat(index) * stepX
+                        let y = proxy.size.height - (CGFloat(swiftData[index]) / 100.0 * proxy.size.height)
+                        Circle()
+                            .fill(Theme.swiftAccent)
+                            .frame(width: 6, height: 6)
+                            .position(x: x, y: y)
+                    }
+                }
                 
                 // Dots for last points
                 /* Optional dots */
@@ -263,8 +282,8 @@ struct DualLineGraph: View {
         .padding(10)
     }
     
-    private func drawPath(in path: inout Path, data: [Double], rect: CGRect) {
-        guard data.count > 1 else { return }
+    private func drawPath(in path: inout Path, data: [Double], rect: CGRect, closed: Bool = false) {
+        guard data.count > 0 else { return }
         
         let stepX = rect.width / CGFloat(max(data.count - 1, 1))
         let maxY = 100.0 // Accuracy is 0-100
@@ -278,6 +297,12 @@ struct DualLineGraph: View {
             let x = CGFloat(index) * stepX
             let y = rect.height - (CGFloat(val) / maxY * rect.height)
             path.addLine(to: CGPoint(x: x, y: y))
+        }
+        
+        if closed && data.count > 1 {
+            path.addLine(to: CGPoint(x: CGFloat(data.count - 1) * stepX, y: rect.height))
+            path.addLine(to: CGPoint(x: 0, y: rect.height))
+            path.closeSubpath()
         }
     }
 }
@@ -298,7 +323,7 @@ struct MetricCard: View {
                 VStack(alignment: .leading) {
                     Text("Swift")
                         .font(.caption2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Theme.swiftAccent)
                     Text(swiftValue)
                         .font(.headline)
                         .fontWeight(.bold)

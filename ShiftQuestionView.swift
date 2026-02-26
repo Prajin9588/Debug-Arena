@@ -55,7 +55,7 @@ struct ShiftQuestionView: View {
     
     var body: some View {
         ZStack {
-            Color(hex: "FAFAFA").ignoresSafeArea()
+            Theme.Colors.background.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header (Replacing old HStack with WorkspaceHeader)
@@ -75,13 +75,13 @@ struct ShiftQuestionView: View {
                             .font(Theme.Typography.caption2)
                             .fontWeight(.bold)
                     }
-                    .foregroundColor(Color(hex: "4B5563"))
+                    .foregroundColor(Theme.Colors.textSecondary)
                     .padding(.vertical, 8)
                     .frame(maxWidth: .infinity)
-                    .background(Color(hex: "F3F4F6"))
+                    .background(Theme.Colors.codeBackground)
                     
                     Divider()
-                        .background(Color(hex: "E5E5E5"))
+                        .background(Theme.Colors.textSecondary.opacity(0.1))
                 }
                 
                 // Swipeable Code View
@@ -121,9 +121,9 @@ struct ShiftQuestionView: View {
                             .cornerRadius(Theme.Layout.cornerRadius)
                             .overlay(
                                 RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
-                                    .stroke(isAdvanced ? Color.white.opacity(0.1) : Color(hex: "E5E5E5"), lineWidth: 1)
+                                    .stroke(Theme.isDarkMode ? Color.white.opacity(0.12) : Color(hex: "E5E5E5"), lineWidth: 1)
                             )
-                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                            .shadow(color: Color.black.opacity(Theme.isDarkMode ? 0.4 : 0.08), radius: 8, x: 0, y: 2)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 16)
@@ -527,16 +527,17 @@ struct ShiftCodeSnippetView: View {
                     let lineNum = index + 1
                     let verdict = lineVerdicts[lineNum]
                     
-                    HStack(alignment: .center, spacing: 12) {
-                        // 1. Line Number Column
+                    HStack(alignment: .firstTextBaseline, spacing: 14) {
+                        // 1. Line Number Column - Fixed width, high contrast, matched font
                         Text("\(lineNum)")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundColor(isAdvanced ? Color.white.opacity(0.6) : Theme.Colors.textSecondary)
-                            .frame(width: 35, alignment: .trailing)
+                            .font(Theme.Typography.codeFont)
+                            .foregroundColor(Theme.Colors.textSecondary)
+                            .frame(width: 45, alignment: .trailing)
+                            .padding(.vertical, 6) // Match code content padding
                         
-                        // 2. Flexible Code Content Column
+                        // 2. Flexible Code Content Column - Matched font
                         Text(line)
-                            .font(.system(.body, design: .monospaced))
+                            .font(Theme.Typography.codeFont)
                             .foregroundColor(line.trimmingCharacters(in: .whitespaces).hasPrefix("//") ? Color(hex: "6B7280") : Theme.Colors.textPrimary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 6)
@@ -555,7 +556,7 @@ struct ShiftCodeSnippetView: View {
                             } else {
                                 Image(systemName: "hand.tap")
                                     .font(.caption2)
-                                    .foregroundColor(isAdvanced ? Color.white.opacity(0.4) : Theme.Colors.textSecondary.opacity(0.6))
+                                    .foregroundColor(Theme.Colors.textSecondary)
                             }
                         }
                         .frame(width: 24)
@@ -569,17 +570,22 @@ struct ShiftCodeSnippetView: View {
             .padding()
             .background(Theme.Colors.secondaryBackground)
             .cornerRadius(Theme.Layout.cornerRadius)
-            .shadow(color: Color.black.opacity(isAdvanced ? 0.4 : 0.08), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(isAdvanced ? 0.4 : 0.08), radius: Theme.isDarkMode ? 20 : 8)
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Layout.cornerRadius)
+                    .stroke(Theme.isDarkMode ? Color.white.opacity(0.1) : Color.clear, lineWidth: 1)
+            )
             .padding()
         }
     }
     
     func backgroundColor(for verdict: ShiftQuestionView.LineVerdict?) -> Color {
         guard let v = verdict else { return Color.clear }
+        let opacity = Theme.isDarkMode ? 0.25 : 0.15
         switch v {
-        case .correct: return Theme.Colors.success.opacity(0.2)
-        case .weakReasoning: return Color.yellow.opacity(0.2)
-        case .wrongCategory: return Theme.Colors.error.opacity(0.2)
+        case .correct: return Theme.Colors.success.opacity(opacity)
+        case .weakReasoning: return Color.yellow.opacity(opacity)
+        case .wrongCategory: return Theme.Colors.error.opacity(opacity)
         case .noError: return Theme.Colors.textSecondary.opacity(0.1)
         case .notEvaluated: return Color.clear
         }
@@ -587,11 +593,12 @@ struct ShiftCodeSnippetView: View {
     
     func borderColor(for verdict: ShiftQuestionView.LineVerdict?) -> Color {
         guard let v = verdict else { return Color.clear }
+        let opacity = Theme.isDarkMode ? 0.6 : 1.0
         switch v {
-        case .correct: return Theme.Colors.success
-        case .weakReasoning: return Color.yellow
-        case .wrongCategory: return Theme.Colors.error
-        case .noError: return Theme.Colors.textSecondary
+        case .correct: return Theme.Colors.success.opacity(opacity)
+        case .weakReasoning: return Color.yellow.opacity(opacity)
+        case .wrongCategory: return Theme.Colors.error.opacity(opacity)
+        case .noError: return Theme.Colors.textSecondary.opacity(opacity)
         case .notEvaluated: return Color.clear
         }
     }
@@ -687,11 +694,11 @@ struct ReasoningSheet: View {
                         .frame(height: 100)
                         .scrollContentBackground(.hidden)
                         .padding()
-                        .background(Theme.Colors.background)
+                        .background(Theme.isDarkMode ? Theme.Colors.background : Color.white)
                         .cornerRadius(12)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(Theme.Colors.electricCyan.opacity(0.3), lineWidth: 1)
+                                .stroke(Theme.Colors.electricCyan.opacity(Theme.isDarkMode ? 0.3 : 0.5), lineWidth: 1.5)
                         )
                         .foregroundColor(Theme.Colors.textPrimary)
                         .focused($isFocused)
@@ -732,13 +739,13 @@ struct ReasoningSheet: View {
                                     .font(Theme.Typography.caption)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 16)
-                                    .background(isSelected ? Theme.Colors.electricCyan : Theme.Colors.background)
+                                    .background(isSelected ? Theme.Colors.electricCyan : (Theme.isDarkMode ? Theme.Colors.background : Color.white))
                                     .foregroundColor(isSelected ? .black : (lockCategories ? Theme.Colors.textSecondary.opacity(0.3) : Theme.Colors.textPrimary))
                                     .cornerRadius(20)
                                     .opacity(lockCategories ? 0.4 : 1.0)
                                     .overlay(
                                         Capsule()
-                                            .stroke(Theme.Colors.electricCyan.opacity(lockCategories ? 0.1 : 0.3), lineWidth: 1)
+                                            .stroke(isSelected ? Theme.Colors.electricCyan : Theme.Colors.electricCyan.opacity(lockCategories ? 0.1 : 0.4), lineWidth: 1.5)
                                     )
                                 }
                                 .disabled(lockCategories)
@@ -756,10 +763,10 @@ struct ReasoningSheet: View {
                 }) {
                     Text(buttonLabel)
                         .font(Theme.Typography.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(canSubmit ? .black : .white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(canSubmit ? Theme.Colors.electricCyan : Color.gray)
+                        .background(canSubmit ? Theme.Colors.electricCyan : Theme.Colors.textSecondary.opacity(0.3))
                         .cornerRadius(12)
                 }
                 .disabled(!canSubmit)
@@ -767,7 +774,11 @@ struct ReasoningSheet: View {
             .padding(horizontalSizeClass == .regular ? 50 : 30)
             .background(Theme.Colors.secondaryBackground)
             .cornerRadius(30)
-            .shadow(color: Color.black.opacity(0.15), radius: 30, x: 0, y: 15)
+            .overlay(
+                RoundedRectangle(cornerRadius: 30)
+                    .stroke(Theme.isDarkMode ? Color.white.opacity(0.15) : Color.clear, lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(Theme.isDarkMode ? 0.5 : 0.15), radius: 30, x: 0, y: 15)
             .padding(horizontalSizeClass == .regular ? 40 : 20)
         }
         .onAppear {

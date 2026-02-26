@@ -121,6 +121,16 @@ struct DashboardHeader: View {
         gameManager.unlockThresholdReached(for: gameManager.currentLevelIndex)
     }
     
+    var tagline: String {
+        switch gameManager.currentLevelIndex + 1 {
+        case 1: return "Find the flaw."
+        case 2: return "Think deeper."
+        case 3: return "Now it gets tricky."
+        case 4: return "Precision wins."
+        default: return ""
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 16) { // Increased spacing for cleaner look
             HStack {
@@ -138,8 +148,14 @@ struct DashboardHeader: View {
                 .background(Theme.Colors.accent.opacity(0.1))
                 .clipShape(Capsule()) // More modern shape
                 
-                Spacer()
+                // Tagline for the level
+                Text(tagline.uppercased())
+                    .font(Theme.Typography.caption2)
+                    .fontWeight(.bold)
+                    .foregroundColor(Theme.Colors.textSecondary)
+                    .tracking(2)
                 
+                Spacer()
             }
             
             VStack(alignment: .leading, spacing: 10) {

@@ -115,6 +115,16 @@ struct WorkspaceHeader: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
+    var tagline: String {
+        switch levelNumber {
+        case 1: return "Find the flaw."
+        case 2: return "Think deeper."
+        case 3: return "Now it gets tricky."
+        case 4: return "Precision wins."
+        default: return ""
+        }
+    }
+    
     var body: some View {
         HStack(spacing: horizontalSizeClass == .compact ? 8 : 16) {
             Button(action: onBack) {
@@ -129,23 +139,30 @@ struct WorkspaceHeader: View {
             
             Spacer(minLength: 0)
             
-            // Level Goal Pill
-            HStack(spacing: horizontalSizeClass == .compact ? 6 : 12) {
-                Image(systemName: "target")
-                    .font(.caption)
-                    .foregroundColor(Theme.Colors.electricCyan)
+            VStack(spacing: 2) {
+                // Level Goal Pill
+                HStack(spacing: horizontalSizeClass == .compact ? 6 : 12) {
+                    Image(systemName: "target")
+                        .font(.caption)
+                        .foregroundColor(Theme.Colors.electricCyan)
+                    
+                    Text(horizontalSizeClass == .compact ? "L\(levelNumber) : Q\(questionNumber)" : "LEVEL \(levelNumber) : Question \(questionNumber)")
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .padding(.horizontal, horizontalSizeClass == .compact ? 12 : 16)
+                .padding(.vertical, 8)
+                .background(Theme.Colors.secondaryBackground)
+                .clipShape(Capsule())
+                .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
                 
-                Text(horizontalSizeClass == .compact ? "L\(levelNumber) : Q\(questionNumber)" : "LEVEL \(levelNumber) : Question \(questionNumber)")
-                    .font(Theme.Typography.headline)
-                    .foregroundColor(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                Text(tagline)
+                    .font(Theme.Typography.caption2)
+                    .foregroundColor(Theme.Colors.textSecondary)
+                    .fontWeight(.medium)
             }
-            .padding(.horizontal, horizontalSizeClass == .compact ? 12 : 16)
-            .padding(.vertical, 8)
-            .background(Theme.Colors.secondaryBackground)
-            .clipShape(Capsule())
-            .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
             
             Spacer(minLength: 0)
             
@@ -290,5 +307,70 @@ struct StreakFireView: View {
             size: horizontalSizeClass == .compact ? 16 : 22,
             isActive: streak > 0
         )
+    }
+}
+
+struct CLogoView: View {
+    var size: CGFloat = 28
+    
+    var body: some View {
+        ZStack {
+            HexagonShape()
+                .fill(LinearGradient(
+                    colors: [Color(hex: "5685BB"), Color(hex: "2D558E")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+            
+            // Shading triangle on the right
+            HexagonRightShading()
+                .fill(Color(hex: "1B355B"))
+            
+            Text("C")
+                .font(.system(size: size * 0.65, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .offset(x: -size * 0.05)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+struct HexagonShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let x = rect.midX
+        let y = rect.midY
+        let side = min(rect.width, rect.height) / 2
+        
+        for i in 0..<6 {
+            let angle = CGFloat(i) * .pi / 3
+            let pt = CGPoint(x: x + side * cos(angle), y: y + side * sin(angle))
+            if i == 0 { path.move(to: pt) }
+            else { path.addLine(to: pt) }
+        }
+        path.closeSubpath()
+        return path
+    }
+}
+
+struct HexagonRightShading: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let x = rect.midX
+        let y = rect.midY
+        let side = min(rect.width, rect.height) / 2
+        
+        path.move(to: CGPoint(x: x, y: y))
+        path.addLine(to: CGPoint(x: x + side * cos(0), y: y + side * sin(0)))
+        path.addLine(to: CGPoint(x: x + side * cos(.pi/3), y: y + side * sin(.pi/3)))
+        path.closeSubpath()
+        
+        // Add the top triangle too
+        path.move(to: CGPoint(x: x, y: y))
+        path.addLine(to: CGPoint(x: x + side * cos(0), y: y + side * sin(0)))
+        path.addLine(to: CGPoint(x: x + side * cos(-.pi/3), y: y + side * sin(-.pi/3)))
+        path.closeSubpath()
+        
+        return path
     }
 }

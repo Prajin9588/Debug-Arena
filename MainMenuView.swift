@@ -16,12 +16,20 @@ struct MainMenuView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         // 0. App Title
-                        Text("THE DEBUG ARENA")
-                            .font(Theme.Typography.title)
-                            .fontWeight(.black)
-                            .foregroundStyle(Theme.Colors.primaryGradient)
-                            .tracking(2)
-                            .padding(.top, 20)
+                        VStack(spacing: 4) {
+                            Text("THE DEBUG ARENA")
+                                .font(Theme.Typography.title)
+                                .fontWeight(.black)
+                                .foregroundStyle(Theme.Colors.logoGradient)
+                                .tracking(2)
+                            
+                            Text("Spot it. Break it. Own it.")
+                                .font(Theme.Typography.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(Theme.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 20)
                         
                         // 1. Professional Header
                         HomeHeader(
@@ -57,7 +65,7 @@ struct MainMenuView: View {
                                     language: "Swift",
                                     icon: "swift",
                                     tag: "MASTER",
-                                    color: Theme.Colors.accent,
+                                    color: Color(hex: "FF9100"),
                                     action: { gameManager.selectLanguage(.swift) },
                                     isSpotlighted: gameManager.showOnboarding && gameManager.onboardingStep == 1,
                                     badge: "Beginner Friendly"
@@ -227,9 +235,21 @@ struct ProgressOverviewCard: View {
                 Text("Progress Overview")
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.textPrimary)
-                Text("\(completed) / \(required) to unlock Level \(levelIndex + 2)")
-                    .font(Theme.Typography.subheadline)
-                    .foregroundColor(Theme.Colors.textSecondary)
+                if levelIndex == 3 {
+                    Text("Keep sharpening your logic in Level 4")
+                        .font(Theme.Typography.subheadline)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                } else {
+                    Text("\(completed) / \(required) to unlock Level \(levelIndex + 2)")
+                        .font(Theme.Typography.subheadline)
+                        .foregroundColor(Theme.Colors.textSecondary)
+                }
+                Text("STAY SHARP.")
+                    .font(Theme.Typography.caption)
+                    .fontWeight(.black)
+                    .foregroundColor(Theme.Colors.electricCyan)
+                    .tracking(1.5)
+                    .padding(.top, 4)
             }
             Spacer()
         }
@@ -256,7 +276,11 @@ struct LanguageGridCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: icon).font(.title2).foregroundColor(color)
+                    if language == "C" {
+                        CLogoView(size: 28)
+                    } else {
+                        Image(systemName: icon).font(.title2).foregroundColor(color)
+                    }
                     Spacer()
                     Text(tag).font(.system(size: 9, weight: .bold)).foregroundColor(color)
                         .padding(.horizontal, 6).padding(.vertical, 2)

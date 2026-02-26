@@ -231,7 +231,7 @@ extension Question {
             ),
             Level(
                 number: 4,
-                title: "Level 4: Algorithm Architect",
+                title: "Level 4: Debug Master",
                 description: "Fix algorithmic bugs in searching, sorting, and recursion.",
                 questions: generateLevel4Questions(for: language),
                 unlocked: false
