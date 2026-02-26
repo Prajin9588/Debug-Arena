@@ -396,7 +396,7 @@ struct OnboardingOverlayView: View {
     
     private var onboardingScene2: some View {
         VStack(spacing: 24) {
-            Text("⚡ Path of Swift")
+            Text("Rapid Track")
                 .font(Theme.Typography.title)
                 .foregroundColor(Theme.Colors.accent)
             
@@ -405,7 +405,7 @@ struct OnboardingOverlayView: View {
                 .foregroundColor(.white)
             
             Button(action: { gameManager.onboardingStep = 2 }) {
-                Text("Next: Path of C")
+                Text("Next: The Architect")
                     .font(Theme.Typography.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
@@ -418,7 +418,7 @@ struct OnboardingOverlayView: View {
     
     private var onboardingScene3: some View {
         VStack(spacing: 24) {
-            Text("🔧 Path of C")
+            Text("The Architect")
                 .font(Theme.Typography.title)
                 .foregroundColor(.blue)
             

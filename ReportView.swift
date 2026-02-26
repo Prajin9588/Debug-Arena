@@ -128,7 +128,7 @@ struct ReportView: View {
             HStack(spacing: 12) {
                  MetricSingleCard(
                     title: "Total XP Earned",
-                    value: "\(gameManager.progressData["Swift"]?.totalXP ?? 0 + (gameManager.progressData["C"]?.totalXP ?? 0))",
+                    value: "\((gameManager.progressData["Swift"]?.totalXP ?? 0) + (gameManager.progressData["C"]?.totalXP ?? 0))",
                     icon: AnyView(Image(systemName: "star.fill")),
                     color: .yellow
                  )
@@ -261,6 +261,19 @@ struct DualLineGraph: View {
                     drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local), closed: true)
                 }
                 .fill(LinearGradient(colors: [Theme.swiftAccent.opacity(0.2), Theme.swiftAccent.opacity(0.0)], startPoint: .top, endPoint: .bottom))
+                
+                // C Markers
+                if cData.count > 0 {
+                    ForEach(0..<cData.count, id: \.self) { index in
+                        let stepX = proxy.size.width / CGFloat(max(cData.count - 1, 1))
+                        let x = CGFloat(index) * stepX
+                        let y = proxy.size.height - (CGFloat(cData[index]) / 100.0 * proxy.size.height)
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 6, height: 6)
+                            .position(x: x, y: y)
+                    }
+                }
                 
                 // Swift Markers
                 if swiftData.count > 0 {
