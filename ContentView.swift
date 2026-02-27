@@ -16,10 +16,8 @@ struct ContentView: View {
                 .toolbarBackground(.visible, for: .tabBar)
                 .toolbarColorScheme(gameManager.isDarkMode ? .dark : .light, for: .tabBar)
             
-            // Tab 1: Reports (Dashboard)
-            ReportView(result: gameManager.lastEvaluationResult, onDismiss: {
-                gameManager.lastEvaluationResult = nil // Clear result on dismiss
-            })
+            // Tab 1: Reports (Analytics & Dashboard)
+            ReportView()
             .tabItem {
                 Label("Reports", systemImage: "chart.bar.fill")
             }

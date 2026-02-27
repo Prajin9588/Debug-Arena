@@ -156,37 +156,43 @@ struct ShiftQuestionView: View {
             if let result = evaluationResult {
                 ZStack {
                     Color.black.opacity(0.4).ignoresSafeArea()
-                    VStack(spacing: 20) {
-                        EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
-                        
-                        if result.status == .correct {
-                            Button(action: { dismiss() }) {
-                                HStack {
-                                    Image(systemName: "terminal.fill")
-                                    Text("COMMIT FIX")
-                                }
-                                .font(Theme.Typography.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Theme.Colors.primaryGradient)
-                                .cornerRadius(12)
-                            }
-                        } else {
-                            Button(action: { evaluationResult = nil }) {
-                                Text("TRY AGAIN")
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
+                            
+                            if result.status == .correct {
+                                Button(action: { dismiss() }) {
+                                    HStack {
+                                        Image(systemName: "terminal.fill")
+                                        Text("COMMIT FIX")
+                                    }
                                     .font(Theme.Typography.headline)
                                     .foregroundColor(.white)
                                     .padding()
                                     .frame(maxWidth: .infinity)
-                                    .background(Theme.Colors.action)
+                                    .background(Theme.Colors.primaryGradient)
                                     .cornerRadius(12)
+                                }
+                            } else {
+                                Button(action: { evaluationResult = nil }) {
+                                    HStack {
+                                        Image(systemName: "arrow.counterclockwise.circle.fill")
+                                        Text("TRY AGAIN")
+                                    }
+                                    .font(Theme.Typography.headline)
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(Theme.Colors.failureGradient)
+                                    .cornerRadius(12)
+                                }
                             }
                         }
+                        .padding(horizontalSizeClass == .regular ? 40 : 20)
+                        .frame(maxWidth: horizontalSizeClass == .regular ? 500 : .infinity)
+                        .padding(.horizontal)
+                        .padding(.vertical, 40)
                     }
-                    .padding(horizontalSizeClass == .regular ? 40 : 20)
-                    .frame(maxWidth: horizontalSizeClass == .regular ? 500 : .infinity)
-                    .padding(.horizontal)
                 }
                 .zIndex(20)
             }

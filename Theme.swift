@@ -127,17 +127,17 @@ struct Theme {
     struct Typography {
         static let codeFont = Font.system(.body, design: .monospaced)
         static let terminalCodeFont = Font.system(.subheadline, design: .monospaced).weight(.medium)
-        static let statsFont = Font.system(.callout, design: .monospaced).weight(.medium)
+        static let statsFont = Font.system(size: 15, weight: .medium)
         
-        static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
-        static let title = Font.system(size: 28, weight: .bold, design: .default)
-        static let title2 = Font.system(size: 22, weight: .bold, design: .rounded)
-        static let title3 = Font.system(size: 20, weight: .semibold, design: .rounded)
-        static let headline = Font.system(size: 17, weight: .semibold, design: .default)
-        static let subheadline = Font.system(size: 15, weight: .medium, design: .default)
-        static let body = Font.system(size: 17, design: .default)
-        static let caption = Font.system(size: 12, weight: .medium, design: .default)
-        static let caption2 = Font.system(size: 11, weight: .bold, design: .default)
+        static let largeTitle = Font.system(size: 34, weight: .bold)
+        static let title = Font.system(size: 28, weight: .bold)
+        static let title2 = Font.system(size: 22, weight: .bold)
+        static let title3 = Font.system(size: 20, weight: .semibold)
+        static let headline = Font.system(size: 17, weight: .semibold)
+        static let subheadline = Font.system(size: 15, weight: .medium)
+        static let body = Font.system(size: 17)
+        static let caption = Font.system(size: 12, weight: .medium)
+        static let caption2 = Font.system(size: 11, weight: .bold)
     }
     
     struct Layout {

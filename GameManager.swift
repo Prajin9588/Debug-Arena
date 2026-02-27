@@ -1,6 +1,55 @@
 import SwiftUI
 import Combine
 
+// 1️⃣ GameLanguage
+enum GameLanguage: String, CaseIterable, Codable, Hashable {
+    case c
+    case swift
+    
+    init(from language: Language) {
+        switch language {
+        case .c: self = .c
+        case .swift: self = .swift
+        default: self = .swift
+        }
+    }
+}
+
+// 2️⃣ GameLevel
+enum GameLevel: Int, CaseIterable, Codable, Hashable {
+    case level1 = 1
+    case level2 = 2
+    case level3 = 3
+    case level4 = 4
+    
+    init(fromIndex index: Int) {
+        self = GameLevel(rawValue: index + 1) ?? .level1
+    }
+}
+
+// 3️⃣ GameModeKey
+struct GameModeKey: Hashable, Codable {
+    let language: GameLanguage
+    let level: GameLevel
+    let isShiftMode: Bool
+}
+
+// 4️⃣ ProgressData
+struct ProgressData: Codable {
+    var completed: Int = 0
+    var completedIds: Set<String> = []
+    var correct: Int = 0
+    var total: Int = 0
+    var xp: Int = 0
+    var history: [HistoryEntry] = []
+    var attempts: [String: Int] = [:]
+    
+    var accuracy: Double {
+        guard total > 0 else { return 0 }
+        return (Double(correct) / Double(total)) * 100
+    }
+}
+
 @MainActor
 class GameManager: ObservableObject {
     enum ExecutionState: Equatable {
@@ -8,7 +57,7 @@ class GameManager: ObservableObject {
         case running
         case correct
         case error(String)
-        case levelComplete(Int, Bool) // Next Level number, Is Forced?
+        case levelComplete(Int, Bool)
         
         var isIdle: Bool {
             if case .idle = self { return true }
@@ -23,89 +72,67 @@ class GameManager: ObservableObject {
     
     // Core Data
     @Published var levels: [Level] = []
-    @Published var currentLevelIndex: Int = 0
-    @Published var currentQuestionIndex: Int = 0 // 0-49
-    @Published var selectedLanguage: Language = .python
+    @Published var currentLevelIndex: Int = 0 {
+        didSet { updateIsolatedBridges() }
+    }
+    @Published var currentQuestionIndex: Int = 0
+    @Published var selectedLanguage: Language = .swift {
+        didSet { 
+            Theme.selectedLanguage = selectedLanguage
+            refreshQuestions() 
+            updateIsolatedBridges()
+        }
+    }
     @Published var username: String = "Student Developer"
     
     // Game State
     @Published var executionState: ExecutionState = .idle
     @Published var lastEvaluationResult: EvaluationResult?
     @Published var attempts: [String: Int] = [:]
+    
+    // ISOLATED BRIDGES (These are updated based on the current mode)
     @Published var completedQuestionIds: Set<String> = []
+    @Published var currentXP: Int = 0
+    @Published var currentAccuracy: Double = 0
+    @Published var currentCompleted: Int = 0
     
-    // Gamification
-    @Published var streak: Int = 0
+    // Global Stats
     @Published var currentStreak: Int = 0
-    @Published var lastCompletionDate: String? // YYYY-MM-DD
-    @Published var showStreakResetNotification: Bool = false
-    @Published var streakResetMessage: String?
-    
     @Published var totalXP: Int = 0
     @Published var lifetimeAttempts: Int = 0
     @Published var history: [HistoryEntry] = []
+    @Published var lastCompletedDate: Date?
+    @Published var longestStreak: Int = 0
+    @Published var showStreakResetNotification: Bool = false
+    @Published var streakResetMessage: String?
     
-    // Testing Flag
+    // UI & Flags
     @Published var isTestingMode: Bool = true
-    
-    // Premium Features
-    @Published var unlockedHints: Set<String> = []
-    @Published var revealedSolutions: Set<String> = []
-    @Published var shiftThoughts: [String: String] = [:]
-    @Published var shiftFoundOptionIds: [String: Set<UUID>] = [:] // QuestionTitle -> Set<OptionID>
-    
-    // Adaptive Tracking
-    @Published var mistakePatterns: [QuestionCategory: Int] = [:]
-    
-    // Decorative Triggers
-    @Published var hasTriggeredLaunchAnimation = false
     @Published var onboardingCompleted: Bool = false
     @Published var showOnboarding: Bool = false
     @Published var onboardingStep: Int = 0
     @Published var levelOnboardingCompleted: Bool = false
     @Published var showLevelOnboarding: Bool = false
     @Published var levelOnboardingStep: Int = 0
-    
-    // Developer Storage
-    @Published var savedCorrectCode: [String: String] = [:]
-    
-    func triggerPassReward() {
-        // Trigger sound specifically for reward
-        SoundManager.shared.playSuccess()
+    @Published var isDarkMode: Bool = false {
+        didSet { Theme.isDarkMode = isDarkMode }
     }
     
-    @Published var isDarkMode: Bool = false
+    // Shift Data
+    @Published var isShiftMode: Bool = false {
+        didSet { updateIsolatedBridges() }
+    }
+    @Published var shiftFoundOptionIds: [String: Set<UUID>] = [:]
     
-    private let isDarkModeKey = "debug_lab_is_dark_mode"
-    private let shiftThoughtsKey = "debug_lab_shift_thoughts"
-    private let shiftFoundKey = "debug_lab_shift_found"
+    // Hint System
+    @Published var unlockedHints: Set<String> = []
+    @Published var revealedSolutions: Set<String> = []
+    @Published var shiftThoughts: [String: String] = [:]
     
+    // ISOLATED STORAGE
+    @Published private var progressStorage: [GameModeKey: ProgressData] = [:]
     
-    // Daily Hints
-    @Published var dailyFreeHintsUsed: Int = 0
-    @Published var lastDailyReset: Date?
-    
-    // Keys for persistence
-    private let attemptsKey = "debug_lab_attempts"
-    private let completionKey = "debug_lab_completion"
-    private let currentLevelKey = "debug_lab_current_level"
-    private let hintsKey = "debug_lab_hints"
-    private let solutionsKey = "debug_lab_solutions"
-    private let unlockedLevelsKey = "debug_lab_unlocked_levels"
-    private let languageKey = "debug_lab_language"
-    private let currentStreakKey = "debug_lab_daily_streak"
-    private let lastCompletionDateKey = "debug_lab_last_completion_date"
-    private let livesKey = "debug_lab_lives"
-    private let lastLifeRegenKey = "debug_lab_last_life_regen"
-    private let dailyHintsKey = "debug_lab_daily_hints_used"
-    private let lastDailyResetKey = "debug_lab_last_daily_reset"
-    private let onboardingCompletedKey = "debug_lab_onboarding_completed"
-    private let levelOnboardingCompletedKey = "debug_lab_level_onboarding_completed"
-    private let usernameKey = "debug_lab_username"
-    private let progressDataKey = "debug_lab_progress_data"
-    
-    // Multi-Language Progress Store
-    @Published var progressData: [String: LanguageProgress] = [:]
+    private let progressDataKey = "debug_lab_isolated_progress_v6"
     
     init() {
         self.levels = Question.levels
@@ -114,34 +141,315 @@ class GameManager: ObservableObject {
         Theme.isDarkMode = self.isDarkMode
         Theme.selectedLanguage = self.selectedLanguage
         
-        // Onboarding logic
-        self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
+        self.onboardingCompleted = UserDefaults.standard.bool(forKey: "debug_lab_onboarding_completed")
+        self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: "debug_lab_level_onboarding_completed")
+
         if !onboardingCompleted {
             self.showOnboarding = true
+        } else if !levelOnboardingCompleted {
+            self.showLevelOnboarding = true
         }
-        
-        self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
         
         setupInitialState()
-        checkDailyHintReset()
-        debugUnlockAllLevels() // Enabled for testing
-        // enforceStrictLevelLocks()
-        auditExpectedOutputs()
+        if isTestingMode { unlockAllLevelsInternal() }
+        updateIsolatedBridges()
     }
     
-    private func auditExpectedOutputs() {
-        print("--- MISSING EXPECTED OUTPUTS ---")
-        for language in [Language.swift, Language.c] {
-            print("Language: \(language.rawValue)")
-            for level in Question.levels(for: language) {
-                for (index, question) in level.questions.enumerated() {
-                    if question.isMissingExpectedOutput {
-                        print("Level \(level.number) – Question \(index + 1)")
-                    }
-                }
+    // MARK: - Isolation Logic
+    
+    private var currentKey: GameModeKey {
+        GameModeKey(
+            language: GameLanguage(from: selectedLanguage),
+            level: GameLevel(fromIndex: currentLevelIndex),
+            isShiftMode: currentQuestion.shiftData != nil || isShiftMode
+        )
+    }
+    
+    private func getProgress() -> ProgressData {
+        progressStorage[currentKey] ?? ProgressData()
+    }
+    
+    private func setProgress(_ data: ProgressData) {
+        progressStorage[currentKey] = data
+        updateIsolatedBridges()
+        saveProgress()
+    }
+    
+    private func updateIsolatedBridges() {
+        let data = getProgress()
+        self.completedQuestionIds = data.completedIds
+        self.currentXP = data.xp
+        self.currentAccuracy = data.accuracy
+        self.currentCompleted = data.completed
+        self.attempts = data.attempts
+        
+        // Update global XP as aggregate
+        self.totalXP = progressStorage.values.reduce(0) { $0 + $1.xp }
+    }
+    
+    func recordAnswer(correct: Bool) {
+        var data = getProgress()
+        data.total += 1
+        if correct {
+            data.correct += 1
+            data.completed += 1
+            data.xp += 10
+        }
+        
+        // Record to history for both success and failure to update graph accuracy
+        let entry = HistoryEntry(date: Date(), xp: data.xp, solvedCount: data.completed, accuracy: data.accuracy)
+        data.history.append(entry)
+        
+        // Update Daily Streak (Calendar-based, once per day)
+        updateDailyStreak()
+        
+        setProgress(data)
+    }
+    
+    private func updateDailyStreak() {
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        
+        guard let lastDate = lastCompletedDate else {
+            // First time completing a challenge
+            currentStreak = 1
+            lastCompletedDate = today
+            longestStreak = max(longestStreak, currentStreak)
+            saveProgress()
+            return
+        }
+        
+        let normalizedLastDate = calendar.startOfDay(for: lastDate)
+        
+        if calendar.isDate(normalizedLastDate, inSameDayAs: today) {
+            // Already interacted today, do nothing to streak count
+            return
+        }
+        
+        // Check if last interaction was exactly yesterday
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: today),
+           calendar.isDate(normalizedLastDate, inSameDayAs: yesterday) {
+            currentStreak += 1
+        } else {
+            // Gap of one or more days
+            currentStreak = 1
+        }
+        
+        lastCompletedDate = today
+        longestStreak = max(longestStreak, currentStreak)
+        saveProgress()
+    }
+    
+    // MARK: - Report Aggregates
+    
+    func getLanguageXP(for lang: String) -> Int {
+        let gameLang = lang.lowercased() == "swift" ? GameLanguage.swift : GameLanguage.c
+        return progressStorage.filter { $0.key.language == gameLang }.reduce(0) { $0 + $1.value.xp }
+    }
+    
+    func getLanguageSolvedCount(for lang: String) -> Int {
+        let gameLang = lang.lowercased() == "swift" ? GameLanguage.swift : GameLanguage.c
+        let allIds = progressStorage.filter { $0.key.language == gameLang }.map { $0.value.completedIds }
+        var uniqueIds = Set<String>()
+        for ids in allIds { uniqueIds.formUnion(ids) }
+        return uniqueIds.count
+    }
+    
+    func getLanguageAccuracy(for lang: String) -> Double {
+        let gameLang = lang.lowercased() == "swift" ? GameLanguage.swift : GameLanguage.c
+        let items = progressStorage.filter { $0.key.language == gameLang }.map { $0.value }
+        let total = items.reduce(0) { $0 + $1.total }
+        let correct = items.reduce(0) { $0 + $1.correct }
+        guard total > 0 else { return 0 }
+        return (Double(correct) / Double(total)) * 100
+    }
+    
+    func getLanguageHistory(for lang: String) -> [Double] {
+        let gameLang = lang.lowercased() == "swift" ? GameLanguage.swift : GameLanguage.c
+        let key = GameModeKey(
+            language: gameLang,
+            level: GameLevel(fromIndex: currentLevelIndex),
+            isShiftMode: isShiftMode
+        )
+        return progressStorage[key]?.history.map { $0.accuracy } ?? []
+    }
+    
+    // MARK: - App logic
+    
+    func selectLevel(_ index: Int) {
+        if index < levels.count && levels[index].unlocked {
+            currentLevelIndex = index
+        }
+    }
+    
+    func selectLanguage(_ language: Language) {
+        selectedLanguage = language
+    }
+    
+    func refreshQuestions() {
+        self.levels = Question.levels(for: selectedLanguage)
+        if isTestingMode { unlockAllLevelsInternal() }
+        populateQuestionMetadata()
+    }
+    
+    func resetQuestionState(for question: Question) {
+        lastEvaluationResult = nil
+        executionState = .idle
+    }
+    
+    func questionsRequiredForNextLevel(levelIndex: Int) -> Int {
+        if levelIndex == 0 { return 25 }
+        if levelIndex == 2 { return 15 }
+        return levels.indices.contains(levelIndex) ? levels[levelIndex].totalQuestions : 0
+    }
+    
+    func unlockThresholdReached(for levelIndex: Int) -> Bool {
+        levelProgress(for: levelIndex) >= questionsRequiredForNextLevel(levelIndex: levelIndex)
+    }
+    
+    func levelProgress(for index: Int) -> Int {
+        guard index < levels.count else { return 0 }
+        let key = GameModeKey(
+            language: GameLanguage(from: selectedLanguage),
+            level: GameLevel(fromIndex: index),
+            isShiftMode: isShiftMode
+        )
+        return progressStorage[key]?.completed ?? 0
+    }
+    
+    // MARK: - Gameplay Logic
+    
+    func runCode(userCode: String) {
+        guard executionState != .running else { return }
+        attempts[currentQuestion.title, default: 0] += 1
+        lifetimeAttempts += 1
+        executionState = .running
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let result = CompilerEngine.shared.evaluate(code: userCode, for: self.currentQuestion, attempts: self.attempts[self.currentQuestion.title, default: 0])
+            self.lastEvaluationResult = result
+            if result.isSuccess {
+                self.recordAnswer(correct: true)
+                self.handleCorrectSubmission()
+            } else {
+                self.recordAnswer(correct: false)
+                self.executionState = .error(result.message)
+                self.saveProgress()
             }
         }
-        print("--------------------------------")
+    }
+    
+    private func handleCorrectSubmission() {
+        var data = getProgress()
+        if !data.completedIds.contains(currentQuestion.title) {
+            data.completedIds.insert(currentQuestion.title)
+        }
+        setProgress(data)
+        checkLevelUnlock()
+        executionState = .correct
+    }
+    
+    func markShiftOptionFound(questionTitle: String, optionId: UUID) {
+        if shiftFoundOptionIds[questionTitle] == nil {
+            shiftFoundOptionIds[questionTitle] = []
+        }
+        shiftFoundOptionIds[questionTitle]?.insert(optionId)
+        saveProgress()
+    }
+    
+    func getShiftProgress(for question: Question) -> Double {
+        guard let data = question.shiftData else { return 0 }
+        let found = shiftFoundOptionIds[question.title]?.count ?? 0
+        let total = data.errorLines.values.reduce(0) { $0 + $1.options.filter { $0.isCorrect }.count }
+        return total > 0 ? Double(found) / Double(total) : 0
+    }
+    
+    func handleShiftCompletion(for question: Question) {
+        handleCorrectSubmission()
+    }
+
+    private func checkLevelUnlock() {
+        let completedInLevel = levelProgress(for: currentLevelIndex)
+        let nextIdx = currentLevelIndex + 1
+        guard nextIdx < levels.count else { return }
+        
+        let threshold = questionsRequiredForNextLevel(levelIndex: currentLevelIndex)
+        if completedInLevel >= threshold && !levels[nextIdx].unlocked {
+            levels[nextIdx].unlocked = true
+            executionState = .levelComplete(nextIdx + 1, false)
+        }
+    }
+    
+    // MARK: - Onboarding & UI
+    
+    func updateUsername(_ name: String) {
+        username = name
+        saveProgress()
+    }
+    
+    func completeOnboarding() {
+        onboardingCompleted = true
+        showOnboarding = false
+        UserDefaults.standard.set(true, forKey: "debug_lab_onboarding_completed")
+        
+        // Chain to level onboarding if needed
+        if !levelOnboardingCompleted {
+            showLevelOnboarding = true
+        }
+        
+        saveProgress()
+    }
+    
+    func completeLevelOnboarding() {
+        levelOnboardingCompleted = true
+        showLevelOnboarding = false
+        UserDefaults.standard.set(true, forKey: "debug_lab_level_onboarding_completed")
+        saveProgress()
+    }
+    
+    func replayOnboarding() {
+        onboardingStep = 0
+        showOnboarding = true
+    }
+    
+    func replayLevelOnboarding() {
+        levelOnboardingStep = 0
+        showLevelOnboarding = true
+    }
+    
+    func unlockHint() { unlockedHints.insert(currentQuestion.title); saveProgress() }
+    func unlockHintWithGenreQuiz() { unlockHint() }
+    func getGenreQuestions(for genre: Genre) -> [GenreQuestion] { Question.genreQuestions.filter { $0.genre == genre } }
+    
+    // MARK: - Persistence
+    
+    func saveProgress() {
+        if let data = try? JSONEncoder().encode(progressStorage) { UserDefaults.standard.set(data, forKey: progressDataKey) }
+        UserDefaults.standard.set(selectedLanguage.rawValue, forKey: "debug_lab_lang_v6")
+        UserDefaults.standard.set(username, forKey: "debug_lab_user_v6")
+        UserDefaults.standard.set(currentLevelIndex, forKey: "debug_lab_lvl_v6")
+        UserDefaults.standard.set(currentStreak, forKey: "debug_lab_streak_v6")
+        UserDefaults.standard.set(longestStreak, forKey: "debug_lab_longest_streak_v6")
+        UserDefaults.standard.set(lastCompletedDate, forKey: "debug_lab_last_date_v6")
+        UserDefaults.standard.set(isDarkMode, forKey: "debug_lab_dark_v6")
+        if let data = try? JSONEncoder().encode(shiftFoundOptionIds) { UserDefaults.standard.set(data, forKey: "debug_lab_shift_v6") }
+    }
+    
+    func loadProgress() {
+        if let data = UserDefaults.standard.data(forKey: progressDataKey), let decoded = try? JSONDecoder().decode([GameModeKey: ProgressData].self, from: data) { progressStorage = decoded }
+        if let lang = UserDefaults.standard.string(forKey: "debug_lab_lang_v6"), let l = Language(rawValue: lang) { selectedLanguage = l }
+        currentLevelIndex = UserDefaults.standard.integer(forKey: "debug_lab_lvl_v6")
+        currentStreak = UserDefaults.standard.integer(forKey: "debug_lab_streak_v6")
+        longestStreak = UserDefaults.standard.integer(forKey: "debug_lab_longest_streak_v6")
+        lastCompletedDate = UserDefaults.standard.object(forKey: "debug_lab_last_date_v6") as? Date
+        isDarkMode = UserDefaults.standard.bool(forKey: "debug_lab_dark_v6")
+        if let data = UserDefaults.standard.data(forKey: "debug_lab_shift_v6"), let decoded = try? JSONDecoder().decode([String: Set<UUID>].self, from: data) { shiftFoundOptionIds = decoded }
+        refreshQuestions()
+    }
+    
+    private func setupInitialState() {
+        if !levels.isEmpty { levels[0].unlocked = true }
     }
     
     private func populateQuestionMetadata() {
@@ -153,656 +461,15 @@ class GameManager: ObservableObject {
         }
     }
     
-    private func debugUnlockAllLevels() {
-        guard isTestingMode else { return }
-        for i in 0..<levels.count {
-            levels[i].unlocked = true
-        }
-        // Save to current progress as well
-        var currentProgress = progressData[selectedLanguage.rawValue] ?? LanguageProgress()
-        currentProgress.unlockedLevels = Set(0..<levels.count)
-        progressData[selectedLanguage.rawValue] = currentProgress
-        saveProgress()
+    private func unlockAllLevelsInternal() {
+        for i in 0..<levels.count { levels[i].unlocked = true }
     }
     
-    private func enforceStrictLevelLocks() {
-        // Ensure Level 1 is always unlocked
-        if !levels.isEmpty { levels[0].unlocked = true }
-        
-        // Check subsequent levels
-        for i in 1..<levels.count {
-            let prevLevel = levels[i-1]
-            let completedInPrev = prevLevel.questions.filter { completedQuestionIds.contains($0.title) }.count
-            
-            if completedInPrev < prevLevel.totalQuestions {
-                levels[i].unlocked = false
-            } else {
-                // Determine if it WAS unlocked or should be? 
-                // Using the persistent state is fine, but if we want to AUTO unlock if complete:
-                // levels[i].unlocked = true
-                // But usually we just want to LOCK if NOT complete.
-                // If they completed Level 1, Level 2 might still be locked if they haven't triggered the unlock event.
-                // But let's assume if they finished Level 1, Level 2 *should* be open.
-                levels[i].unlocked = true 
-            }
-        }
-        saveProgress()
-    }
-
     var currentLevel: Level {
-        if levels.indices.contains(currentLevelIndex) {
-            return levels[currentLevelIndex]
-        }
-        return levels[0]
+        levels.indices.contains(currentLevelIndex) ? levels[currentLevelIndex] : Level(number: 1, title: "", description: "", questions: [], unlocked: true)
     }
     
     var currentQuestion: Question {
-        if currentLevel.questions.indices.contains(currentQuestionIndex) {
-            return currentLevel.questions[currentQuestionIndex]
-        }
-        return currentLevel.questions[0]
-    }
-    
-    var currentAttempts: Int {
-        attempts[currentQuestion.title, default: 0]
-    }
-    
-    // MARK: - Level & Language Selection
-    
-    func selectLevel(_ index: Int) {
-        if index < levels.count && levels[index].unlocked {
-            currentLevelIndex = index
-            // Data is ready, UI should navigate to Language Select then Dashboard
-        }
-    }
-    
-    func selectLanguage(_ language: Language) {
-        guard language != selectedLanguage else { return }
-        
-        // 1. Save current language state
-        saveCurrentToProgressData()
-        
-        // 2. Switch language
-        selectedLanguage = language
-        Theme.selectedLanguage = language
-        
-        // 3. Load new language state
-        loadFromProgressData()
-        
-        // 4. Refresh content
-        refreshQuestions()
-        
-        // 5. Persist the switch
-        saveProgress()
-        
-        // 6. Trigger level onboarding if not completed
-        if onboardingCompleted && !levelOnboardingCompleted {
-            showLevelOnboarding = true
-            levelOnboardingStep = 0
-        }
-    }
-    
-    private func refreshQuestions() {
-        var updatedLevels = Question.levels(for: selectedLanguage)
-        
-        for i in 0..<updatedLevels.count {
-            if isTestingMode {
-                updatedLevels[i].unlocked = true
-            } else if i < levels.count {
-                // If not in testing mode, preserve existing unlock state if available
-                updatedLevels[i].unlocked = levels[i].unlocked
-            }
-            
-            if i < levels.count {
-                levels[i] = updatedLevels[i]
-            } else {
-                levels.append(updatedLevels[i])
-            }
-        }
-        
-        populateQuestionMetadata()
-    }
-    
-    func unlockThresholdReached(for levelIndex: Int) -> Bool {
-        let level = levels[levelIndex]
-        let completedInLevel = level.questions.filter { completedQuestionIds.contains($0.title) }.count
-        return completedInLevel >= 15
-    }
-    
-
-    
-    func resetQuestionState(for question: Question) {
-        lastEvaluationResult = nil
-        executionState = .idle
-    }
-
-    // MARK: - Daily Streak Logic
-    
-    private func normalizeDate(_ date: Date) -> Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        return calendar.date(from: components) ?? date
-    }
-    
-
-    private func checkDailyHintReset() {
-        let now = Date()
-        if let lastReset = lastDailyReset, Calendar.current.isDateInToday(lastReset) {
-            return
-        }
-        // It's a new day (or first launch)
-        dailyFreeHintsUsed = 0
-        lastDailyReset = now
-        saveProgress()
-    }
-    
-
-    
-    func registerActivity() {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        // Use device local date, normalized to YYYY-MM-DD
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.timeZone = .current
-        
-        let todayString = formatter.string(from: today)
-        
-        guard let lastDateString = lastCompletionDate else {
-            // 1. If no previous completion exists
-            currentStreak = 1
-            lastCompletionDate = todayString
-            saveProgress()
-            return
-        }
-        
-        if lastDateString == todayString {
-            // 2. If lastCompletionDate == today -> Do NOTHING
-            return
-        }
-        
-        // Calculate yesterday's date string for comparison
-        guard let todayDate = formatter.date(from: todayString),
-              let yesterdayDate = calendar.date(byAdding: .day, value: -1, to: todayDate) else {
-            return
-        }
-        let yesterdayString = formatter.string(from: yesterdayDate)
-        
-        if lastDateString == yesterdayString {
-            // 3. If lastCompletionDate == yesterday
-            currentStreak += 1
-            lastCompletionDate = todayString
-        } else {
-            // 4. If lastCompletionDate < yesterday (missed day)
-            currentStreak = 1
-            lastCompletionDate = todayString
-            
-            // Trigger streak reset message
-            streakResetMessage = "Daily streak reset. Let's start fresh."
-            showStreakResetNotification = true
-            
-            // Auto-hide notification after 3 seconds
-            Task {
-                try? await Task.sleep(nanoseconds: 3_000_000_000)
-                await MainActor.run {
-                    self.showStreakResetNotification = false
-                }
-            }
-        }
-        
-        saveProgress()
-    }
-    
-    func updateStreak() {
-        registerActivity()
-    }
-    
-    // MARK: - Gameplay Logic
-    
-    func runCode(userCode: String) {
-        guard executionState != .running else { return }
-        
-        let title = currentQuestion.title
-        // Increment attempts
-        attempts[title, default: 0] += 1
-        lifetimeAttempts += 1
-        executionState = .running
-        
-        let newAttemptCount = attempts[title, default: 0]
-        
-        // Immediate execution on next run loop to allow UI update
-        DispatchQueue.main.async {
-            let result = CompilerEngine.shared.evaluate(code: userCode, for: self.currentQuestion, attempts: newAttemptCount)
-            self.lastEvaluationResult = result
-            
-            if result.isSuccess {
-                self.handleCorrectSubmission(code: userCode)
-            } else {
-                // Adaptive Tracking: Log the mistake
-                if let selectedCategory = result.userSelectedCategory {
-                    // Level 2 direct selection mapping
-                    for category in QuestionCategory.allCases {
-                        if selectedCategory.lowercased().contains(category.rawValue.lowercased()) {
-                            self.mistakePatterns[category, default: 0] += 1
-                            break
-                        }
-                    }
-                } else {
-                    // Generic question category tracking
-                    self.mistakePatterns[self.currentQuestion.category, default: 0] += 1
-                }
-                
-                // Trigger reordering immediately on failure detection
-                self.applyAdaptiveReordering()
-                
-                let errorMessage = result.message
-                self.executionState = .error(errorMessage)
-                self.streak = 0
-                
-                // Live Activity Failure
-                Task { @MainActor in
-                    LiveActivityManager.shared.endWithFailure(error: result.errorType?.rawValue ?? "Compilation Fail")
-                }
-                
-                self.saveProgress()
-            }
-        }
-    }
-    
-    private func handleCorrectSubmission(code: String) {
-        // Save the correct code for developer history
-        savedCorrectCode[currentQuestion.title] = code
-        
-        // Clear pattern on success to allow progression
-        if let weakness = getWeakness(), currentQuestion.category == weakness {
-            mistakePatterns[weakness] = 0
-        }
-        
-        // Only reward if not already completed
-        if !completedQuestionIds.contains(currentQuestion.title) {
-            completedQuestionIds.insert(currentQuestion.title)
-            streak += 1
-            captureHistorySnapshot() // Capture progress for graph
-            totalXP += 10 // Fixed XP per question
-            attempts[currentQuestion.title] = 0
-        }
-        
-        // GLOBAL STREAK: Always update on any successful completion today
-        registerActivity()
-        
-        // Live Activity Success
-        Task { @MainActor in
-            LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.currentStreak)
-        }
-        
-        checkLevelUnlock()
-        
-        // Adaptive Injection
-        applyAdaptiveReordering()
-        
-        // Decorative Success Feedback
-        triggerPassReward()
-        
-        executionState = .correct
-        saveProgress()
-    }
-    
-    private func getWeakness() -> QuestionCategory? {
-        let sorted = mistakePatterns.sorted { $0.value > $1.value }
-        if let top = sorted.first, top.value >= 2 { // Pattern detected after 2 mistakes
-            return top.key
-        }
-        return nil
-    }
-    
-    private func applyAdaptiveReordering() {
-        guard let weakness = getWeakness() else { return }
-        
-        let nextIdx = currentQuestionIndex + 1
-        guard nextIdx < levels[currentLevelIndex].questions.count else { return }
-        
-        // Find a future question that matches the weakness
-        for i in (nextIdx + 1)..<levels[currentLevelIndex].questions.count {
-            if levels[currentLevelIndex].questions[i].category == weakness {
-                // Swap but maintain same difficulty tier (metadata check would go here)
-                let temp = levels[currentLevelIndex].questions[nextIdx]
-                levels[currentLevelIndex].questions[nextIdx] = levels[currentLevelIndex].questions[i]
-                levels[currentLevelIndex].questions[i] = temp
-                break
-            }
-        }
-    }
-    
-    private func captureHistorySnapshot() {
-        // Calculate Accuracy
-        let solved = completedQuestionIds.count
-        let accuracy = lifetimeAttempts > 0 ? (Double(solved) / Double(lifetimeAttempts)) * 100.0 : 0.0
-        
-        let entry = HistoryEntry(
-            date: Date(),
-            xp: totalXP,
-            solvedCount: solved,
-            accuracy: accuracy
-        )
-        history.append(entry)
-    }
-    
-    private func checkLevelUnlock() {
-        let completedCount = levelProgress(for: currentLevelIndex)
-        let nextLevelIndex = currentLevelIndex + 1
-        
-        guard nextLevelIndex < levels.count else { return }
-        
-        // Threshold Logic
-        var threshold = levels[currentLevelIndex].totalQuestions
-        
-        if currentLevelIndex == 0 { // Level 1 -> Level 2
-            threshold = 25
-        } else if currentLevelIndex == 2 { // Level 3 -> Level 4
-            threshold = 15
-        }
-        
-        if completedCount >= threshold {
-            if !levels[nextLevelIndex].unlocked {
-                levels[nextLevelIndex].unlocked = true
-                executionState = .levelComplete(nextLevelIndex + 1, false)
-            }
-        }
-    }
-    
-    
-    func levelProgress(for index: Int) -> Int {
-        guard index < levels.count else { return 0 }
-        let level = levels[index]
-        let levelQuestionIds = level.questions.map { $0.title }
-        let solvedCount = completedQuestionIds.intersection(levelQuestionIds).count
-        return solvedCount
-    }
-
-    func questionsRequiredForNextLevel(levelIndex: Int) -> Int {
-        guard levelIndex < levels.count else { return 0 }
-        return levels[levelIndex].totalQuestions
-    }
-    
-    
-    func unlockHint() {
-        guard !unlockedHints.contains(currentQuestion.title) else { return }
-        
-        unlockedHints.insert(currentQuestion.title)
-        saveProgress()
-    }
-    
-    func revealSolution() {
-        guard !revealedSolutions.contains(currentQuestion.title) else { return }
-        
-        revealedSolutions.insert(currentQuestion.title)
-        // Also unlock the hint (Decrypted Concept) so the user understands the answer
-        unlockedHints.insert(currentQuestion.title)
-        saveProgress()
-    }
-    
-    func getGenreQuestions(for genre: Genre) -> [GenreQuestion] {
-        return Question.genreQuestions.filter { $0.genre == genre }
-    }
-    
-    func unlockHintWithGenreQuiz() {
-        // This is called AFTER successful quiz completion
-        unlockHint()
-    }
-    
-    func updateUsername(_ newName: String) {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            self.username = trimmed
-            saveProgress()
-        }
-    }
-    
-    func saveThought(questionTitle: String, lineNum: Int, optionText: String, thought: String) {
-        let key = "\(questionTitle)_\(lineNum)_\(optionText)"
-        if thought.isEmpty {
-            shiftThoughts.removeValue(forKey: key)
-        } else {
-            shiftThoughts[key] = thought
-        }
-        saveProgress()
-    }
-    
-    func getThought(questionTitle: String, lineNum: Int, optionText: String) -> String {
-        let key = "\(questionTitle)_\(lineNum)_\(optionText)"
-        return shiftThoughts[key] ?? ""
-    }
-    
-    // MARK: - Shift Progress Logic
-    
-    func markShiftOptionFound(questionTitle: String, optionId: UUID) {
-        var found = shiftFoundOptionIds[questionTitle] ?? []
-        found.insert(optionId)
-        shiftFoundOptionIds[questionTitle] = found
-        saveProgress()
-    }
-    
-    func getShiftProgress(for question: Question) -> Double {
-        guard let data = question.shiftData else { return 0 }
-        
-        let errorLines = data.errorLines
-        guard !errorLines.isEmpty else { return 0 }
-        
-        // Count how many of the "Real Errors" (error lines) are successfully cleared.
-        // A line is cleared if ALL its correct options are found.
-        let foundIds = shiftFoundOptionIds[question.title] ?? []
-        
-        var clearedLinesCount = 0
-        for (_, detail) in errorLines {
-            let correctOptionIds = detail.options.filter { $0.isCorrect }.map { $0.id }
-            if !correctOptionIds.isEmpty && correctOptionIds.allSatisfy({ foundIds.contains($0) }) {
-                clearedLinesCount += 1
-            }
-        }
-        
-        return Double(clearedLinesCount) / Double(errorLines.count)
-    }
-    
-    func handleShiftCompletion(for question: Question) {
-        if !completedQuestionIds.contains(question.title) {
-            completedQuestionIds.insert(question.title)
-            streak += 1
-            totalXP += 10
-            checkLevelUnlock()
-            saveProgress()
-            
-            // Decorative Success Feedback
-            triggerPassReward()
-        }
-        
-        // GLOBAL STREAK: Always update on any successful completion today
-        registerActivity()
-
-        // Live Activity Success
-        Task { @MainActor in
-            LiveActivityManager.shared.endWithSuccess(xp: 50, streak: self.currentStreak)
-        }
-    }
-    
-    // MARK: - Progress State Management
-    
-    private func saveCurrentToProgressData() {
-        let currentKey = selectedLanguage.rawValue
-        var progress = progressData[currentKey] ?? LanguageProgress()
-        
-        progress.currentLevelIndex = currentLevelIndex
-        progress.completedQuestionIds = completedQuestionIds
-        progress.streak = streak
-        progress.totalXP = totalXP
-        progress.unlockedHints = unlockedHints
-        progress.revealedSolutions = revealedSolutions
-        progress.dailyFreeHintsUsed = dailyFreeHintsUsed
-        progress.lastDailyReset = lastDailyReset
-        progress.shiftFoundOptionIds = shiftFoundOptionIds
-        progress.shiftThoughts = shiftThoughts
-        progress.attempts = attempts
-        progress.lifetimeAttempts = lifetimeAttempts
-        progress.history = history
-        progress.isDarkMode = isDarkMode
-        
-        // Unlocked Levels
-        let unlockedSet = Set(levels.filter { $0.unlocked }.map { $0.number })
-        progress.unlockedLevels = unlockedSet
-        
-        progressData[currentKey] = progress
-    }
-    
-    private func loadFromProgressData() {
-        let currentKey = selectedLanguage.rawValue
-        let progress = progressData[currentKey] ?? LanguageProgress()
-        
-        unlockedHints = progress.unlockedHints
-        revealedSolutions = progress.revealedSolutions
-        dailyFreeHintsUsed = progress.dailyFreeHintsUsed
-        lastDailyReset = progress.lastDailyReset
-        shiftThoughts = progress.shiftThoughts
-        shiftFoundOptionIds = progress.shiftFoundOptionIds
-        attempts = progress.attempts
-        lifetimeAttempts = progress.lifetimeAttempts
-        history = progress.history
-        isDarkMode = progress.isDarkMode
-        Theme.isDarkMode = isDarkMode
-        
-        // Restore Level Unlock State
-        // First lock all except level 1 (unless strict mode logic overrides)
-        // But strictly follow persistence
-        for i in 0..<levels.count {
-            if progress.unlockedLevels.contains(levels[i].number) {
-                levels[i].unlocked = true
-            } else {
-                levels[i].unlocked = false // Lock unless in set
-            }
-        }
-        // Ensure Level 1 is always unlocked
-        if !levels.isEmpty { levels[0].unlocked = true }
-    }
-    
-    // MARK: - Persistence
-    
-    func saveProgress() {
-        // 1. Snapshot current state into the dictionary
-        saveCurrentToProgressData()
-        
-        // 2. Persist the dictionary
-        if let encoded = try? JSONEncoder().encode(progressData) {
-            UserDefaults.standard.set(encoded, forKey: progressDataKey)
-        }
-        
-        // 3. Persist global settings (shared)
-        UserDefaults.standard.set(selectedLanguage.rawValue, forKey: languageKey)
-        UserDefaults.standard.set(username, forKey: usernameKey)
-        
-        // Persist Daily Streak (Global)
-        UserDefaults.standard.set(currentStreak, forKey: currentStreakKey)
-        if let lastDate = lastCompletionDate {
-            UserDefaults.standard.set(lastDate, forKey: lastCompletionDateKey)
-        }
-        UserDefaults.standard.set(onboardingCompleted, forKey: onboardingCompletedKey)
-        UserDefaults.standard.set(levelOnboardingCompleted, forKey: levelOnboardingCompletedKey)
-    }
-    private func loadProgress() {
-        // 1. Shared Data
-        if let savedUsername = UserDefaults.standard.string(forKey: usernameKey) {
-            username = savedUsername
-        }
-        
-        if let languageRaw = UserDefaults.standard.string(forKey: languageKey),
-           let language = Language(rawValue: languageRaw) {
-            selectedLanguage = language
-        }
-        
-        // 2. Load Progress Dictionary
-        if let data = UserDefaults.standard.data(forKey: progressDataKey),
-           let decoded = try? JSONDecoder().decode([String: LanguageProgress].self, from: data) {
-            progressData = decoded
-        } else {
-            // Migration: If no new data, try to load legacy data into current language slot
-            migrateLegacyData()
-        }
-        
-        // 3. Load Global Streak Data (Overrides per-language if any existed)
-        self.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
-        self.lastCompletionDate = UserDefaults.standard.string(forKey: lastCompletionDateKey)
-        self.onboardingCompleted = UserDefaults.standard.bool(forKey: onboardingCompletedKey)
-        self.levelOnboardingCompleted = UserDefaults.standard.bool(forKey: levelOnboardingCompletedKey)
-        
-        // 3. Apply to Published Properties
-        loadFromProgressData()
-        
-        // 4. Ensure Content Matches Language
-        refreshQuestions()
-        Theme.selectedLanguage = self.selectedLanguage
-    }
-    
-    private func migrateLegacyData() {
-        // Create a progress object based on legacy keys
-        var legacy = LanguageProgress()
-        
-        if let val = UserDefaults.standard.dictionary(forKey: attemptsKey) as? [String: Int] { legacy.attempts = val }
-        legacy.dailyFreeHintsUsed = UserDefaults.standard.integer(forKey: dailyHintsKey)
-        if let t = UserDefaults.standard.object(forKey: lastDailyResetKey) as? TimeInterval { legacy.lastDailyReset = Date(timeIntervalSince1970: t) }
-        if let ids = UserDefaults.standard.stringArray(forKey: completionKey) { legacy.completedQuestionIds = Set(ids) }
-        legacy.currentLevelIndex = UserDefaults.standard.integer(forKey: currentLevelKey)
-        
-        if let h = UserDefaults.standard.stringArray(forKey: hintsKey) { legacy.unlockedHints = Set(h) }
-        if let s = UserDefaults.standard.stringArray(forKey: solutionsKey) { legacy.revealedSolutions = Set(s) }
-        
-        if let u = UserDefaults.standard.array(forKey: unlockedLevelsKey) as? [Int] { legacy.unlockedLevels = Set(u) }
-        
-        legacy.streak = UserDefaults.standard.integer(forKey: "debug_lab_streak")
-        legacy.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
-        legacy.currentStreak = UserDefaults.standard.integer(forKey: currentStreakKey)
-        legacy.totalXP = UserDefaults.standard.integer(forKey: "debug_lab_total_xp")
-        
-        if let d = UserDefaults.standard.dictionary(forKey: shiftThoughtsKey) as? [String: String] { legacy.shiftThoughts = d }
-        if let d = UserDefaults.standard.dictionary(forKey: shiftFoundKey) as? [String: [String]] {
-            var restored: [String: Set<UUID>] = [:]
-            for (k, v) in d {
-                restored[k] = Set(v.compactMap { UUID(uuidString: $0) })
-            }
-            legacy.shiftFoundOptionIds = restored
-        }
-        
-        // Store into current language slot
-        progressData[selectedLanguage.rawValue] = legacy
-    }
-    private func setupInitialState() {
-        if !levels.isEmpty {
-            levels[0].unlocked = true
-        }
-    }
-    
-    func completeOnboarding() {
-        onboardingCompleted = true
-        showOnboarding = false
-        saveProgress()
-        
-        // Trigger level onboarding immediately after if language is already selected
-        if !levelOnboardingCompleted {
-            showLevelOnboarding = true
-            levelOnboardingStep = 0
-        }
-    }
-    
-    func completeLevelOnboarding() {
-        levelOnboardingCompleted = true
-        showLevelOnboarding = false
-        saveProgress()
-    }
-    
-    func replayLevelOnboarding() {
-        levelOnboardingStep = 0
-        showLevelOnboarding = true
-    }
-    
-    func replayOnboarding() {
-        showOnboarding = true
-        // We don't necessarily reset onboardingCompleted until they finish it again or we can just leave it true
+        currentLevel.questions.indices.contains(currentQuestionIndex) ? currentLevel.questions[currentQuestionIndex] : Question(title: "", description: "", initialCode: "", correctCode: "", difficulty: 1, riddle: "", conceptExplanation: "")
     }
 }

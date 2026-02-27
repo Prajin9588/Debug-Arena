@@ -6,12 +6,9 @@ struct EvaluationResultView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        ScrollView {
-            renderDetailedEvaluation()
-                .padding(.vertical, 32)
-        }
-        .background(Theme.Colors.background(isDark: Theme.isDarkMode)) 
-        .frame(maxWidth: .infinity)
+        renderDetailedEvaluation()
+            .padding(.vertical, 24)
+            .frame(maxWidth: .infinity)
     }
     
     // MARK: - Level 2 Detailed Evaluation

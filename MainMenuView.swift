@@ -57,8 +57,8 @@ struct MainMenuView: View {
                                 .padding(.horizontal)
                             
                             let columns = horizontalSizeClass == .regular 
-                                ? [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())] 
-                                : [GridItem(.flexible()), GridItem(.flexible())]
+                                ? [GridItem(.flexible(), spacing: 24), GridItem(.flexible(), spacing: 24)] 
+                                : [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
                             
                             LazyVGrid(columns: columns, spacing: 16) {
                                 LanguageGridCard(
@@ -83,6 +83,7 @@ struct MainMenuView: View {
                             }
                             .padding(.horizontal)
                             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
+                            .frame(maxWidth: .infinity, alignment: .center)
                         }
                         
                         // 4. Level Progression List
@@ -296,24 +297,30 @@ struct LanguageGridCard: View {
     var badge: String? = nil
     
     @EnvironmentObject var gameManager: GameManager
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 12) {
                 HStack {
                     if language == "C" {
-                        CLogoView(size: 28)
+                        CLogoView(size: horizontalSizeClass == .regular ? 36 : 28)
                     } else {
-                        Image(systemName: icon).font(.title2).foregroundColor(color)
+                        Image(systemName: icon)
+                            .font(horizontalSizeClass == .regular ? .title : .title2)
+                            .foregroundColor(color)
                     }
                     Spacer()
-                    Text(tag).font(.system(size: 9, weight: .bold)).foregroundColor(color)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                    Text(tag)
+                        .font(.system(size: horizontalSizeClass == .regular ? 12 : 9, weight: .bold))
+                        .foregroundColor(color)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(color.opacity(0.1)).cornerRadius(4)
                 }
                 
                 Text(language)
-                    .font(Theme.Typography.headline)
+                    .font(horizontalSizeClass == .regular ? .title2 : Theme.Typography.headline)
+                    .fontWeight(.bold)
                     .foregroundColor(Theme.Colors.textPrimary)
                 
                 if let badge = badge, isSpotlighted {
@@ -326,7 +333,7 @@ struct LanguageGridCard: View {
                         .cornerRadius(6)
                 }
             }
-            .padding(16)
+            .padding(horizontalSizeClass == .regular ? 24 : 16)
             .background(Theme.Colors.secondaryBackground(isDark: gameManager.isDarkMode))
             .cornerRadius(Theme.Layout.cornerRadius)
             .shadow(color: isSpotlighted ? color.opacity(0.5) : Theme.Layout.cardShadow(isDark: gameManager.isDarkMode), 
@@ -345,6 +352,7 @@ struct LanguageGridCard: View {
 
 struct OnboardingOverlayView: View {
     @EnvironmentObject var gameManager: GameManager
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         ZStack {
@@ -365,27 +373,28 @@ struct OnboardingOverlayView: View {
                 } else if gameManager.onboardingStep == 3 {
                     onboardingScene4
                 }
-                
                 Spacer()
             }
-            .padding(40)
+            .padding(horizontalSizeClass == .regular ? 60 : 40)
             .multilineTextAlignment(.center)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 700 : .infinity)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
     
     private var onboardingScene1: some View {
         VStack(spacing: 24) {
             Text("Every Debugger must choose a path.")
-                .font(Theme.Typography.title2)
+                .font(.system(size: 34, weight: .bold))
                 .foregroundColor(.white)
             
             Text("Two roads. Two styles. One Arena.\nYour journey begins with a decision.")
-                .font(Theme.Typography.body)
+                .font(.system(size: 18, weight: .regular))
                 .foregroundColor(.white.opacity(0.8))
             
             Button(action: { gameManager.onboardingStep = 1 }) {
                 Text("Reveal the Paths")
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 16)
@@ -404,17 +413,17 @@ struct OnboardingOverlayView: View {
                     .neonGlow(color: Theme.Colors.accent, radius: 10)
                 
                 Text("Path of Swift")
-                    .font(Theme.Typography.title)
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(Theme.Colors.accent)
             }
             
             Text("Modern. Expressive. Fast to learn.\nPerfect for building apps and mastering clean logic.\nRecommended if you're starting your journey.")
-                .font(Theme.Typography.body)
+                .font(.system(size: 18, weight: .regular))
                 .foregroundColor(.white)
             
             Button(action: { gameManager.onboardingStep = 2 }) {
                 Text("Next: Path of C")
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 16)
@@ -433,17 +442,17 @@ struct OnboardingOverlayView: View {
                     .neonGlow(color: .blue, radius: 10)
                 
                 Text("Path of C")
-                    .font(Theme.Typography.title)
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(.blue)
             }
             
             Text("Foundational. Precise. Powerful.\nUnderstand how code works at its core.\nGreat for building deep programming strength.")
-                .font(Theme.Typography.body)
+                .font(.system(size: 18, weight: .regular))
                 .foregroundColor(.white)
             
             Button(action: { gameManager.onboardingStep = 3 }) {
                 Text("Decision Clarifier")
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 16)
@@ -456,16 +465,16 @@ struct OnboardingOverlayView: View {
     private var onboardingScene4: some View {
         VStack(spacing: 24) {
             Text("Your progress in each path is tracked separately.")
-                .font(Theme.Typography.title3)
+                .font(.system(size: 34, weight: .bold))
                 .foregroundColor(.white)
             
             Text("You can switch paths anytime.\nThere are no wrong choices — only different journeys.")
-                .font(Theme.Typography.body)
+                .font(.system(size: 18, weight: .regular))
                 .foregroundColor(.white.opacity(0.9))
             
             Button(action: { gameManager.completeOnboarding() }) {
                 Text("Choose Your Path")
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 16)
@@ -549,6 +558,7 @@ struct LevelListCard: View {
 
 struct LevelOnboardingOverlayView: View {
     @EnvironmentObject var gameManager: GameManager
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
         ZStack {
@@ -564,10 +574,11 @@ struct LevelOnboardingOverlayView: View {
                 } else {
                     progressionScene
                 }
-                
                 Spacer()
             }
-            .padding(40)
+            .padding(horizontalSizeClass == .regular ? 60 : 40)
+            .frame(maxWidth: horizontalSizeClass == .regular ? 700 : .infinity)
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
     
@@ -578,11 +589,11 @@ struct LevelOnboardingOverlayView: View {
                 .foregroundColor(Theme.Colors.accent)
             
             Text("LEVEL PROGRESSION")
-                .font(Theme.Typography.headline)
+                .font(.system(size: 34, weight: .bold))
                 .foregroundColor(.white)
             
             Text("Complete each level 100% to unlock the next rank in your journey.")
-                .font(Theme.Typography.body)
+                .font(.system(size: 18, weight: .regular))
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             
@@ -590,7 +601,7 @@ struct LevelOnboardingOverlayView: View {
                 withAnimation { gameManager.levelOnboardingStep = 1 }
             }) {
                 Text("View Ranks")
-                    .font(Theme.Typography.headline)
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 30)
                     .padding(.vertical, 15)
@@ -611,19 +622,18 @@ struct LevelOnboardingOverlayView: View {
                     .foregroundColor(config.color)
                 
                 Text(config.rank)
-                    .font(Theme.Typography.title3)
-                    .fontWeight(.bold)
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundColor(.white)
                 
                 Text(config.description)
-                    .font(Theme.Typography.body)
+                    .font(.system(size: 18, weight: .regular))
                     .foregroundColor(.white.opacity(0.9))
                     .multilineTextAlignment(.center)
             }
             .padding()
             
             Text("Requires 100% completion of previous level.")
-                .font(Theme.Typography.caption)
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(config.color)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -636,7 +646,7 @@ struct LevelOnboardingOverlayView: View {
                         withAnimation { gameManager.levelOnboardingStep += 1 }
                     }) {
                         Text("Next Level")
-                            .font(Theme.Typography.headline)
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 30)
                             .padding(.vertical, 12)
@@ -648,7 +658,7 @@ struct LevelOnboardingOverlayView: View {
                         withAnimation { gameManager.completeLevelOnboarding() }
                     }) {
                         Text("Start Journey")
-                            .font(Theme.Typography.headline)
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 30)
                             .padding(.vertical, 12)

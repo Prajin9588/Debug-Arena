@@ -20,10 +20,7 @@ struct QuestionWorkspaceView: View {
     @State private var shakeSolutionButton = false
     
     var question: Question {
-        if gameManager.currentLevel.questions.indices.contains(questionIndex) {
-            return gameManager.currentLevel.questions[questionIndex]
-        }
-        return gameManager.currentLevel.questions[0]
+        gameManager.currentQuestion
     }
     
     var body: some View {
@@ -158,7 +155,7 @@ struct QuestionWorkspaceView: View {
             
             if question.difficulty == 2 {
                 // Level 2 HIT Section: Already Always Visible
-                Text(question.riddle)
+                Text(gameManager.currentQuestion.mission)
                     .font(Theme.Typography.body)
                     .fontWeight(.medium)
                     .foregroundColor(Theme.Colors.textPrimary)
@@ -172,7 +169,7 @@ struct QuestionWorkspaceView: View {
                     )
             } else {
                 // All other levels: Show riddle automatically without lock
-                Text(question.riddle)
+                Text(gameManager.currentQuestion.mission)
                     .font(Theme.Typography.body)
                     .italic()
                     .foregroundColor(Theme.Colors.textPrimary)
@@ -210,14 +207,14 @@ struct QuestionWorkspaceView: View {
             .entranceAnimation(delay: 0.2, isVisible: animateContent, isEnabled: question.levelNumber <= 2)
             
             // Expected Output Section
-            if let output = displayOutput {
+            if !gameManager.currentQuestion.expectedOutput.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("EXPECTED OUTPUT")
                         .font(Theme.Typography.caption2)
                         .foregroundColor(Theme.Colors.textSecondary)
                         .padding(.leading)
                     
-                    Text(output)
+                    Text(gameManager.currentQuestion.expectedOutput)
                         .font(Theme.Typography.codeFont)
                         .foregroundColor(Theme.Colors.textPrimary)
                         .padding()
@@ -252,7 +249,7 @@ struct QuestionWorkspaceView: View {
     
     private var level2CodeDisplay: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(question.initialCode)
+            Text(gameManager.currentQuestion.sourceCode)
             .font(Theme.Typography.codeFont)
             .foregroundColor(Theme.Colors.textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -675,43 +672,43 @@ struct DetailedEvaluationScreen: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                EvaluationResultView(result: result, difficulty: difficulty)
-                
-                if result.status == .correct {
-                    Button(action: action) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "terminal.fill")
-                                .font(.title3)
-                            Text("COMMIT FIX")
+            ScrollView {
+                VStack(spacing: 0) {
+                    EvaluationResultView(result: result, difficulty: difficulty)
+                    
+                    if result.status == .correct {
+                        Button(action: action) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "terminal.fill")
+                                    .font(.title3)
+                                Text("COMMIT FIX")
+                            }
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.primaryGradient)
+                            .cornerRadius(16)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 40)
                         }
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(.white)
-                        .padding(.vertical, 18)
-                        .frame(maxWidth: .infinity)
-                        .background(Theme.Colors.primaryGradient)
-                        .cornerRadius(16)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
-                    .background(Theme.Colors.background(isDark: Theme.isDarkMode))
-                } else {
-                    Button(action: action) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "arrow.counterclockwise.circle.fill")
-                                .font(.title3)
-                            Text("TRY AGAIN")
+                    } else {
+                        Button(action: action) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                    .font(.title3)
+                                Text("TRY AGAIN")
+                            }
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.failureGradient)
+                            .cornerRadius(16)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 40)
                         }
-                        .font(Theme.Typography.headline)
-                        .foregroundColor(.white)
-                        .padding(.vertical, 18)
-                        .frame(maxWidth: .infinity)
-                        .background(Theme.Colors.failureGradient)
-                        .cornerRadius(16)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
                     }
-                    .background(Theme.Colors.background(isDark: Theme.isDarkMode))
                 }
             }
             .background(Theme.Colors.background(isDark: Theme.isDarkMode))

@@ -596,9 +596,10 @@ class CompilerEngine {
         // Rule: Array indices must be within bounds.
         // Fix: Use arr[2] instead of arr[3].
         case 2:
-            let hasValidIndex = code.contains("arr[2]") || code.contains("arr[1]") || code.contains("arr[0]")
-            let noOutOfBounds = !code.contains("arr[3]") && !code.contains("arr[4]") && !code.contains("arr[5]")
-            return res(hasValidIndex && noOutOfBounds)
+            // Check for printf using arr[2] instead of arr[3]
+            let hasArr2InPrintf = noSpaces.contains("printf(\"%d\",arr[2])")
+            let hasOutOfBoundsAccess = clean.contains("arr[3])") || clean.contains("arr[3] ;")
+            return res(hasArr2InPrintf && !hasOutOfBoundsAccess)
             
         // Q3: Function Return Type Mismatch
         // Rule: Return type must align with variable assignment.

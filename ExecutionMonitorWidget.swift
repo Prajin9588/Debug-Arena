@@ -17,7 +17,7 @@ struct ExecutionMonitorWidget: Widget {
                                 Image(systemName: "flame.fill")
                                     .foregroundColor(Theme.Colors.accent)
                                 Text("STREAK \(context.state.streak)")
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(Theme.Colors.textPrimary)
                             }
                         } else if context.state.phase == .compiling {
@@ -28,7 +28,7 @@ struct ExecutionMonitorWidget: Widget {
                                 Image(systemName: "cpu.fill")
                                     .foregroundColor(Theme.Colors.accent)
                                 Text("DEBUG LAB")
-                                    .font(.system(.caption, design: .monospaced))
+                                    .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(Theme.Colors.textSecondary)
                             }
                         }
@@ -39,16 +39,16 @@ struct ExecutionMonitorWidget: Widget {
                     if context.state.phase == .success {
                         VStack(alignment: .trailing) {
                             Text("+\(context.state.xpEarned) XP")
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Theme.Colors.accent)
                         }
                     } else if context.state.phase == .failed {
                         Text("FAILED")
-                            .font(.system(.headline, design: .monospaced))
+                            .font(.system(size: 17, weight: .bold))
                             .foregroundColor(Theme.Colors.error)
                     } else {
                         Text("\(Int(context.state.progress * 100))%")
-                            .font(.system(.title3, design: .monospaced))
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(Theme.Colors.accent)
                             .bold()
                     }
@@ -63,7 +63,7 @@ struct ExecutionMonitorWidget: Widget {
                                 .padding(.top, 5)
                         } else if context.state.phase == .compiling {
                             Text("Compiling System...")
-                                .font(.system(.caption, design: .monospaced))
+                                .font(.system(size: 11))
                                 .foregroundColor(Theme.Colors.textSecondary)
                         } else {
                             // Debugging / Standard View
@@ -79,7 +79,7 @@ struct ExecutionMonitorWidget: Widget {
                                 
                                 // Log
                                 Text("> \(context.state.currentLog)")
-                                    .font(.system(size: 10, design: .monospaced))
+                                    .font(.system(size: 10))
                                     .foregroundColor(Theme.Colors.textSecondary)
                                     .lineLimit(1)
                             }
@@ -99,11 +99,11 @@ struct ExecutionMonitorWidget: Widget {
             } compactTrailing: {
                 if context.state.phase == .success {
                     Text("+\(context.state.xpEarned) XP")
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Theme.Colors.accent)
                 } else {
                     Text("\(Int(context.state.progress * 100))%")
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Theme.Colors.accent)
                 }
             } minimal: {
@@ -141,14 +141,14 @@ struct ExecutionMonitorLockScreenView: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text(context.attributes.threadName)
-                        .font(.system(.headline, design: .monospaced))
+                        .font(.system(size: 17, weight: .semibold))
                     Text(context.state.status.rawValue)
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Theme.Colors.accent)
                 }
                 Spacer()
                 Text("\(Int(context.state.progress * 100))%")
-                    .font(.system(.title2, design: .monospaced))
+                    .font(.system(size: 22, weight: .bold))
                     .bold()
             }
             
@@ -156,7 +156,7 @@ struct ExecutionMonitorLockScreenView: View {
                 .accentColor(Theme.Colors.accent)
             
             Text(context.state.currentLog)
-                .font(.system(.caption2, design: .monospaced))
+                .font(.system(size: 10))
                 .foregroundColor(Theme.Colors.textSecondary)
         }
         .padding()

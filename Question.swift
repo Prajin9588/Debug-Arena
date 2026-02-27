@@ -190,6 +190,13 @@ struct Question: Identifiable, Equatable {
         guard let tests = hiddenTests, !tests.isEmpty else { return true }
         return tests.first?.expectedOutput.isEmpty ?? true
     }
+    
+    // View Bindings
+    var mission: String { riddle }
+    var sourceCode: String { initialCode }
+    var expectedOutput: String {
+        hiddenTests?.first?.expectedOutput ?? ""
+    }
 }
 
 struct Level: Identifiable {
@@ -1806,8 +1813,11 @@ extension Question {
                 difficulty: 1,
                 riddle: "I call you properly, without me the function sleeps.",
                 conceptExplanation: "All function calls require parentheses, even with no parameters.",
+                levelNumber: 1,
+                questionNumber: 8,
                 language: .swift,
-                expectedPatterns: ["\\w+\\(\\)"],
+                expectedPatterns: ["sayHello\\(\\)"],
+                forbiddenPatterns: ["sayHello(?!\\()"],
                 hiddenTests: [
                     HiddenTestCase(input: "", expectedOutput: "Hi")
                 ]
@@ -2075,6 +2085,8 @@ extension Question {
                 difficulty: 1,
                 riddle: "Arrays start at zero, don’t forget; the last index is one less than set.",
                 conceptExplanation: "Array indices must be within bounds (0 to size-1).",
+                levelNumber: 1,
+                questionNumber: 2,
                 language: .c,
                 hiddenTests: [
                     HiddenTestCase(input: "", expectedOutput: "3")
