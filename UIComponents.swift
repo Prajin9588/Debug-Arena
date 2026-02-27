@@ -115,15 +115,6 @@ struct WorkspaceHeader: View {
     @EnvironmentObject var gameManager: GameManager
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
-    var tagline: String {
-        switch levelNumber {
-        case 1: return "Find the flaw."
-        case 2: return "Think deeper."
-        case 3: return "Now it gets tricky."
-        case 4: return "Precision wins."
-        default: return ""
-        }
-    }
     
     var body: some View {
         HStack(spacing: horizontalSizeClass == .compact ? 8 : 16) {
@@ -157,11 +148,6 @@ struct WorkspaceHeader: View {
                 .background(Theme.Colors.secondaryBackground)
                 .clipShape(Capsule())
                 .shadow(color: Theme.Layout.cardShadow, radius: 8, x: 0, y: 4)
-                
-                Text(tagline)
-                    .font(Theme.Typography.caption2)
-                    .foregroundColor(Theme.Colors.textSecondary)
-                    .fontWeight(.medium)
             }
             
             Spacer(minLength: 0)

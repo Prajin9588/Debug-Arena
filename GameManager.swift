@@ -364,28 +364,6 @@ class GameManager: ObservableObject {
         guard executionState != .running else { return }
         
         let title = currentQuestion.title
-        let currentAttempts = attempts[title, default: 0]
-        let maxAttempts = 5
-        
-        // Check if locked
-        if currentAttempts >= maxAttempts && !completedQuestionIds.contains(title) {
-             self.lastEvaluationResult = EvaluationResult(
-                questionID: currentQuestion.id,
-                status: .incorrect,
-                score: 0,
-                level: .failed,
-                complexity: .low,
-                edgeCaseHandling: false,
-                hardcodingDetected: false,
-                feedback: "❌ Question Locked\nYou have exceeded the maximum of \(maxAttempts) attempts for this question.",
-                difficulty: currentQuestion.difficulty,
-                testResults: [TestCaseResult(input: "Status", expected: "Unlocked", actual: "Locked", passed: false)],
-                xpEarned: 0
-            )
-            self.executionState = .error("Question Locked")
-            return
-        }
-
         // Increment attempts
         attempts[title, default: 0] += 1
         lifetimeAttempts += 1

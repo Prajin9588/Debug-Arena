@@ -354,6 +354,7 @@ struct OnboardingOverlayView: View {
             
             VStack(spacing: 30) {
                 Spacer()
+                Spacer() // Doubled top spacer to push content lower
                 
                 if gameManager.onboardingStep == 0 {
                     onboardingScene1
@@ -396,16 +397,23 @@ struct OnboardingOverlayView: View {
     
     private var onboardingScene2: some View {
         VStack(spacing: 24) {
-            Text("Rapid Track")
-                .font(Theme.Typography.title)
-                .foregroundColor(Theme.Colors.accent)
+            VStack(spacing: 15) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 60))
+                    .foregroundColor(Theme.Colors.accent)
+                    .neonGlow(color: Theme.Colors.accent, radius: 10)
+                
+                Text("Path of Swift")
+                    .font(Theme.Typography.title)
+                    .foregroundColor(Theme.Colors.accent)
+            }
             
             Text("Modern. Expressive. Fast to learn.\nPerfect for building apps and mastering clean logic.\nRecommended if you're starting your journey.")
                 .font(Theme.Typography.body)
                 .foregroundColor(.white)
             
             Button(action: { gameManager.onboardingStep = 2 }) {
-                Text("Next: The Architect")
+                Text("Next: Path of C")
                     .font(Theme.Typography.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
@@ -418,9 +426,16 @@ struct OnboardingOverlayView: View {
     
     private var onboardingScene3: some View {
         VStack(spacing: 24) {
-            Text("The Architect")
-                .font(Theme.Typography.title)
-                .foregroundColor(.blue)
+            VStack(spacing: 15) {
+                Image(systemName: "cpu.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.blue)
+                    .neonGlow(color: .blue, radius: 10)
+                
+                Text("Path of C")
+                    .font(Theme.Typography.title)
+                    .foregroundColor(.blue)
+            }
             
             Text("Foundational. Precise. Powerful.\nUnderstand how code works at its core.\nGreat for building deep programming strength.")
                 .font(Theme.Typography.body)
@@ -541,11 +556,16 @@ struct LevelOnboardingOverlayView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 30) {
+                Spacer()
+                Spacer()
+                
                 if gameManager.levelOnboardingStep == 0 {
                     introScene
                 } else {
                     progressionScene
                 }
+                
+                Spacer()
             }
             .padding(40)
         }
@@ -651,13 +671,13 @@ struct LevelOnboardingOverlayView: View {
     private func progressionConfig(for step: Int) -> LevelConfig {
         switch step {
         case 1:
-            return LevelConfig(rank: "ROOKIE CODER", icon: "terminal", color: .green, 
+            return LevelConfig(rank: "BUG HUNTER", icon: "terminal", color: .green, 
                                description: "Master simple syntax and basic structure errors.")
         case 2:
-            return LevelConfig(rank: "LOGIC APPRENTICE", icon: "arrow.triangle.merge", color: .blue, 
+            return LevelConfig(rank: "LOGIC BREAKER", icon: "arrow.triangle.merge", color: .blue, 
                                description: "Solve logic flow and data handling challenges.")
         case 3:
-            return LevelConfig(rank: "CODE DETECTIVE", icon: "magnifyingglass", color: .purple, 
+            return LevelConfig(rank: "CODE FIXER", icon: "magnifyingglass", color: .purple, 
                                description: "Hunt down multiple complex errors in one block.")
         default:
             return LevelConfig(rank: "DEBUG MASTER", icon: "crown", color: .red, 

@@ -210,28 +210,28 @@ extension Question {
         return [
             Level(
                 number: 1,
-                title: "Level 1: Rookie Coder",
+                title: "Level 1: Novice Debugger",
                 description: language == .cpp || language == .java || language == .c ? "Master the fundamentals of \(language.rawValue) syntax and logic." : (language == .swift ? "Learn the fundamentals of Swift syntax and logic." : "Master the fundamentals of Python syntax and logic."),
                 questions: generateLevel1Questions(for: language),
                 unlocked: true
             ),
             Level(
                 number: 2,
-                title: "Level 2: Logic Apprentice",
+                title: "Level 2: Bug Hunter",
                 description: "Master runtime safety. Fix crashes like index out of range and nil unwrapping.",
                 questions: generateLevel2Questions(for: language),
                 unlocked: false
             ),
             Level(
                 number: 3,
-                title: "Level 3: Code Detective",
+                title: "Level 3: Logic Breaker",
                 description: "Find subtle logic errors. The code runs, but the result is wrong.",
                 questions: generateLevel3Questions(for: language),
                 unlocked: false
             ),
             Level(
                 number: 4,
-                title: "Level 4: Debug Master",
+                title: "Level 4: Code Fixer",
                 description: "Fix algorithmic bugs in searching, sorting, and recursion.",
                 questions: generateLevel4Questions(for: language),
                 unlocked: false
@@ -1672,29 +1672,6 @@ extension Question {
                     ]
                 )
             ))
-            
-            // Q10 — Volatile needed
-            questions.append(Question(
-                title: "Level 4 – Question 10",
-                description: "Volatile Keyword",
-                initialCode: "int flag = 0; // shared var\nvoid wait() {\n    while (flag == 0); // hardware updates flag\n}",
-                correctCode: "",
-                difficulty: 4,
-                riddle: "Invisible changes.",
-                conceptExplanation: "Compiler caching optimization.",
-                language: .c,
-                shiftData: ShiftData(
-                    code: "int flag = 0; // shared var\nvoid wait() {\n    while (flag == 0); // hardware updates flag\n}",
-                    errorLines: [
-                        3: ShiftLineDetail(lineNumber: 3, options: [
-                            ShiftOption(text: "Infinite loop", explanation: "Compiler optimizes check to always true.", isCorrect: true),
-                            ShiftOption(text: "Missing volatile", explanation: "Tell compiler value changes externally.", isCorrect: true),
-                            ShiftOption(text: "Syntax error", explanation: "Loop buffer valid.", isCorrect: false),
-                            ShiftOption(text: "Logic oversight", explanation: "Hardware update ignored by generated code.", isCorrect: true)
-                        ])
-                    ]
-                )
-            ))
         }
         return questions
     }
@@ -1767,14 +1744,14 @@ extension Question {
             ))
             questions.append(Question(
                 title: "Level 1 – Question 4",
-                description: "Missing argument label 'name:' in call",
-                initialCode: "func greet(name: String) {\n    print(\"Hello \\(name)\")\n}\ngreet(\"Hari\")",
-                correctCode: "func greet(name: String) {\n    print(\"Hello \\(name)\")\n}\ngreet(name: \"Hari\")",
+                description: "Expected '{' after function signature",
+                initialCode: "func greet(name: String)\n    print(\"Hello \\(name)\")\n}\ngreet(\"Hari\")",
+                correctCode: "func greet(name: String) {\n    print(\"Hello \\(name)\")\n}\ngreet(\"Hari\")",
                 difficulty: 1,
-                riddle: "I match the function's label, without me the function will stab.",
-                conceptExplanation: "Function call must match parameter labels.",
+                riddle: "I start the block where logic flows, without me the compiler never knows.",
+                conceptExplanation: "Function bodies must be enclosed in braces {}.",
                 language: .swift,
-                expectedPatterns: ["\\w+\\(.*:\\s*.*\\)"],
+                expectedPatterns: ["func\\s+\\w+\\([^)]*\\)\\s*\\{"],
                 hiddenTests: [
                     HiddenTestCase(input: "", expectedOutput: "Hello Hari")
                 ]
@@ -1795,16 +1772,16 @@ extension Question {
             ))
             questions.append(Question(
                 title: "Level 1 – Question 6",
-                description: "Functions with return values must declare a return type",
-                initialCode: "func add(a: Int, b: Int) {\n    return a + b\n}",
-                correctCode: "func add(a: Int, b: Int) -> Int {\n    return a + b\n}",
+                description: "Call the function with 2 and 3 and print the result",
+                initialCode: "func add(a: Int, b: Int) {\n    return a + b\n}\n\n// Call the function with 2 and 3 and print here",
+                correctCode: "func add(a: Int, b: Int) -> Int {\n    return a + b\n}\n\nprint(add(a: 2, b: 3))",
                 difficulty: 1,
                 riddle: "I tell what comes back, without me the function is black.",
-                conceptExplanation: "Declare the return type for functions returning a value.",
+                conceptExplanation: "Functions returning values must declare a return type (->) and be called with exact parameters.",
                 language: .swift,
-                expectedPatterns: ["func\\s+\\w+\\(.*\\)\\s*->\\s*\\w+"],
+                expectedPatterns: ["func\\s+\\w+\\(.*\\)\\s*->\\s*Int", "add\\(a:\\s*2,\\s*b:\\s*3\\)"],
                 hiddenTests: [
-                    HiddenTestCase(input: "print(add(a: 2, b: 3))", expectedOutput: "5")
+                    HiddenTestCase(input: "", expectedOutput: "5")
                 ]
             ))
             questions.append(Question(
@@ -1837,16 +1814,16 @@ extension Question {
             ))
             questions.append(Question(
                 title: "Level 1 – Question 9",
-                description: "Cannot use keyword 'func' as identifier",
-                initialCode: "let func = 5",
-                correctCode: "let myFunc = 5",
+                description: "Expected ':' after parameter name",
+                initialCode: "func square(number Int) -> Int {\n    return number * number\n}\n\nprint(square(number: 4))",
+                correctCode: "func square(number: Int) -> Int {\n    return number * number\n}\n\nprint(square(number: 4))",
                 difficulty: 1,
-                riddle: "I'm reserved, choose another word to be heard.",
-                conceptExplanation: "Cannot use reserved keywords as variable names.",
+                riddle: "Between name and type a bridge must stay,\nAdd the symbol to clear the way.",
+                conceptExplanation: "Parameters must use name: Type format.",
                 language: .swift,
-                expectedPatterns: ["^(?!.*\\b(func|if|let|var|return|switch)\\b).+$"],
+                expectedPatterns: ["number:\\s*Int"],
                 hiddenTests: [
-                    HiddenTestCase(input: "print(myFunc)", expectedOutput: "5")
+                    HiddenTestCase(input: "", expectedOutput: "16")
                 ]
             ))
             questions.append(Question(
@@ -1872,23 +1849,23 @@ extension Question {
                 riddle: "I start at zero, count carefully, or you'll get an error.",
                 conceptExplanation: "Array indices must be within 0..<array.count.",
                 language: .swift,
-                expectedPatterns: ["\\w+\\[\\d+\\]"],
+                expectedPatterns: ["\\w+\\[2\\]"],
                 hiddenTests: [
                     HiddenTestCase(input: "", expectedOutput: "3")
                 ]
             ))
             questions.append(Question(
                 title: "Level 1 – Question 12",
-                description: "Expected ':' in dictionary element",
-                initialCode: "let dict = [\"name\" \"Hari\"]",
-                correctCode: "let dict = [\"name\": \"Hari\"]",
+                description: "Fix dictionary syntax and print the value of 'name'",
+                initialCode: "let dict = [\"name\" \"Hari\"]\n\n// Unwrapping and printing 'name' here",
+                correctCode: "let dict = [\"name\": \"Hari\"]\n\nif let name = dict[\"name\"] {\n    print(name)\n}",
                 difficulty: 1,
-                riddle: "I connect key to value, miss me and syntax fails.",
-                conceptExplanation: "Use : to separate dictionary keys and values.",
+                riddle: "I connect key to value, miss me and syntax fails. Then unwrap me safely to see what's inside.",
+                conceptExplanation: "Use : in literals and use optional binding (if let) to safely access dictionary values.",
                 language: .swift,
-                expectedPatterns: ["\\[\\s*\\w+\\s*:\\s*.+\\s*\\]"],
+                expectedPatterns: ["\\[\\s*\".+\"\\s*:\\s*\".+\"\\s*\\]", "if\\s+let\\s+\\w+\\s*=\\s*dict\\[\".+\"\\]"],
                 hiddenTests: [
-                    HiddenTestCase(input: "print(dict[\"name\"]!)", expectedOutput: "Hari")
+                    HiddenTestCase(input: "", expectedOutput: "Hari")
                 ]
             ))
             questions.append(Question(
@@ -1935,17 +1912,15 @@ extension Question {
             ))
             questions.append(Question(
                 title: "Level 1 – Question 16",
-                description: "Type 'Circle' does not conform to protocol 'Drawable'",
-                initialCode: "protocol Drawable {\n    func draw()\n}\n\nstruct Circle: Drawable {\n}",
-                correctCode: "protocol Drawable {\n    func draw()\n}\n\nstruct Circle: Drawable {\n    func draw() {\n        print(\"Drawing circle\")\n    }\n}",
+                description: "Cannot find 'padding' in scope",
+                initialCode: "struct ContentView: View {\n    var body: some View {\n        VStack {\n            Text(\"Welcome\")\n                .font(.title)\n\n            Text(\"Level 1\")\n                .font(.headline)\n\n            Text(\"SwiftUI\")\n                .foregroundColor(.blue)\n                padding()\n\n            Spacer()\n        }\n    }\n}",
+                correctCode: "struct ContentView: View {\n    var body: some View {\n        VStack {\n            Text(\"Welcome\")\n                .font(.title)\n\n            Text(\"Level 1\")\n                .font(.headline)\n\n            Text(\"SwiftUI\")\n                .foregroundColor(.blue)\n                .padding()\n\n            Spacer()\n        }\n    }\n}",
                 difficulty: 1,
-                riddle: "Protocol promises must be kept; missing methods cause compiler upset.",
-                conceptExplanation: "All protocol requirements must be implemented by conforming types.",
+                riddle: "Small and round, I stand in line, Without me, the code won’t shine.",
+                conceptExplanation: "Add . before padding().",
                 language: .swift,
-                expectedPatterns: ["func\\s+draw\\s*\\(\\s*\\)"],
-                hiddenTests: [
-                    HiddenTestCase(input: "Circle().draw()", expectedOutput: "Drawing circle")
-                ]
+                expectedPatterns: ["\\.padding\\(\\)"],
+                hiddenTests: []
             ))
             questions.append(Question(
                 title: "Level 1 – Question 17",
@@ -1956,7 +1931,7 @@ extension Question {
                 riddle: "If function throws from its core; mark it throws or compiler will roar.",
                 conceptExplanation: "Functions that contain 'throw' statements must be marked with the 'throws' keyword in their signature.",
                 language: .swift,
-                expectedPatterns: ["func\\s+risky\\s*\\(\\s*\\)\\s+throws"],
+                expectedPatterns: ["func\\s+risky\\s*\\(\\s*\\)\\s*throws"],
                 hiddenTests: [
                     HiddenTestCase(input: "do { try risky() } catch { print(\"Caught\") }", expectedOutput: "Caught")
                 ]
@@ -2013,7 +1988,7 @@ extension Question {
                 riddle: "I wrap my argument in parentheses, or the compiler is anxious.",
                 conceptExplanation: "Method calls require parentheses around arguments.",
                 language: .swift,
-                expectedPatterns: ["\\w+\\.append\\(.*\\)"],
+                expectedPatterns: ["\\.append\\s*\\(.*\\)"],
                 hiddenTests: [
                     HiddenTestCase(input: "print(arr)", expectedOutput: "[1, 2, 3, 4]")
                 ]

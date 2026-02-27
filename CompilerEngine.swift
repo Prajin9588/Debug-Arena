@@ -20,34 +20,70 @@ class CompilerEngine {
         
         // Swift Level 1: Enforce expectedPatterns and forbiddenPatterns before interpreter
         // This ensures structural correctness (e.g., return type declaration) is validated
-        // Level 1 Swift Structural Validation
-        var structuralError: String? = nil
         if question.language == .swift && (question.levelNumber == 1 || question.difficulty == 1) {
             let codeOneLine = code.replacingOccurrences(of: "\n", with: " ")
+            let allMatched = !question.expectedPatterns.isEmpty && question.expectedPatterns.allSatisfy { pattern in
+                (try? NSRegularExpression(pattern: pattern))
+                    .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
+                    ?? false
+            }
             
-            // Check Required
-            if !question.expectedPatterns.isEmpty {
-                let matchesPattern = question.expectedPatterns.contains { pattern in
-                    (try? NSRegularExpression(pattern: pattern))
-                        .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
-                        ?? false
-                }
-                if !matchesPattern {
-                    structuralError = "❌ Missing required logic: \(question.conceptExplanation)"
-                }
+            if !allMatched {
+                return EvaluationResult(
+                    questionID: question.id,
+                    status: .incorrect,
+                    score: 0,
+                    level: .failed,
+                    complexity: .low,
+                    edgeCaseHandling: false,
+                    hardcodingDetected: false,
+                    feedback: "❌ Missing required logic: \(question.conceptExplanation)",
+                    difficulty: 1,
+                    testResults: [TestCaseResult(input: "Logic Rule", expected: "Satisfied", actual: "Unsatisfied", passed: false)],
+                    xpEarned: 0,
+                    userSelectedCategory: question.category.rawValue
+                )
             }
             
             // Check Forbidden
-            if structuralError == nil && !question.forbiddenPatterns.isEmpty {
-                let matchesForbidden = question.forbiddenPatterns.contains { pattern in
-                    (try? NSRegularExpression(pattern: pattern))
-                        .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
-                        ?? false
-                }
-                if matchesForbidden {
-                    structuralError = "❌ Forbidden logic detected: \(question.conceptExplanation)"
-                }
+            let matchesForbidden = question.forbiddenPatterns.contains { pattern in
+                (try? NSRegularExpression(pattern: pattern))
+                    .map { $0.firstMatch(in: codeOneLine, range: NSRange(codeOneLine.startIndex..., in: codeOneLine)) != nil }
+                    ?? false
             }
+            
+            if matchesForbidden {
+                return EvaluationResult(
+                    questionID: question.id,
+                    status: .incorrect,
+                    score: 0,
+                    level: .failed,
+                    complexity: .low,
+                    edgeCaseHandling: false,
+                    hardcodingDetected: false,
+                    feedback: "❌ Forbidden logic detected: \(question.conceptExplanation)",
+                    difficulty: 1,
+                    testResults: [TestCaseResult(input: "Logic Rule", expected: "Satisfied", actual: "Forbidden", passed: false)],
+                    xpEarned: 0,
+                    userSelectedCategory: question.category.rawValue
+                )
+            }
+            
+            // If we reach here, Logic Rule is satisfied for Level 1 Swift
+            return EvaluationResult(
+                questionID: question.id,
+                status: .correct,
+                score: 100,
+                level: .passed,
+                complexity: .low,
+                edgeCaseHandling: true,
+                hardcodingDetected: false,
+                feedback: "✅ Passed Level 1 – Swift\nLogic Rule Satisfied",
+                difficulty: 1,
+                testResults: [TestCaseResult(input: "Logic Rule", expected: "Satisfied", actual: "Satisfied", passed: true)],
+                xpEarned: 10,
+                userSelectedCategory: question.category.rawValue
+            )
         }
 
         // 1. Normalize Code
@@ -60,16 +96,15 @@ class CompilerEngine {
         // Variables for scoring
         var score = 50
         var feedbackItems: [String] = []
-        if let err = structuralError { feedbackItems.append(err) }
         
-        var passedHiddenTests = structuralError == nil
+        var passedHiddenTests = true
         var hardcodingDetected = false
         let interpreter = SimpleInterpreter()
         
         // Initial Syntax Check
         let syntaxCheck = interpreter.evaluate(code: code)
         let hasInterpreterSyntaxError = syntaxCheck.contains("Syntax Error:")
-        if hasInterpreterSyntaxError && structuralError == nil {
+        if hasInterpreterSyntaxError {
              feedbackItems.append("⚠️ Compilation Error: \(syntaxCheck.replacingOccurrences(of: "Syntax Error:", with: "").trimmingCharacters(in: .whitespaces))")
         }
         

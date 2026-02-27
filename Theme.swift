@@ -107,6 +107,14 @@ struct Theme {
                 LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
         
+        static var failureGradient: LinearGradient {
+            LinearGradient(
+                colors: [Color(hex: "B71C1C"), Color(hex: "EF4444"), Color(hex: "FF5252")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        
         static var logoGradient: LinearGradient {
             LinearGradient(
                 colors: [Color(hex: "4A7DFF"), Color(hex: "8B5CF6"), Color(hex: "C048FF")],

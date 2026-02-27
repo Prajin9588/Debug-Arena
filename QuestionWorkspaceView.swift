@@ -675,43 +675,47 @@ struct DetailedEvaluationScreen: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    EvaluationResultView(result: result, difficulty: difficulty)
-                    
-                    if result.status == .correct {
-                        Button(action: action) {
-                            HStack {
-                                Image(systemName: "terminal.fill")
-                                Text("COMMIT FIX")
-                            }
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Theme.Colors.primaryGradient)
-                            .cornerRadius(12)
-                            .padding(.horizontal)
+            VStack(spacing: 0) {
+                EvaluationResultView(result: result, difficulty: difficulty)
+                
+                if result.status == .correct {
+                    Button(action: action) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "terminal.fill")
+                                .font(.title3)
+                            Text("COMMIT FIX")
                         }
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 18)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.Colors.primaryGradient)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    
-                    if result.status == .incorrect {
-                        Button(action: action) {
+                    .background(Theme.Colors.background(isDark: Theme.isDarkMode))
+                } else {
+                    Button(action: action) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                                .font(.title3)
                             Text("TRY AGAIN")
-                            .font(Theme.Typography.headline)
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Theme.Colors.action)
-                            .cornerRadius(12)
-                            .padding(.horizontal)
                         }
-                        .padding(.bottom, 40)
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 18)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.Colors.failureGradient)
+                        .cornerRadius(16)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
+                    .background(Theme.Colors.background(isDark: Theme.isDarkMode))
                 }
             }
-            .background(Theme.Colors.background.ignoresSafeArea())
-            .navigationBarHidden(true)
+            .background(Theme.Colors.background(isDark: Theme.isDarkMode))
+            .ignoresSafeArea(edges: .bottom)
         }
     }
 }

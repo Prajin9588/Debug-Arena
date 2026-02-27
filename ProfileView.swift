@@ -23,22 +23,22 @@ struct ProfileView: View {
                 if solved >= total && total > 0 {
                     switch levelIndex + 1 {
                     case 4: return "Debug Master"
-                    case 3: return "Code Detective"
-                    case 2: return "Logic Apprentice"
-                    case 1: return "Rookie Coder"
+                    case 3: return "Code Fixer"
+                    case 2: return "Logic Breaker"
+                    case 1: return "Bug Hunter"
                     default: break
                     }
                 }
             }
-            return "Rookie Coder"
+            return "Novice Debugger"
         } else {
             // Legacy / Other languages logic
             switch gameManager.totalXP {
             case 0..<100: return "Novice Debugger"
-            case 100..<500: return "Code Detective"
-            case 500..<1000: return "Bug Hunter"
-            case 1000..<2500: return "System Architect"
-            default: return "Grandmaster"
+            case 100..<500: return "Bug Hunter"
+            case 500..<1000: return "Logic Breaker"
+            case 1000..<2500: return "Code Fixer"
+            default: return "Debug Master"
             }
         }
     }

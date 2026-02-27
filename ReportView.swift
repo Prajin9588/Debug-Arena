@@ -232,88 +232,115 @@ struct DualLineGraph: View {
     let swiftData: [Double]
     let cData: [Double]
     
+    private let gridFractions: [Double] = [0.0, 0.25, 0.5, 0.75, 1.0]
+    
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                // Grid lines
-                VStack {
-                    Divider()
-                    Spacer()
-                    Divider()
-                    Spacer()
-                    Divider()
+        HStack(spacing: 12) {
+            // Y-Axis Labels
+            VStack {
+                ForEach(gridFractions.reversed(), id: \.self) { fraction in
+                    Text("\(Int(fraction * 100))%")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
+                    if fraction > 0 { Spacer() }
                 }
-                
-                // C Line (Blue)
-                Path { path in
-                    drawPath(in: &path, data: cData, rect: proxy.frame(in: .local))
-                }
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                
-                // Swift Line (Custom)
-                Path { path in
-                    drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local))
-                }
-                .stroke(Theme.swiftAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                
-                // Swift Fill
-                Path { path in
-                    drawPath(in: &path, data: swiftData, rect: proxy.frame(in: .local), closed: true)
-                }
-                .fill(LinearGradient(colors: [Theme.swiftAccent.opacity(0.2), Theme.swiftAccent.opacity(0.0)], startPoint: .top, endPoint: .bottom))
-                
-                // C Markers
-                if cData.count > 0 {
-                    ForEach(0..<cData.count, id: \.self) { index in
-                        let stepX = proxy.size.width / CGFloat(max(cData.count - 1, 1))
-                        let x = CGFloat(index) * stepX
-                        let y = proxy.size.height - (CGFloat(cData[index]) / 100.0 * proxy.size.height)
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 6, height: 6)
-                            .position(x: x, y: y)
+            }
+            .frame(width: 35)
+            .padding(.vertical, 2)
+            
+            GeometryReader { proxy in
+                ZStack {
+                    // Grid lines (Horizontal)
+                    VStack(spacing: 0) {
+                        ForEach(gridFractions, id: \.self) { fraction in
+                            Rectangle()
+                                .fill(Theme.Colors.textSecondary.opacity(0.1))
+                                .frame(height: 1)
+                            if fraction != gridFractions.last { Spacer() }
+                        }
                     }
-                }
-                
-                // Swift Markers
-                if swiftData.count > 0 {
-                    ForEach(0..<swiftData.count, id: \.self) { index in
-                        let stepX = proxy.size.width / CGFloat(max(swiftData.count - 1, 1))
-                        let x = CGFloat(index) * stepX
-                        let y = proxy.size.height - (CGFloat(swiftData[index]) / 100.0 * proxy.size.height)
-                        Circle()
-                            .fill(Theme.swiftAccent)
-                            .frame(width: 6, height: 6)
-                            .position(x: x, y: y)
+                    
+                    // Grid lines (Vertical - Sparsely)
+                    HStack(spacing: 0) {
+                        ForEach(0..<5) { _ in
+                            Rectangle()
+                                .fill(Theme.Colors.textSecondary.opacity(0.05))
+                                .frame(width: 1)
+                            Spacer()
+                        }
                     }
+                    
+                    // C Progress Line
+                    chartLine(data: cData, color: Color.blue, rect: proxy.frame(in: .local), showFill: false)
+                    
+                    // Swift Progress Line
+                    chartLine(data: swiftData, color: Theme.swiftAccent, rect: proxy.frame(in: .local), showFill: true)
                 }
-                
-                // Dots for last points
-                /* Optional dots */
             }
         }
-        .padding(10)
+    }
+    
+    @ViewBuilder
+    private func chartLine(data: [Double], color: Color, rect: CGRect, showFill: Bool) -> some View {
+        let count = data.count
+        if count > 0 {
+            Group {
+                // Fill Area
+                if showFill {
+                    Path { path in
+                        drawPath(in: &path, data: data, rect: rect, closed: true)
+                    }
+                    .fill(LinearGradient(
+                        colors: [color.opacity(0.25), color.opacity(0.0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ))
+                }
+                
+                // Main Line
+                Path { path in
+                    drawPath(in: &path, data: data, rect: rect)
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round))
+                .shadow(color: color.opacity(0.3), radius: 4, x: 0, y: 3)
+            }
+        }
+    }
+    
+    private func getX(index: Int, count: Int, width: CGFloat) -> CGFloat {
+        guard count > 1 else { return width }
+        let stepX = width / CGFloat(count - 1)
+        return CGFloat(index) * stepX
+    }
+    
+    private func getY(value: Double, height: CGFloat) -> CGFloat {
+        let maxY = 100.0
+        let normalizedValue = min(max(value, 0), maxY)
+        return height - (CGFloat(normalizedValue) / maxY * height)
     }
     
     private func drawPath(in path: inout Path, data: [Double], rect: CGRect, closed: Bool = false) {
-        guard data.count > 0 else { return }
+        let count = data.count
+        guard count > 0 else { return }
         
-        let stepX = rect.width / CGFloat(max(data.count - 1, 1))
-        let maxY = 100.0 // Accuracy is 0-100
-        
-        // Safe mapping
-        let p0 = CGPoint(x: 0, y: rect.height - (CGFloat(data[0]) / maxY * rect.height))
+        let p0 = CGPoint(x: getX(index: 0, count: count, width: rect.width),
+                         y: getY(value: data[0], height: rect.height))
         path.move(to: p0)
         
-        for index in 1..<data.count {
-            let val = data[index]
-            let x = CGFloat(index) * stepX
-            let y = rect.height - (CGFloat(val) / maxY * rect.height)
-            path.addLine(to: CGPoint(x: x, y: y))
+        if count == 1 {
+            // Visualize a single point as a short segment if necessary, but markers handle it better
+            path.addLine(to: CGPoint(x: rect.width, y: p0.y))
+        } else {
+            for index in 1..<count {
+                let x = getX(index: index, count: count, width: rect.width)
+                let y = getY(value: data[index], height: rect.height)
+                path.addLine(to: CGPoint(x: x, y: y))
+            }
         }
         
-        if closed && data.count > 1 {
-            path.addLine(to: CGPoint(x: CGFloat(data.count - 1) * stepX, y: rect.height))
+        if closed {
+            let lastX = count == 1 ? rect.width : getX(index: count - 1, count: count, width: rect.width)
+            path.addLine(to: CGPoint(x: lastX, y: rect.height))
             path.addLine(to: CGPoint(x: 0, y: rect.height))
             path.closeSubpath()
         }

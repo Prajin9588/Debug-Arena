@@ -6,11 +6,12 @@ struct EvaluationResultView: View {
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
-        renderDetailedEvaluation()
-            .padding(.vertical)
-            .background(Theme.Colors.background(isDark: result.status == .correct ? Theme.isDarkMode : Theme.isDarkMode)) 
-            .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
-            .frame(maxWidth: .infinity)
+        ScrollView {
+            renderDetailedEvaluation()
+                .padding(.vertical, 32)
+        }
+        .background(Theme.Colors.background(isDark: Theme.isDarkMode)) 
+        .frame(maxWidth: .infinity)
     }
     
     // MARK: - Level 2 Detailed Evaluation
@@ -83,14 +84,12 @@ struct EvaluationResultView: View {
                 
                 adaptiveExplanationBlock
             }
-            .padding(20)
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.Colors.secondaryBackground)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke((result.status == .correct ? Theme.Colors.softGreen : Theme.Colors.mutedRed).opacity(0.3), lineWidth: 1)
-            )
-            .padding(.horizontal)
+            .cornerRadius(20)
+            .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+            .padding(.horizontal, 12)
             
             // 3. Feedback Section
             VStack(alignment: .leading, spacing: 15) {
@@ -150,11 +149,11 @@ struct EvaluationResultView: View {
                 HStack(spacing: 20) {
                     rewardItem(icon: AnyView(Text("⚡️").font(.system(size: 14))), label: "+\(result.xpEarned) XP")
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)
-                .background(Theme.Colors.success.opacity(0.05))
-                .cornerRadius(12)
-                .padding(.horizontal)
+                .background(Theme.Colors.success.opacity(0.1))
+                .cornerRadius(16)
+                .padding(.horizontal, 12)
             }
         }
     }
