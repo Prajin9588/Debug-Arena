@@ -79,7 +79,10 @@ struct EvaluationResultView: View {
                     compilerErrorMessage
                 }
                 
-                adaptiveExplanationBlock
+                // Hide explanation for Level 2 failures as per request
+                if difficulty != 2 || result.status == .correct {
+                    adaptiveExplanationBlock
+                }
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -88,57 +91,59 @@ struct EvaluationResultView: View {
             .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
             .padding(.horizontal, 12)
             
-            // 3. Feedback Section
-            VStack(alignment: .leading, spacing: 15) {
-                HStack {
-                    Text("FEEDBACK")
-                        .font(Theme.Typography.caption2)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                        .tracking(2)
-                    Spacer()
-                    
-                    let passedCount = result.testResults.filter { $0.passed }.count
-                    Text("Passed \(passedCount)/\(result.testResults.count) tests")
-                        .font(Theme.Typography.caption2)
-                        .foregroundColor(Theme.Colors.textSecondary)
-                }
-                .padding(.horizontal)
-                
-                VStack(spacing: 12) {
-                    ForEach(result.testResults.indices, id: \.self) { index in
-                        let test = result.testResults[index]
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Image(systemName: test.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .foregroundColor(test.passed ? Theme.Colors.success : Theme.Colors.error)
-                                Text("Test \(index + 1) \(test.passed ? "Passed" : "Failed")")
-                                    .font(Theme.Typography.headline)
-                                    .foregroundColor(Theme.Colors.textPrimary)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                if !test.input.isEmpty && test.input != "Main execution" {
-                                    feedbackRow(label: "Input", value: test.input)
-                                }
-                                if !test.expected.isEmpty {
-                                    feedbackRow(label: "Expected", value: test.expected)
-                                }
-                                if !test.actual.isEmpty {
-                                    feedbackRow(label: "Actual", value: test.actual, color: test.passed ? Theme.Colors.textSecondary : Theme.Colors.error)
-                                }
-                            }
-                            .padding(.leading, 28)
-                        }
-                        .padding()
-                        .background(Theme.Colors.secondaryBackground.opacity(0.5))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(test.passed ? Theme.Colors.success.opacity(0.2) : Theme.Colors.error.opacity(0.2), lineWidth: 1)
-                        )
+            // 3. Feedback Section - Hide for Level 2 failures
+            if difficulty != 2 || result.status == .correct {
+                VStack(alignment: .leading, spacing: 15) {
+                    HStack {
+                        Text("FEEDBACK")
+                            .font(Theme.Typography.caption2)
+                            .foregroundColor(Theme.Colors.textSecondary)
+                            .tracking(2)
+                        Spacer()
+                        
+                        let passedCount = result.testResults.filter { $0.passed }.count
+                        Text("Passed \(passedCount)/\(result.testResults.count) tests")
+                            .font(Theme.Typography.caption2)
+                            .foregroundColor(Theme.Colors.textSecondary)
                     }
+                    .padding(.horizontal)
+                    
+                    VStack(spacing: 12) {
+                        ForEach(result.testResults.indices, id: \.self) { index in
+                            let test = result.testResults[index]
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Image(systemName: test.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .foregroundColor(test.passed ? Theme.Colors.success : Theme.Colors.error)
+                                    Text("Test \(index + 1) \(test.passed ? "Passed" : "Failed")")
+                                        .font(Theme.Typography.headline)
+                                        .foregroundColor(Theme.Colors.textPrimary)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 6) {
+                                    if !test.input.isEmpty && test.input != "Main execution" {
+                                        feedbackRow(label: "Input", value: test.input)
+                                    }
+                                    if !test.expected.isEmpty {
+                                        feedbackRow(label: "Expected", value: test.expected)
+                                    }
+                                    if !test.actual.isEmpty {
+                                        feedbackRow(label: "Actual", value: test.actual, color: test.passed ? Theme.Colors.textSecondary : Theme.Colors.error)
+                                    }
+                                }
+                                .padding(.leading, 28)
+                            }
+                            .padding()
+                            .background(Theme.Colors.secondaryBackground.opacity(0.5))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(test.passed ? Theme.Colors.success.opacity(0.2) : Theme.Colors.error.opacity(0.2), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
             }
             
             // Inline Rewards
@@ -269,6 +274,59 @@ struct EvaluationResultView: View {
             Text(label)
                 .font(Theme.Typography.headline)
                 .foregroundColor(Theme.Colors.softGreen)
+        }
+    }
+}
+
+// MARK: - Detailed Evaluation Screen (Shared)
+struct DetailedEvaluationScreen: View {
+    let result: EvaluationResult
+    let difficulty: Int
+    let action: () -> Void
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
+                    EvaluationResultView(result: result, difficulty: difficulty)
+                    
+                    if result.status == .correct {
+                        Button(action: action) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "terminal.fill")
+                                    .font(.title3)
+                                Text("COMMIT FIX")
+                            }
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.primaryGradient)
+                            .cornerRadius(16)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 40)
+                        }
+                    } else {
+                        Button(action: action) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                    .font(.title3)
+                                Text("TRY AGAIN")
+                            }
+                            .font(Theme.Typography.headline)
+                            .foregroundColor(.white)
+                            .padding(.vertical, 18)
+                            .frame(maxWidth: .infinity)
+                            .background(Theme.Colors.failureGradient)
+                            .cornerRadius(16)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 40)
+                        }
+                    }
+                }
+            }
+            .background(Theme.Colors.background(isDark: Theme.isDarkMode))
+            .ignoresSafeArea(edges: .bottom)
         }
     }
 }

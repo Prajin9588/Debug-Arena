@@ -29,6 +29,7 @@ struct ShiftQuestionView: View {
     @State private var showFeedback = false
     @State private var feedbackType: FeedbackType = .neutral
     @State private var hasTriggeredAppearAnimation = false
+    @State private var showDetailedResult = false
     
     enum FeedbackType {
         case success, error, neutral
@@ -131,7 +132,33 @@ struct ShiftQuestionView: View {
             }
             .frame(maxWidth: horizontalSizeClass == .regular ? 800 : .infinity)
             .frame(maxWidth: .infinity)
-            .blur(radius: showReasoningSheet ? 5 : 0)
+            .blur(radius: (showReasoningSheet || showDetailedResult) ? 5 : 0)
+            
+            // Fixed commit button at the bottom (Standard Level 1,2 style)
+            VStack {
+                Spacer()
+                if gameManager.getShiftProgress(for: currentQuestion) >= 1.0 {
+                    Button(action: {
+                        triggerManualEvaluation()
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "terminal.fill")
+                                .font(.title3)
+                            Text("COMMIT INVESTIGATION")
+                        }
+                        .font(Theme.Typography.headline)
+                        .foregroundColor(.white)
+                        .padding(.vertical, 16)
+                        .frame(maxWidth: .infinity)
+                        .background(Theme.Colors.primaryGradient)
+                        .cornerRadius(16)
+                        .shadow(color: Theme.Colors.softGreen.opacity(0.3), radius: 10, x: 0, y: 5)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             
             // Reasoning Sheet Overlay
             if showReasoningSheet, let line = selectedLine {
@@ -150,51 +177,6 @@ struct ShiftQuestionView: View {
                 .frame(maxWidth: horizontalSizeClass == .regular ? 600 : .infinity)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(10)
-            }
-            
-            // Evaluation Result Overlay (Level Completion)
-            if let result = evaluationResult {
-                ZStack {
-                    Color.black.opacity(0.4).ignoresSafeArea()
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            EvaluationResultView(result: result, difficulty: currentQuestion.difficulty)
-                            
-                            if result.status == .correct {
-                                Button(action: { dismiss() }) {
-                                    HStack {
-                                        Image(systemName: "terminal.fill")
-                                        Text("COMMIT FIX")
-                                    }
-                                    .font(Theme.Typography.headline)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(Theme.Colors.primaryGradient)
-                                    .cornerRadius(12)
-                                }
-                            } else {
-                                Button(action: { evaluationResult = nil }) {
-                                    HStack {
-                                        Image(systemName: "arrow.counterclockwise.circle.fill")
-                                        Text("TRY AGAIN")
-                                    }
-                                    .font(Theme.Typography.headline)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(Theme.Colors.failureGradient)
-                                    .cornerRadius(12)
-                                }
-                            }
-                        }
-                        .padding(horizontalSizeClass == .regular ? 40 : 20)
-                        .frame(maxWidth: horizontalSizeClass == .regular ? 500 : .infinity)
-                        .padding(.horizontal)
-                        .padding(.vertical, 40)
-                    }
-                }
-                .zIndex(20)
             }
             
             // Feedback Toast
@@ -221,6 +203,18 @@ struct ShiftQuestionView: View {
                         if showFeedback {
                             withAnimation { showFeedback = false }
                         }
+                    }
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showDetailedResult) {
+            if let result = evaluationResult {
+                DetailedEvaluationScreen(result: result, difficulty: currentQuestion.difficulty) {
+                    showDetailedResult = false
+                    if result.status == .correct {
+                        dismiss()
+                    } else {
+                        evaluationResult = nil
                     }
                 }
             }
@@ -342,7 +336,7 @@ struct ShiftQuestionView: View {
                     for opt in selectedOptions {
                         gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
                     }
-                    checkCompletion()
+                    // checkCompletion() // Removed auto-trigger to allow manual COMMIT
                 } else {
                         // Level 1-2: Strict check
                         if allMatched {
@@ -352,7 +346,7 @@ struct ShiftQuestionView: View {
                             for opt in selectedOptions {
                                 gameManager.markShiftOptionFound(questionTitle: currentQuestion.title, optionId: opt.id)
                             }
-                            checkCompletion()
+                            // checkCompletion() // Removed auto-trigger
                         } else {
                             verdict = .weakReasoning
                             feedbackMsg = "⚠️ WEAK REASONING: Please explain the concepts more clearly in your own words."
@@ -487,29 +481,34 @@ struct ShiftQuestionView: View {
         return false
     }
     
-    private func checkCompletion() {
+    private func triggerManualEvaluation() {
         let progress = gameManager.getShiftProgress(for: currentQuestion)
         if progress >= 1.0 {
             // Level Complete
             gameManager.handleShiftCompletion(for: currentQuestion)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.evaluationResult = EvaluationResult(
-                    questionID: currentQuestion.id,
-                    status: .correct,
-                    score: 100,
-                    level: .expert,
-                    complexity: .medium,
-                    edgeCaseHandling: true,
-                    hardcodingDetected: false,
-                    feedback: "✅ All logical errors identified.",
-                    testResults: [
-                        TestCaseResult(input: "(Standard Execution)", expected: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", actual: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", passed: true)
-                    ],
-                    xpEarned: 10
-                )
+            self.evaluationResult = EvaluationResult(
+                questionID: currentQuestion.id,
+                status: .correct,
+                score: 100,
+                level: .expert,
+                complexity: .medium,
+                edgeCaseHandling: true,
+                hardcodingDetected: false,
+                feedback: "✅ All logical errors identified and verified.",
+                testResults: [
+                    TestCaseResult(input: "(Standard Execution)", expected: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", actual: currentQuestion.hiddenTests?.first?.expectedOutput ?? "Resolved", passed: true)
+                ],
+                xpEarned: 10
+            )
+            withAnimation {
+                self.showDetailedResult = true
             }
         }
+    }
+    
+    private func checkCompletion() {
+        // Obsolete auto-trigger removed in favor of manual COMMIT
     }
 }
 // MARK: - Components

@@ -103,11 +103,12 @@ class GameManager: ObservableObject {
     @Published var history: [HistoryEntry] = []
     @Published var lastCompletedDate: Date?
     @Published var longestStreak: Int = 0
+    @Published var unlockedLevels: Set<String> = []
     @Published var showStreakResetNotification: Bool = false
     @Published var streakResetMessage: String?
     
     // UI & Flags
-    @Published var isTestingMode: Bool = true
+    @Published var isTestingMode: Bool = false
     @Published var onboardingCompleted: Bool = false
     @Published var showOnboarding: Bool = false
     @Published var onboardingStep: Int = 0
@@ -289,8 +290,18 @@ class GameManager: ObservableObject {
     
     func refreshQuestions() {
         self.levels = Question.levels(for: selectedLanguage)
+        syncLevelUnlockState()
         if isTestingMode { unlockAllLevelsInternal() }
         populateQuestionMetadata()
+    }
+    
+    private func syncLevelUnlockState() {
+        for i in 0..<levels.count {
+            let key = "\(selectedLanguage.rawValue)_\(levels[i].number)"
+            if unlockedLevels.contains(key) {
+                levels[i].unlocked = true
+            }
+        }
     }
     
     func resetQuestionState(for question: Question) {
@@ -299,9 +310,11 @@ class GameManager: ObservableObject {
     }
     
     func questionsRequiredForNextLevel(levelIndex: Int) -> Int {
-        if levelIndex == 0 { return 25 }
-        if levelIndex == 2 { return 15 }
-        return levels.indices.contains(levelIndex) ? levels[levelIndex].totalQuestions : 0
+        guard levels.indices.contains(levelIndex) else { return 0 }
+        
+        // Use the actual count of questions as the threshold for Level 1 and 2
+        // while maintaining specific logic for others if needed.
+        return levels[levelIndex].questions.count
     }
     
     func unlockThresholdReached(for levelIndex: Int) -> Bool {
@@ -315,7 +328,7 @@ class GameManager: ObservableObject {
             level: GameLevel(fromIndex: index),
             isShiftMode: isShiftMode
         )
-        return progressStorage[key]?.completed ?? 0
+        return progressStorage[key]?.completedIds.count ?? 0
     }
     
     // MARK: - Gameplay Logic
@@ -375,9 +388,15 @@ class GameManager: ObservableObject {
         guard nextIdx < levels.count else { return }
         
         let threshold = questionsRequiredForNextLevel(levelIndex: currentLevelIndex)
-        if completedInLevel >= threshold && !levels[nextIdx].unlocked {
-            levels[nextIdx].unlocked = true
-            executionState = .levelComplete(nextIdx + 1, false)
+        if completedInLevel >= threshold {
+            let nextLevelNumber = levels[nextIdx].number
+            let key = "\(selectedLanguage.rawValue)_\(nextLevelNumber)"
+            if !unlockedLevels.contains(key) {
+                unlockedLevels.insert(key)
+                syncLevelUnlockState()
+                executionState = .levelComplete(nextLevelNumber, false)
+                saveProgress()
+            }
         }
     }
     
@@ -433,6 +452,7 @@ class GameManager: ObservableObject {
         UserDefaults.standard.set(longestStreak, forKey: "debug_lab_longest_streak_v6")
         UserDefaults.standard.set(lastCompletedDate, forKey: "debug_lab_last_date_v6")
         UserDefaults.standard.set(isDarkMode, forKey: "debug_lab_dark_v6")
+        UserDefaults.standard.set(Array(unlockedLevels), forKey: "debug_lab_unlocked_levels_v6")
         if let data = try? JSONEncoder().encode(shiftFoundOptionIds) { UserDefaults.standard.set(data, forKey: "debug_lab_shift_v6") }
     }
     
@@ -444,12 +464,17 @@ class GameManager: ObservableObject {
         longestStreak = UserDefaults.standard.integer(forKey: "debug_lab_longest_streak_v6")
         lastCompletedDate = UserDefaults.standard.object(forKey: "debug_lab_last_date_v6") as? Date
         isDarkMode = UserDefaults.standard.bool(forKey: "debug_lab_dark_v6")
+        if let unlocked = UserDefaults.standard.stringArray(forKey: "debug_lab_unlocked_levels_v6") { unlockedLevels = Set(unlocked) }
         if let data = UserDefaults.standard.data(forKey: "debug_lab_shift_v6"), let decoded = try? JSONDecoder().decode([String: Set<UUID>].self, from: data) { shiftFoundOptionIds = decoded }
         refreshQuestions()
     }
     
     private func setupInitialState() {
-        if !levels.isEmpty { levels[0].unlocked = true }
+        // Automatically unlock level 1 for all languages
+        for lang in Language.allCases {
+            unlockedLevels.insert("\(lang.rawValue)_1")
+        }
+        syncLevelUnlockState()
     }
     
     private func populateQuestionMetadata() {

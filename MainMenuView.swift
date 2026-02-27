@@ -262,7 +262,7 @@ struct ProgressOverviewCard: View {
                     .font(Theme.Typography.headline)
                     .foregroundColor(Theme.Colors.textPrimary)
                 if levelIndex == 3 {
-                    Text("Keep sharpening your logic in Level 4")
+                    Text("\(completed) / \(required) Mastered in Level 4")
                         .font(Theme.Typography.subheadline)
                         .foregroundColor(Theme.Colors.textSecondary)
                 } else {
